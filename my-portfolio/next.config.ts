@@ -4,11 +4,10 @@ const nextConfig: NextConfig = {
   // GitHub Pages 部署需要静态导出
   output: "export",
 
-  // 如果你的 GitHub 仓库名不是 username.github.io，
-  // 需要设置 basePath 为你的仓库名，例如：
-  // basePath: "/my-portfolio",
-  // 同时取消注释下面的 trailingSlash
-  // trailingSlash: true,
+  // 仓库名 nwalmolos → basePath 必须设为 /nwalmolos
+  // 这样所有静态资源路径才会正确（CSS/JS/图片等）
+  basePath: "/nwalmolos",
+  trailingSlash: true,
 
   typescript: {
     ignoreBuildErrors: true,
