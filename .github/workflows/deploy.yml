@@ -1,22 +1,22 @@
 # ──────────────────────────────────────────────────────────
-# Deploy to GitHub Pages
+# Deploy to GitHub Pages（官方推荐方式）
 #
-# 此工作流会在推送到 main 分支时自动构建并部署静态站点。
-# 部署目标：gh-pages 分支（这是 GitHub Pages 的发布源）
+# 此工作流使用 GitHub 官方的 Pages 部署 actions，
+# 兼容 "GitHub Actions" 和 "Deploy from a branch" 两种源配置。
 #
-# ⚠️ 重要：gh-pages 分支是自动生成的，不要手动修改或删除！
-#    GitHub Pages 会从 gh-pages 分支读取内容并发布。
-#
-# 配置步骤：
+# ⚠️ 配置步骤（必须完成！）：
 #    1. 进入 GitHub 仓库 → Settings → Pages
-#    2. Source 选择 "Deploy from a branch"
-#    3. Branch 选择 "gh-pages" + "/ (root)"
-#    4. 保存
+#    2. Source 选择 "GitHub Actions"（推荐）
+#    3. 保存
 #
-# 如果部署失败，检查：
-#    - Settings → Pages → Source 是否选择了 gh-pages
-#    - Actions 页面是否有报错
-#    - package-lock.json 是否存在（npm ci 需要）
+# 如果之前配置的是 "Deploy from a branch" + "gh-pages"：
+#    → 请改为 "GitHub Actions"，本工作流会自动处理部署
+#
+# gh-pages 分支说明：
+#    - 如果存在 gh-pages 分支，它是之前 peaceiris 方式遗留的
+#    - 使用新工作流后不再需要 gh-pages 分支，可以安全删除
+#    - 删除方法: git push origin --delete gh-pages
+#
 # ──────────────────────────────────────────────────────────
 
 name: Deploy to GitHub Pages
@@ -27,10 +27,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# 允许只有一个部署运行，跳过中间的排队
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -56,19 +63,23 @@ jobs:
         run: |
           echo "=== Build output ==="
           ls -la out/
-          echo "=== _next static ==="
-          ls -la out/_next/static/chunks/ || echo "No chunks!"
           echo "=== index.html check ==="
           head -5 out/index.html
           echo "=== .nojekyll check ==="
           ls -la out/.nojekyll
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
-          publish_branch: gh-pages
-          force_orphan: true
-          user_name: "github-actions[bot]"
-          user_email: "github-actions[bot]@users.noreply.github.com"
+          path: out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
