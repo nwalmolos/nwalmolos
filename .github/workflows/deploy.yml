@@ -1,3 +1,24 @@
+# ──────────────────────────────────────────────────────────
+# Deploy to GitHub Pages
+#
+# 此工作流会在推送到 main 分支时自动构建并部署静态站点。
+# 部署目标：gh-pages 分支（这是 GitHub Pages 的发布源）
+#
+# ⚠️ 重要：gh-pages 分支是自动生成的，不要手动修改或删除！
+#    GitHub Pages 会从 gh-pages 分支读取内容并发布。
+#
+# 配置步骤：
+#    1. 进入 GitHub 仓库 → Settings → Pages
+#    2. Source 选择 "Deploy from a branch"
+#    3. Branch 选择 "gh-pages" + "/ (root)"
+#    4. 保存
+#
+# 如果部署失败，检查：
+#    - Settings → Pages → Source 是否选择了 gh-pages
+#    - Actions 页面是否有报错
+#    - package-lock.json 是否存在（npm ci 需要）
+# ──────────────────────────────────────────────────────────
+
 name: Deploy to GitHub Pages
 
 on:
@@ -30,9 +51,6 @@ jobs:
 
       - name: Add .nojekyll
         run: touch out/.nojekyll
-
-      - name: Add CNAME (optional)
-        run: echo "" > out/CNAME
 
       - name: Verify build output
         run: |

@@ -84,11 +84,18 @@
   }
   body {
     @apply bg-background text-foreground;
-    cursor: none;
+    cursor: none !important;
   }
-  /* Hide default cursor on interactive elements */
-  a, button, [data-cursor="pointer"] {
-    cursor: none;
+  /* Q2 FIX: 彻底隐藏所有可交互元素的默认光标 */
+  a, button, [data-cursor="pointer"],
+  a *, button *, [data-cursor="pointer"] *,
+  [role="button"], [role="link"],
+  input, textarea, select,
+  [tabindex],
+  summary,
+  [draggable],
+  label[for] {
+    cursor: none !important;
   }
 }
 

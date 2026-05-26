@@ -22,6 +22,7 @@ import {
   Layers,
   Code2,
   Palette,
+  ExternalLink,
 } from 'lucide-react'
 import { SmokeyFluidCursor } from 'react-smokey-fluid-cursor'
 
@@ -37,8 +38,8 @@ const SITE_CONFIG = {
     items: [
       { label: 'About', href: '#about' },
       { label: 'Projects', href: '#projects' },
-      { label: 'Contact', href: '#contact' },
     ],
+    // Q3 FIX: "Get in Touch" CTA 导航到 #contact，不再与 nav items 重复
     cta: { label: 'Get in Touch', href: '#contact' },
   },
 
@@ -73,7 +74,7 @@ const SITE_CONFIG = {
     ],
   },
 
-  // Projects 区域
+  // Projects 区域 — Q1 FIX: 改善排版
   projects: {
     sectionLabel: '02 — Projects',
     title1: 'Selected',
@@ -86,6 +87,7 @@ const SITE_CONFIG = {
         tags: ['React', 'WebSocket', 'Canvas API'],
         year: '2025',
         url: '#',
+        image: '', // 可选：项目图片 URL
       },
       {
         title: 'Nebula Dashboard',
@@ -94,6 +96,7 @@ const SITE_CONFIG = {
         tags: ['Next.js', 'Three.js', 'D3.js'],
         year: '2025',
         url: '#',
+        image: '',
       },
       {
         title: 'Echo Studio',
@@ -102,6 +105,7 @@ const SITE_CONFIG = {
         tags: ['WebGL', 'Web Audio', 'GLSL'],
         year: '2024',
         url: '#',
+        image: '',
       },
       {
         title: 'Flux Engine',
@@ -110,6 +114,7 @@ const SITE_CONFIG = {
         tags: ['TypeScript', 'Animation', 'Open Source'],
         year: '2024',
         url: '#',
+        image: '',
       },
     ],
   },
@@ -153,25 +158,39 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 }
 
 /* ═══════════════════════════════════════════════════════
-   平滑滚动工具函数
+   Q4/Q5 FIX: 平滑滚动 + 动画触发工具函数
+   先跳到目标上方，再平滑滚动下去，确保触发 scroll 动画
    ═══════════════════════════════════════════════════════ */
 
 function scrollToElement(id: string) {
   const el = document.getElementById(id)
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // 先瞬间跳到目标上方一段距离，再平滑滚动到目标
+    // 这样可以确保目标元素"离开视口再进入"，从而触发 useInView 动画
+    const offset = 200
+    const targetTop = el.getBoundingClientRect().top + window.scrollY - offset
+    window.scrollTo({ top: targetTop, behavior: 'instant' as ScrollBehavior })
+    // 短暂延迟后平滑滚动到实际位置
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 }
 
 /* ═══════════════════════════════════════════════════════
-   1. CUSTOM CURSOR — 自定义光标 (dot + ring)
+   1. CUSTOM CURSOR — Q2 FIX: 增强悬停可点击元素时的视觉反馈
+   - 可点击元素：dot 变大 + 变色，ring 变大 + 颜色加深 + 显示 "VIEW" 文字
+   - 不可点击时：保持小 dot + 细 ring
    ═══════════════════════════════════════════════════════ */
 
 function CustomCursor() {
   const dotRef = useRef<HTMLDivElement>(null)
   const ringRef = useRef<HTMLDivElement>(null)
+  const labelRef = useRef<HTMLSpanElement>(null)
   const [hovering, setHovering] = useState(false)
+  const [hoverLabel, setHoverLabel] = useState('')
   const [hidden, setHidden] = useState(true)
+  const [clicking, setClicking] = useState(false)
 
   useEffect(() => {
     let ringX = 0, ringY = 0
@@ -183,43 +202,67 @@ function CustomCursor() {
       mouseY = e.clientY
       setHidden(false)
       if (dotRef.current) {
-        dotRef.current.style.transform = `translate(${mouseX - 4}px, ${mouseY - 4}px)`
+        const dotSize = hovering ? 12 : 8
+        dotRef.current.style.transform = `translate(${mouseX - dotSize / 2}px, ${mouseY - dotSize / 2}px)`
       }
     }
 
     const animate = () => {
-      ringX += (mouseX - ringX) * 0.15
-      ringY += (mouseY - ringY) * 0.15
+      ringX += (mouseX - ringX) * 0.12
+      ringY += (mouseY - ringY) * 0.12
       if (ringRef.current) {
-        const scale = hovering ? 1.8 : 1
-        const opacity = hovering ? 0.5 : 0.3
-        ringRef.current.style.transform = `translate(${ringX - 20}px, ${ringY - 20}px) scale(${scale})`
-        ringRef.current.style.opacity = String(opacity)
+        const ringSize = hovering ? 56 : 40
+        const scale = clicking ? 0.85 : hovering ? 1.2 : 1
+        ringRef.current.style.transform = `translate(${ringX - ringSize / 2}px, ${ringY - ringSize / 2}px) scale(${scale})`
+      }
+      if (labelRef.current) {
+        labelRef.current.style.transform = `translate(${ringX - 20}px, ${ringY + 32}px)`
       }
       raf = requestAnimationFrame(animate)
     }
 
+    const getHoverInfo = (target: HTMLElement): { isHoverable: boolean; label: string } => {
+      // 检查元素本身或最近的交互父元素
+      const interactiveEl = target.closest('a, button, [data-cursor="pointer"]') as HTMLElement | null
+      if (!interactiveEl) return { isHoverable: false, label: '' }
+
+      // 根据元素类型决定标签文字
+      if (interactiveEl.tagName === 'A') {
+        const href = interactiveEl.getAttribute('href') || ''
+        if (href.startsWith('#')) return { isHoverable: true, label: 'GO' }
+        if (href.startsWith('mailto:')) return { isHoverable: true, label: 'MAIL' }
+        return { isHoverable: true, label: 'VIEW' }
+      }
+      if (interactiveEl.tagName === 'BUTTON') return { isHoverable: true, label: 'TAP' }
+      if (interactiveEl.dataset.cursor === 'pointer') return { isHoverable: true, label: 'VIEW' }
+
+      return { isHoverable: true, label: '' }
+    }
+
     const onOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      if (
-        target.tagName === 'A' ||
-        target.tagName === 'BUTTON' ||
-        target.closest('a') ||
-        target.closest('button') ||
-        target.dataset.cursor === 'pointer'
-      ) {
+      const { isHoverable, label } = getHoverInfo(target)
+      if (isHoverable) {
         setHovering(true)
+        setHoverLabel(label)
       }
     }
-    const onOut = () => setHovering(false)
+    const onOut = () => {
+      setHovering(false)
+      setHoverLabel('')
+    }
     const onLeave = () => setHidden(true)
     const onEnter = () => setHidden(false)
+    const onMouseDown = () => setClicking(true)
+    const onMouseUp = () => setClicking(false)
 
     window.addEventListener('mousemove', onMove)
     document.addEventListener('mouseover', onOver)
     document.addEventListener('mouseout', onOut)
     document.addEventListener('mouseleave', onLeave)
     document.addEventListener('mouseenter', onEnter)
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('mouseup', onMouseUp)
     raf = requestAnimationFrame(animate)
 
     return () => {
@@ -228,39 +271,70 @@ function CustomCursor() {
       document.removeEventListener('mouseout', onOut)
       document.removeEventListener('mouseleave', onLeave)
       document.removeEventListener('mouseenter', onEnter)
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mouseup', onMouseUp)
       cancelAnimationFrame(raf)
     }
-  }, [hovering])
+  }, [hovering, clicking])
 
   return (
     <>
+      {/* Dot — 悬停时变大变亮 */}
       <div
         ref={dotRef}
-        className="fixed top-0 left-0 z-[9999] pointer-events-none mix-blend-difference"
+        className="fixed top-0 left-0 z-[9999] pointer-events-none"
         style={{
-          width: 8, height: 8, borderRadius: '50%', backgroundColor: '#fff',
-          opacity: hidden ? 0 : 1, transition: 'opacity 0.2s',
+          width: hovering ? 12 : 8,
+          height: hovering ? 12 : 8,
+          borderRadius: '50%',
+          backgroundColor: hovering ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)',
+          opacity: hidden ? 0 : 1,
+          transition: 'width 0.25s ease, height 0.25s ease, background-color 0.25s ease, opacity 0.2s',
+          mixBlendMode: 'difference',
         }}
       />
+      {/* Ring — 悬停时变大变亮 */}
       <div
         ref={ringRef}
         className="fixed top-0 left-0 z-[9998] pointer-events-none"
         style={{
-          width: 40, height: 40, borderRadius: '50%',
-          border: '1.5px solid rgba(255,255,255,0.3)',
-          opacity: hidden ? 0 : 0.3, transition: 'opacity 0.3s',
+          width: hovering ? 56 : 40,
+          height: hovering ? 56 : 40,
+          borderRadius: '50%',
+          border: hovering
+            ? '1.5px solid rgba(255,255,255,0.5)'
+            : '1.5px solid rgba(255,255,255,0.2)',
+          opacity: hidden ? 0 : hovering ? 0.6 : 0.25,
+          transition: 'width 0.3s ease, height 0.3s ease, border-color 0.3s ease, opacity 0.3s ease',
         }}
       />
+      {/* Label — 悬停时显示动作文字 */}
+      <span
+        ref={labelRef}
+        className="fixed top-0 left-0 z-[9998] pointer-events-none"
+        style={{
+          fontSize: '9px',
+          fontFamily: 'monospace',
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.6)',
+          opacity: hovering && hoverLabel ? 1 : 0,
+          transition: 'opacity 0.25s ease',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {hoverLabel}
+      </span>
     </>
   )
 }
 
 /* ═══════════════════════════════════════════════════════
    2. SPLIT TEXT — Character-by-character reveal on scroll
-   Q2 FIX: once:false 让动画每次进入视口都触发
+   Q4/Q5 FIX: once=false 让动画每次进入视口都触发
    ═══════════════════════════════════════════════════════ */
 
-function SplitText({ children, className = '', delay = 0, once = true }: { children: string; className?: string; delay?: number; once?: boolean }) {
+function SplitText({ children, className = '', delay = 0, once = false }: { children: string; className?: string; delay?: number; once?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)
   const isInView = useInView(ref, { once, margin: '-50px' })
 
@@ -268,7 +342,7 @@ function SplitText({ children, className = '', delay = 0, once = true }: { child
     <span ref={ref} className={className} aria-label={children}>
       {children.split('').map((char, i) => (
         <motion.span
-          key={i}
+          key={`${char}-${i}`}
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{
@@ -363,16 +437,32 @@ function TiltCard({ children, className = '' }: { children: React.ReactNode; cla
 }
 
 /* ═══════════════════════════════════════════════════════
-   Navigation — Q2 FIX: 用 onClick+scrollToElement 替代 href
-   确保每次点击都有动画效果
+   Navigation — Q3 FIX: 移除 nav items 中重复的 "Contact"
+   Q4 FIX: 点击导航后强制触发目标区域动画
    ═══════════════════════════════════════════════════════ */
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50)
+    const onScroll = () => {
+      setScrolled(window.scrollY > 50)
+
+      // 检测当前所在区域
+      const sections = ['about', 'projects', 'contact']
+      for (const id of sections) {
+        const el = document.getElementById(id)
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          if (rect.top <= 200 && rect.bottom > 200) {
+            setActiveSection(id)
+            break
+          }
+        }
+      }
+    }
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
@@ -402,6 +492,7 @@ function Navigation() {
               href="#"
               onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
               className="text-sm font-mono tracking-widest uppercase text-foreground/70 hover:text-foreground transition-colors"
+              data-cursor="pointer"
             >
               {SITE_CONFIG.nav.logo}<span className="text-foreground/30">{SITE_CONFIG.nav.logoSuffix}</span>
             </a>
@@ -414,28 +505,39 @@ function Navigation() {
                 <motion.a
                   href={item.href}
                   onClick={(e) => handleNavClick(e, item.href)}
-                  className="text-sm text-foreground/50 hover:text-foreground transition-colors duration-300 tracking-wide relative"
+                  className={`text-sm transition-colors duration-300 tracking-wide relative ${
+                    activeSection === item.href.replace('#', '')
+                      ? 'text-foreground'
+                      : 'text-foreground/50 hover:text-foreground'
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  data-cursor="pointer"
                 >
                   {item.label}
-                  {/* 底部指示线动画 - 每次悬停都触发 */}
                   <motion.span
                     className="absolute -bottom-1 left-0 h-px bg-foreground/60"
                     initial={{ width: 0 }}
+                    animate={{ width: activeSection === item.href.replace('#', '') ? '100%' : 0 }}
                     whileHover={{ width: '100%' }}
                     transition={{ duration: 0.3 }}
                   />
                 </motion.a>
               </MagneticHover>
             ))}
+            {/* Q3 FIX: "Get in Touch" 作为唯一 CTA 指向 contact，不再与 nav items 重复 */}
             <MagneticHover>
               <motion.a
                 href={SITE_CONFIG.nav.cta.href}
                 onClick={(e) => handleNavClick(e, SITE_CONFIG.nav.cta.href)}
-                className="text-sm px-5 py-2 border border-foreground/20 rounded-full text-foreground/70 hover:text-foreground hover:border-foreground/50 hover:bg-foreground/[0.05] transition-all duration-300"
+                className={`text-sm px-5 py-2 border rounded-full transition-all duration-300 ${
+                  activeSection === 'contact'
+                    ? 'border-foreground/40 bg-foreground/[0.08] text-foreground'
+                    : 'border-foreground/20 text-foreground/70 hover:text-foreground hover:border-foreground/50 hover:bg-foreground/[0.05]'
+                }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                data-cursor="pointer"
               >
                 {SITE_CONFIG.nav.cta.label}
               </motion.a>
@@ -446,6 +548,7 @@ function Navigation() {
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="md:hidden text-foreground/70 hover:text-foreground transition-colors"
+            data-cursor="pointer"
           >
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -463,7 +566,7 @@ function Navigation() {
             className="fixed inset-0 z-[99] bg-background/95 backdrop-blur-xl flex items-center justify-center"
           >
             <div className="flex flex-col items-center gap-8">
-              {SITE_CONFIG.nav.items.map((item, i) => (
+              {[...SITE_CONFIG.nav.items, { label: SITE_CONFIG.nav.cta.label, href: SITE_CONFIG.nav.cta.href }].map((item, i) => (
                 <motion.a
                   key={item.label}
                   href={item.href}
@@ -472,6 +575,7 @@ function Navigation() {
                   transition={{ delay: i * 0.1 + 0.1 }}
                   onClick={(e) => handleNavClick(e, item.href)}
                   className="text-3xl font-light text-foreground/70 hover:text-foreground transition-colors"
+                  data-cursor="pointer"
                 >
                   {item.label}
                 </motion.a>
@@ -485,7 +589,7 @@ function Navigation() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   Hero Section — Q1 FIX: 内容 z-index 高于流体
+   Hero Section
    ═══════════════════════════════════════════════════════ */
 
 function HeroSection() {
@@ -549,7 +653,6 @@ function HeroSection() {
         </div>
       </motion.div>
 
-      {/* Q1 FIX: z-[10] 确保内容在流体效果之上 */}
       <motion.div style={{ opacity: heroOpacity, y: heroY, scale: heroScale }} className="relative z-[10] text-center px-6 max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -594,6 +697,7 @@ function HeroSection() {
               href="#about"
               onClick={(e) => { e.preventDefault(); scrollToElement('about') }}
               className="flex flex-col items-center gap-2 text-foreground/30 hover:text-foreground/60 transition-colors"
+              data-cursor="pointer"
             >
               <span className="text-[10px] font-mono tracking-[0.3em] uppercase">Scroll</span>
               <motion.div
@@ -633,12 +737,12 @@ function MarqueeSection() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   Reveal Section — Q2 FIX: once=false 让动画可重复触发
+   Reveal Section — Q4/Q5 FIX: once=false 让动画可重复触发
    ═══════════════════════════════════════════════════════ */
 
 function RevealSection({ children, className = '', id = '' }: { children: React.ReactNode; className?: string; id?: string }) {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-80px' })
+  const isInView = useInView(ref, { once: false, margin: '-80px' })
 
   return (
     <motion.section
@@ -651,6 +755,40 @@ function RevealSection({ children, className = '', id = '' }: { children: React.
     >
       {children}
     </motion.section>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════
+   Q5 FIX: 通用滚动动画组件 — 每个元素独立的滚动触发
+   ═══════════════════════════════════════════════════════ */
+
+function ScrollReveal({ children, className = '', delay = 0, direction = 'up' }: {
+  children: React.ReactNode
+  className?: string
+  delay?: number
+  direction?: 'up' | 'down' | 'left' | 'right'
+}) {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: false, margin: '-60px' })
+
+  const directionMap = {
+    up: { y: 40, x: 0 },
+    down: { y: -40, x: 0 },
+    left: { y: 0, x: 40 },
+    right: { y: 0, x: -40 },
+  }
+  const offset = directionMap[direction]
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, x: offset.x, y: offset.y }}
+      animate={isInView ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, x: offset.x, y: offset.y }}
+      transition={{ duration: 0.7, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   )
 }
 
@@ -674,57 +812,71 @@ function ParallaxLayer({ children, speed = 0.5, className = '' }: { children: Re
 }
 
 /* ═══════════════════════════════════════════════════════
-   About Section
+   About Section — Q5 FIX: 给每个子元素添加 ScrollReveal
    ═══════════════════════════════════════════════════════ */
 
 function AboutSection() {
   return (
     <RevealSection id="about" className="py-32 md:py-40 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30">{SITE_CONFIG.about.sectionLabel}</span>
-        </div>
+        <ScrollReveal>
+          <div className="mb-16">
+            <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30">{SITE_CONFIG.about.sectionLabel}</span>
+          </div>
+        </ScrollReveal>
 
         <div className="grid md:grid-cols-2 gap-16 md:gap-24">
           <ParallaxLayer speed={0.2}>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-8 text-glow">
-              {SITE_CONFIG.about.title1}
-              <br />
-              <span className="text-foreground/30">{SITE_CONFIG.about.title2}</span>
-            </h2>
-            <p className="text-foreground/50 text-lg leading-relaxed mb-6">
-              {SITE_CONFIG.about.description1}
-            </p>
-            <p className="text-foreground/50 text-lg leading-relaxed">
-              {SITE_CONFIG.about.description2}
-            </p>
+            <ScrollReveal delay={0.1}>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-8 text-glow">
+                <SplitText once={false}>{SITE_CONFIG.about.title1}</SplitText>
+                <br />
+                <span className="text-foreground/30"><SplitText once={false}>{SITE_CONFIG.about.title2}</SplitText></span>
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={0.2}>
+              <p className="text-foreground/50 text-lg leading-relaxed mb-6">
+                {SITE_CONFIG.about.description1}
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={0.3}>
+              <p className="text-foreground/50 text-lg leading-relaxed">
+                {SITE_CONFIG.about.description2}
+              </p>
+            </ScrollReveal>
           </ParallaxLayer>
 
           <div className="flex flex-col justify-center">
             <div className="grid grid-cols-3 gap-8 mb-12">
-              {SITE_CONFIG.about.stats.map((stat) => (
-                <ParallaxLayer key={stat.label} speed={0.1}>
-                  <div className="text-center md:text-left">
-                    <div className="text-3xl md:text-4xl font-bold tracking-tight">{stat.number}</div>
-                    <div className="text-xs text-foreground/30 mt-1 font-mono tracking-wider uppercase">{stat.label}</div>
-                  </div>
-                </ParallaxLayer>
+              {SITE_CONFIG.about.stats.map((stat, i) => (
+                <ScrollReveal key={stat.label} delay={0.1 + i * 0.1}>
+                  <ParallaxLayer speed={0.1}>
+                    <div className="text-center md:text-left">
+                      <div className="text-3xl md:text-4xl font-bold tracking-tight">{stat.number}</div>
+                      <div className="text-xs text-foreground/30 mt-1 font-mono tracking-wider uppercase">{stat.label}</div>
+                    </div>
+                  </ParallaxLayer>
+                </ScrollReveal>
               ))}
             </div>
 
-            <div className="h-px bg-border mb-12" />
+            <ScrollReveal delay={0.3}>
+              <div className="h-px bg-border mb-12" />
+            </ScrollReveal>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {SITE_CONFIG.about.skills.map((skill) => {
+              {SITE_CONFIG.about.skills.map((skill, i) => {
                 const Icon = ICON_MAP[skill.icon] || Code2
                 return (
-                  <TiltCard key={skill.name}>
-                    <div className="group p-4 rounded-lg border border-border/50 hover:border-foreground/20 transition-all duration-500 hover:bg-foreground/[0.02]">
-                      <Icon size={20} className="text-foreground/30 group-hover:text-foreground/60 transition-colors mb-3" />
-                      <div className="text-sm font-medium mb-1">{skill.name}</div>
-                      <div className="text-xs text-foreground/30">{skill.desc}</div>
-                    </div>
-                  </TiltCard>
+                  <ScrollReveal key={skill.name} delay={0.1 + i * 0.08}>
+                    <TiltCard>
+                      <div className="group p-4 rounded-lg border border-border/50 hover:border-foreground/20 transition-all duration-500 hover:bg-foreground/[0.02]">
+                        <Icon size={20} className="text-foreground/30 group-hover:text-foreground/60 transition-colors mb-3" />
+                        <div className="text-sm font-medium mb-1">{skill.name}</div>
+                        <div className="text-xs text-foreground/30">{skill.desc}</div>
+                      </div>
+                    </TiltCard>
+                  </ScrollReveal>
                 )
               })}
             </div>
@@ -736,25 +888,31 @@ function AboutSection() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   Projects Section — Q3 FIX: 项目卡片可点击跳转
+   Projects Section — Q1 FIX: 改善排版布局
+   大屏：横向卡片列表（带数字编号 + 标题 + 描述 + 标签 + 年份 + 箭头）
+   移动端：垂直堆叠
    ═══════════════════════════════════════════════════════ */
 
 function ProjectsSection() {
   return (
     <RevealSection id="projects" className="py-32 md:py-40 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30">{SITE_CONFIG.projects.sectionLabel}</span>
-        </div>
+        <ScrollReveal>
+          <div className="mb-16">
+            <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30">{SITE_CONFIG.projects.sectionLabel}</span>
+          </div>
+        </ScrollReveal>
 
         <ParallaxLayer speed={0.15}>
-          <div className="mb-16">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-glow">
-              <SplitText>{SITE_CONFIG.projects.title1}</SplitText>
-              <br />
-              <span className="text-foreground/30"><SplitText>{SITE_CONFIG.projects.title2}</SplitText></span>
-            </h2>
-          </div>
+          <ScrollReveal delay={0.1}>
+            <div className="mb-20">
+              <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[0.95] text-glow">
+                <SplitText once={false}>{SITE_CONFIG.projects.title1}</SplitText>
+                <br />
+                <span className="text-foreground/30"><SplitText once={false}>{SITE_CONFIG.projects.title2}</SplitText></span>
+              </h2>
+            </div>
+          </ScrollReveal>
         </ParallaxLayer>
 
         <div className="space-y-0">
@@ -778,6 +936,7 @@ function ProjectCard({
     tags: string[]
     year: string
     url: string
+    image?: string
   }
   index: number
 }) {
@@ -792,9 +951,8 @@ function ProjectCard({
     const rect = ref.current.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
     const centerY = rect.top + rect.height / 2
-    const newX = (e.clientX - centerX) * 0.06
-    const newY = (e.clientY - centerY) * 0.06
-    if (Math.abs(newX - x.get()) < 0.5 && Math.abs(newY - y.get()) < 0.5) return
+    const newX = (e.clientX - centerX) * 0.04
+    const newY = (e.clientY - centerY) * 0.04
     x.set(newX)
     y.set(newY)
   }, [x, y])
@@ -804,7 +962,6 @@ function ProjectCard({
     y.set(0)
   }, [x, y])
 
-  // Q3 FIX: 点击跳转
   const handleClick = () => {
     if (project.url && project.url !== '#') {
       window.open(project.url, '_blank', 'noopener,noreferrer')
@@ -812,43 +969,43 @@ function ProjectCard({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.6, delay: index * 0.1 }}
-    >
+    <ScrollReveal delay={index * 0.08} direction="left">
       <motion.div
         ref={ref}
         style={{ x: springX, y: springY }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
-        className="group py-8 md:py-10 border-b border-border/50 hover:border-foreground/20 transition-all duration-500 cursor-pointer"
+        className="group py-8 md:py-10 border-b border-border/50 hover:border-foreground/20 transition-all duration-500"
         data-cursor="pointer"
       >
-        <div className="grid md:grid-cols-12 gap-4 md:gap-8 items-start">
-          <div className="md:col-span-5 flex items-start gap-4">
-            <span className="text-xs font-mono text-foreground/20 mt-1.5 shrink-0">
+        {/* Q1 FIX: 更清晰的排版结构 */}
+        <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-8">
+          {/* 左侧：编号 + 标题 */}
+          <div className="flex items-start gap-4 md:w-[40%] shrink-0">
+            <span className="text-xs font-mono text-foreground/15 mt-1.5 shrink-0 tabular-nums">
               {String(index + 1).padStart(2, '0')}
             </span>
-            <div>
-              <h3 className="text-xl md:text-2xl font-semibold tracking-tight group-hover:text-foreground/80 transition-colors">
+            <div className="min-w-0">
+              <h3 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight group-hover:text-foreground transition-colors duration-500">
                 {project.title}
               </h3>
-              <span className="text-xs font-mono text-foreground/30 mt-1 block">{project.category}</span>
+              <span className="text-[11px] font-mono text-foreground/25 mt-1.5 block tracking-wider uppercase">
+                {project.category}
+              </span>
             </div>
           </div>
 
-          <div className="md:col-span-5">
-            <p className="text-sm text-foreground/40 leading-relaxed group-hover:text-foreground/60 transition-colors">
+          {/* 中间：描述 + 标签 */}
+          <div className="md:w-[45%] md:pt-0 pl-8 md:pl-0">
+            <p className="text-sm text-foreground/35 leading-relaxed group-hover:text-foreground/55 transition-colors duration-500">
               {project.description}
             </p>
             <div className="flex flex-wrap gap-2 mt-4">
               {project.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-[10px] font-mono tracking-wider uppercase px-2.5 py-1 border border-border/50 rounded-full text-foreground/30 group-hover:text-foreground/50 group-hover:border-foreground/20 transition-all"
+                  className="text-[10px] font-mono tracking-wider uppercase px-2.5 py-1 border border-border/40 rounded-full text-foreground/25 group-hover:text-foreground/45 group-hover:border-foreground/15 transition-all duration-500"
                 >
                   {tag}
                 </span>
@@ -856,23 +1013,25 @@ function ProjectCard({
             </div>
           </div>
 
-          <div className="md:col-span-2 flex items-center justify-end gap-3">
-            <span className="text-xs font-mono text-foreground/20">{project.year}</span>
+          {/* 右侧：年份 + 箭头 */}
+          <div className="md:w-[15%] flex items-center md:justify-end gap-3 pl-8 md:pl-0 md:pt-1">
+            <span className="text-xs font-mono text-foreground/15 tracking-wider">{project.year}</span>
             <motion.div
               whileHover={{ x: 4, y: -4 }}
               transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              className="ml-auto md:ml-0"
             >
-              <ArrowUpRight size={18} className="text-foreground/20 group-hover:text-foreground/60 transition-colors" />
+              <ArrowUpRight size={18} className="text-foreground/15 group-hover:text-foreground/50 transition-colors duration-500" />
             </motion.div>
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </ScrollReveal>
   )
 }
 
 /* ═══════════════════════════════════════════════════════
-   Philosophy Section
+   Philosophy Section — Q5 FIX: 添加 ScrollReveal
    ═══════════════════════════════════════════════════════ */
 
 function PhilosophySection() {
@@ -887,80 +1046,101 @@ function PhilosophySection() {
   return (
     <section ref={ref} className="py-32 md:py-40 px-6 relative z-[10]">
       <motion.div style={{ scale, opacity }} className="max-w-4xl mx-auto text-center">
-        <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30 block mb-12">
-          {SITE_CONFIG.philosophy.label}
-        </span>
-        <blockquote className="text-2xl md:text-4xl lg:text-5xl font-light tracking-tight leading-[1.2] text-foreground/70 text-glow">
-          &ldquo;{SITE_CONFIG.philosophy.quote}&rdquo;
-        </blockquote>
-        <div className="mt-8 text-sm font-mono text-foreground/20 tracking-wider">— {SITE_CONFIG.philosophy.attribution}</div>
+        <ScrollReveal>
+          <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30 block mb-12">
+            {SITE_CONFIG.philosophy.label}
+          </span>
+        </ScrollReveal>
+        <ScrollReveal delay={0.15}>
+          <blockquote className="text-2xl md:text-4xl lg:text-5xl font-light tracking-tight leading-[1.2] text-foreground/70 text-glow">
+            &ldquo;{SITE_CONFIG.philosophy.quote}&rdquo;
+          </blockquote>
+        </ScrollReveal>
+        <ScrollReveal delay={0.3}>
+          <div className="mt-8 text-sm font-mono text-foreground/20 tracking-wider">— {SITE_CONFIG.philosophy.attribution}</div>
+        </ScrollReveal>
       </motion.div>
     </section>
   )
 }
 
 /* ═══════════════════════════════════════════════════════
-   Contact Section — Q3 FIX: 所有链接可点击
+   Contact Section — Q3 FIX: 移除重复的 "Contact" 链接
+   Q5 FIX: 添加 ScrollReveal 到每个子元素
    ═══════════════════════════════════════════════════════ */
 
 function ContactSection() {
   return (
     <RevealSection id="contact" className="py-32 md:py-40 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30">{SITE_CONFIG.contact.sectionLabel}</span>
-        </div>
+        <ScrollReveal>
+          <div className="mb-16">
+            <span className="text-xs font-mono tracking-[0.3em] uppercase text-foreground/30">{SITE_CONFIG.contact.sectionLabel}</span>
+          </div>
+        </ScrollReveal>
 
         <div className="grid md:grid-cols-2 gap-16 md:gap-24">
           <ParallaxLayer speed={0.15}>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-8 text-glow">
-              <SplitText>{SITE_CONFIG.contact.title1}</SplitText>
-              <br />
-              <span className="text-foreground/30"><SplitText>{SITE_CONFIG.contact.title2}</SplitText></span>
-            </h2>
-            <p className="text-foreground/50 text-lg leading-relaxed max-w-md">
-              {SITE_CONFIG.contact.description}
-            </p>
+            <ScrollReveal delay={0.1}>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-8 text-glow">
+                <SplitText once={false}>{SITE_CONFIG.contact.title1}</SplitText>
+                <br />
+                <span className="text-foreground/30"><SplitText once={false}>{SITE_CONFIG.contact.title2}</SplitText></span>
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={0.2}>
+              <p className="text-foreground/50 text-lg leading-relaxed max-w-md">
+                {SITE_CONFIG.contact.description}
+              </p>
+            </ScrollReveal>
           </ParallaxLayer>
 
           <div className="flex flex-col justify-center">
-            <MagneticHover>
-              <a
-                href={`mailto:${SITE_CONFIG.contact.email}`}
-                className="group inline-flex items-center gap-4 mb-12 text-2xl md:text-3xl font-light text-foreground/60 hover:text-foreground transition-colors duration-500"
-                data-cursor="pointer"
-              >
-                {SITE_CONFIG.contact.email}
-                <motion.div
-                  whileHover={{ x: 6, y: -6 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+            <ScrollReveal delay={0.15}>
+              <MagneticHover>
+                <a
+                  href={`mailto:${SITE_CONFIG.contact.email}`}
+                  className="group inline-flex items-center gap-4 mb-12 text-2xl md:text-3xl font-light text-foreground/60 hover:text-foreground transition-colors duration-500"
+                  data-cursor="pointer"
                 >
-                  <ArrowUpRight size={24} className="text-foreground/20 group-hover:text-foreground/60 transition-colors" />
-                </motion.div>
-              </a>
-            </MagneticHover>
+                  {SITE_CONFIG.contact.email}
+                  <motion.div
+                    whileHover={{ x: 6, y: -6 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  >
+                    <ArrowUpRight size={24} className="text-foreground/20 group-hover:text-foreground/60 transition-colors" />
+                  </motion.div>
+                </a>
+              </MagneticHover>
+            </ScrollReveal>
 
-            <div className="h-px bg-border mb-8" />
+            <ScrollReveal delay={0.25}>
+              <div className="h-px bg-border mb-8" />
+            </ScrollReveal>
 
-            <div className="flex items-center gap-6">
-              {SITE_CONFIG.contact.links.map((link) => {
-                const Icon = ICON_MAP[link.icon] || Mail
-                return (
-                  <MagneticHover key={link.label}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex items-center gap-2 text-sm text-foreground/30 hover:text-foreground/70 transition-colors duration-300"
-                      data-cursor="pointer"
-                    >
-                      <Icon size={18} />
-                      <span className="hidden sm:inline font-mono tracking-wider text-xs uppercase">{link.label}</span>
-                    </a>
-                  </MagneticHover>
-                )
-              })}
-            </div>
+            <ScrollReveal delay={0.3}>
+              <div className="flex items-center gap-6">
+                {SITE_CONFIG.contact.links.map((link, i) => {
+                  const Icon = ICON_MAP[link.icon] || Mail
+                  return (
+                    <ScrollReveal key={link.label} delay={0.3 + i * 0.08} direction="right">
+                      <MagneticHover>
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex items-center gap-2 text-sm text-foreground/30 hover:text-foreground/70 transition-colors duration-300"
+                          data-cursor="pointer"
+                        >
+                          <Icon size={18} />
+                          <span className="hidden sm:inline font-mono tracking-wider text-xs uppercase">{link.label}</span>
+                        </a>
+                      </MagneticHover>
+                    </ScrollReveal>
+                  )
+                })}
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </div>
@@ -988,33 +1168,22 @@ function Footer() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   Main Page — Q1 FIX: 流体效果降低不透明度，不遮挡文字
+   Main Page
    ═══════════════════════════════════════════════════════ */
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen flex flex-col bg-background cursor-none">
+    <>
       <CustomCursor />
-      {/* Q1 FIX: 流体效果层放在最底层，低透明度 + screen 混合模式 */}
       <SmokeyFluidCursor
-        config={{
-          simResolution: 64,
-          dyeResolution: 512,
-          captureResolution: 512,
-          densityDissipation: 3.5,
-          velocityDissipation: 3.0,
-          pressure: 0.1,
-          pressureIteration: 10,
-          curl: 15,
-          splatRadius: 0.15,
-          splatForce: 4000,
-          shading: true,
-          colorUpdateSpeed: 3,
-          paused: false,
-          backColor: { r: 0, g: 0, b: 0 },
-          transparent: true,
-          id: 'fluid-canvas',
-        }}
+        simRes={64}
+        dyeRes={512}
+        densityDissipation={3.5}
+        velocityDissipation={3.0}
+        curl={15}
+        splatRadius={0.15}
+        splatForce={4000}
+        transparent={true}
       />
       <Navigation />
       <HeroSection />
@@ -1024,6 +1193,6 @@ export default function Home() {
       <PhilosophySection />
       <ContactSection />
       <Footer />
-    </main>
+    </>
   )
 }
