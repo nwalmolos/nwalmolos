@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "title": "Your Name — Creative Developer",
+    "description": "Personal portfolio — Design, Code, Create.",
+    "author": "Your Name"
+  },
+  "nav": {
+    "brand": "YN.",
+    "about": "About",
+    "projects": "Projects",
+    "contact": "Contact",
+    "cta": "Email Me"
+  },
+  "hero": {
+    "status": "Available for work",
+    "line1": "Creative",
+    "line2": "Developer",
+    "subtitle": "Designing and building digital experiences at the intersection of art and technology."
+  },
+  "about": {
+    "label": "01 — About",
+    "titleLine1": "Crafting digital",
+    "titleLine2": "experiences",
+    "paragraph1": "I'm a creative developer with a passion for building beautiful, functional, and accessible digital products. I believe great design is invisible — it just works.",
+    "paragraph2": "My approach combines technical precision with creative exploration, always pushing the boundaries of what's possible on the web. Every project is an opportunity to create something meaningful.",
+    "stats": [
+      { "number": "3+", "label": "Years Experience" },
+      { "number": "20+", "label": "Projects Completed" },
+      { "number": "10+", "label": "Happy Clients" }
+    ]
+  },
+  "contact": {
+    "label": "03 — Contact",
+    "titleLine1": "Let's work",
+    "titleLine2": "together",
+    "paragraph": "Have a project in mind or just want to chat? I'm always open to discussing new ideas and opportunities.",
+    "email": "hello@yourdomain.com",
+    "github": "https://github.com/yourusername",
+    "twitter": "https://twitter.com/yourusername"
+  },
+  "footer": {
+    "name": "Your Name",
+    "credit": "Built with Next.js & Tailwind CSS"
+  }
+}
