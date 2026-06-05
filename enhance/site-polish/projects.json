@@ -7,7 +7,11 @@
       "summary": "Layered interface studies with responsive motion and fluid input.",
       "detail": [
         "This project studies how an interface can feel physical without becoming heavy. The visual system uses dark surfaces, repeated media layers, subtle cursor response, and staged transitions.",
-        "The page is designed as a compact motion case study: thumbnail first, short context second, then a deeper detail view with related images and an external reference link."
+        "The page is designed as a compact motion case study: thumbnail first, short context second, then a deeper detail view with related images and an external reference link.",
+        "Long text placeholder for layout testing. This paragraph is intentionally longer than normal project copy so the detail page can prove that reading, scrolling, image browsing, and the external link remain usable at the same time. In a finished project this area can describe the concept, production process, role, tools, constraints, visual direction, interaction logic, and the reason each media asset was selected.",
+        "The text area should behave like a controlled reading window rather than a page that grows forever. When the copy becomes long, the visitor can hover over this text block and scroll inside it, while the main action button stays below the text group and remains reachable. This protects the project link from being pushed far away by a long essay.",
+        "Additional placeholder paragraph. Use this space to test several realistic writing lengths: a short introduction, a medium process note, a list-like explanation written as prose, and a final reflection. The design should keep the contrast readable on a dark background, reveal that more content exists through the lower fade and small cue, and avoid hiding important controls under the scrollable copy.",
+        "Final placeholder paragraph for stress testing. If this still feels comfortable, the detail template is ready for real project writing. If it feels dense, the next refinement should be content editing: split the writing into shorter paragraphs, use captions beside images, and keep the most important project message in the lead sentence above this scrollable area."
       ],
       "facts": ["2026", "Interactive Motion", "Web / Static"],
       "externalHref": "https://tympanus.net/Development/LayerMotionSlideshow/"
