@@ -1,0 +1,80 @@
+{
+  "projects": [
+    {
+      "title": "Creative Systems",
+      "short": "VBG",
+      "meta": "Motion",
+      "summary": "Layered interface studies with responsive motion and fluid input.",
+      "detail": [
+        "This project studies how an interface can feel physical without becoming heavy. The visual system uses dark surfaces, repeated media layers, subtle cursor response, and staged transitions.",
+        "The page is designed as a compact motion case study: thumbnail first, short context second, then a deeper detail view with related images and an external reference link.",
+        "Long text placeholder for layout testing. This paragraph is intentionally longer than normal project copy so the detail page can prove that reading, scrolling, image browsing, and the external link remain usable at the same time. In a finished project this area can describe the concept, production process, role, tools, constraints, visual direction, interaction logic, and the reason each media asset was selected.",
+        "The text area should behave like a controlled reading window rather than a page that grows forever. When the copy becomes long, the visitor can hover over this text block and scroll inside it, while the main action button stays below the text group and remains reachable. This protects the project link from being pushed far away by a long essay.",
+        "Additional placeholder paragraph. Use this space to test several realistic writing lengths: a short introduction, a medium process note, a list-like explanation written as prose, and a final reflection. The design should keep the contrast readable on a dark background, reveal that more content exists through the lower fade and small cue, and avoid hiding important controls under the scrollable copy.",
+        "Final placeholder paragraph for stress testing. If this still feels comfortable, the detail template is ready for real project writing. If it feels dense, the next refinement should be content editing: split the writing into shorter paragraphs, use captions beside images, and keep the most important project message in the lead sentence above this scrollable area."
+      ],
+      "facts": ["2026", "Interactive Motion", "Web / Static"],
+      "externalHref": "https://tympanus.net/Development/LayerMotionSlideshow/"
+    },
+    {
+      "title": "Layered Interfaces",
+      "short": "LYO",
+      "meta": "Interactive",
+      "summary": "Hover states, depth shifts, and link moments for a dark portfolio index.",
+      "detail": [
+        "A focused interaction set built around layered image response. Each state keeps the base layout readable while letting media react to pointer position, page changes, and link intent.",
+        "The transition behavior is inspired by repeating image motion: old thumbnails echo outward while the next page enters in staggered layers."
+      ],
+      "facts": ["Prototype", "Grid Transition", "Pointer Response"],
+      "externalHref": "https://tympanus.net/Development/RepeatingImageTransition/"
+    },
+    {
+      "title": "Local Preview",
+      "short": "GP",
+      "meta": "Publish",
+      "summary": "A practical local preview and GitHub Pages publishing flow.",
+      "detail": [
+        "This project documents a lightweight workflow for reviewing a static portfolio locally before release.",
+        "The goal is to keep deployment simple: preview the same static files, verify links and assets, then publish without server-only features."
+      ],
+      "facts": ["GitHub Pages", "Static Site", "Local QA"],
+      "externalHref": "https://pages.github.com/"
+    },
+    {
+      "title": "Visual Studies",
+      "short": "STU",
+      "meta": "Archive",
+      "summary": "Dark UI compositions for grid rhythm, contrast, and motion tone.",
+      "detail": [
+        "A set of compact visual directions for image-led portfolio sections.",
+        "The studies focus on square crop discipline, readable overlays, and short written notes that support browsing without interrupting it."
+      ],
+      "facts": ["Art Direction", "Dark UI", "Gallery"],
+      "externalHref": "https://www.awwwards.com/inspiration/"
+    },
+    {
+      "title": "Micro Media",
+      "short": "MOV",
+      "meta": "Small Files",
+      "summary": "Compact image and motion assets designed for quick static loading.",
+      "detail": [
+        "A media handling study for small portfolio pages.",
+        "The project keeps motion rich while keeping file sizes low enough for fast static delivery."
+      ],
+      "facts": ["Performance", "Media", "Static"],
+      "externalHref": "https://developer.mozilla.org/en-US/docs/Learn/Performance/Multimedia"
+    },
+    {
+      "title": "Motion Index",
+      "short": "IDX",
+      "meta": "Grid",
+      "summary": "A paged visual index where each tile behaves like a moving layer.",
+      "detail": [
+        "A navigation pattern for many small works.",
+        "The index uses thumbnails first, then short context, then deeper project detail so the browsing rhythm stays fast."
+      ],
+      "facts": ["Index", "Pagination", "Case Study"],
+      "externalHref": "https://tympanus.net/codrops/tag/grid/"
+    }
+  ]
+}
