@@ -25,7 +25,7 @@
   "heroScrollMotion": true,
   "heroDecorMotion": false,
   "galleryReplacement": true,
-  "galleryPageSize": "auto",
+  "galleryPageSize": 3,
   "galleryRevealEffect": "randomGrid",
   "galleryMinPages": 2,
   "galleryDemoPlaceholders": true,

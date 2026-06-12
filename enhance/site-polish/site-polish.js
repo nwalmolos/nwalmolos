@@ -27,8 +27,11 @@
     heroVideoPreload: 'none',
     heroScrollMotion: true,
     heroDecorMotion: false,
+    innerImageParallax: true,
+    innerImageParallaxStrength: 0.009,
+    innerImageParallaxDamping: 0.16,
     galleryReplacement: true,
-    galleryPageSize: 'auto',
+    galleryPageSize: 3,
     galleryRevealEffect: 'randomGrid',
     galleryMinPages: 2,
     galleryDemoPlaceholders: true,
@@ -116,6 +119,30 @@
       body {
         position: relative;
       }
+      html {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,.20) rgba(0,0,0,.34);
+      }
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      html::-webkit-scrollbar-track,
+      body::-webkit-scrollbar-track {
+        background: rgba(0,0,0,.34);
+        border-radius: 999px;
+      }
+      html::-webkit-scrollbar-thumb,
+      body::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.13));
+        border: 2px solid rgba(0,0,0,.48);
+        border-radius: 999px;
+      }
+      html::-webkit-scrollbar-thumb:hover,
+      body::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.17));
+      }
       main {
         width: 100% !important;
         min-width: 0 !important;
@@ -173,9 +200,7 @@
         z-index: 0;
         overflow: hidden;
         pointer-events: none;
-        background:
-          radial-gradient(circle at 50% 45%, rgba(255,255,255,.055), transparent 34%),
-          #020203;
+        background: #020203;
         isolation: isolate;
       }
       .polish-hero-video-layer::before,
@@ -187,9 +212,7 @@
         pointer-events: none;
       }
       .polish-hero-video-layer::before {
-        background:
-          linear-gradient(rgba(0,0,0,.34), rgba(0,0,0,.34)),
-          radial-gradient(circle at 50% 45%, rgba(255,255,255,.028), transparent 42%);
+        background: linear-gradient(rgba(0,0,0,.34), rgba(0,0,0,.34));
       }
       .polish-hero-video-layer::after {
         opacity: .12;
@@ -252,17 +275,19 @@
         overflow-x: clip !important;
         overflow-y: visible !important;
         max-width: 100vw;
-        contain: paint;
+        contain: none !important;
       }
       .polish-hero-scroll-motion > .polish-hero-video-layer {
         position: fixed;
-        inset: 0;
+        inset: -8svh 0;
         z-index: 0;
-        height: 100svh;
-        transform: none;
+        height: auto;
+        min-height: 116svh;
+        transform: translate3d(0, var(--polish-hero-video-y, 0px), 0) scale(var(--polish-hero-video-scale, 1));
+        transform-origin: center center;
         opacity: 1;
         contain: paint;
-        will-change: auto;
+        will-change: transform, opacity;
       }
       .polish-hero-scroll-motion.is-polish-hero-video-hidden > .polish-hero-video-layer {
         opacity: 0;
@@ -365,6 +390,20 @@
         z-index: 4;
         background-color: #020203;
       }
+      .polish-hero-cover-first-section {
+        background-color: transparent;
+        background-image:
+          linear-gradient(
+            180deg,
+            rgba(2,2,3,0) 0px,
+            rgba(2,2,3,.22) 70px,
+            rgba(2,2,3,.78) 160px,
+            #020203 250px,
+            #020203 100%
+          );
+        background-repeat: no-repeat;
+        margin-top: clamp(-170px, -16vh, -96px);
+      }
       .polish-hero-cover-main > footer {
         position: relative;
         z-index: 4;
@@ -400,14 +439,7 @@
         opacity: 1 !important;
       }
       .polish-hero-cover-first-section::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        height: clamp(120px, 22vh, 260px);
-        pointer-events: none;
-        background: linear-gradient(180deg, rgba(2,2,3,0), rgba(2,2,3,.92) 78%, #020203);
+        display: none;
       }
       .polish-scroll-indicator {
         position: absolute !important;
@@ -467,7 +499,7 @@
       }
       html:not(.polish-custom-cursor-ready) main.cursor-none,
       html:not(.polish-custom-cursor-ready) main.cursor-none * {
-        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3' fill='white'/%3E%3C/svg%3E") 8 8, auto !important;
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3.2' fill='white' stroke='black' stroke-opacity='.58' stroke-width='1.15'/%3E%3C/svg%3E") 8 8, auto !important;
       }
       @media (hover: none), (pointer: coarse) {
         .polish-hide-system-cursor,
@@ -492,7 +524,40 @@
         visibility: hidden !important;
       }
       .polish-marquee-removed {
+        position: relative;
+        z-index: 6;
+        display: block !important;
+        height: clamp(280px, 40vh, 540px) !important;
+        min-height: clamp(280px, 40vh, 540px) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(2,2,3,0) 0%,
+            rgba(2,2,3,0) 42%,
+            rgba(2,2,3,.18) 68%,
+            rgba(2,2,3,.68) 88%,
+            #020203 100%
+          );
+      }
+      .polish-marquee-removed::before {
         display: none !important;
+      }
+      .polish-marquee-removed > * {
+        display: none !important;
+      }
+      @media (max-width: 900px) {
+        .polish-hero-cover-first-section {
+          margin-top: clamp(-132px, -14vh, -76px);
+        }
+        .polish-marquee-removed {
+          height: clamp(240px, 38vh, 420px) !important;
+          min-height: clamp(240px, 38vh, 420px) !important;
+        }
       }
       .polish-click-cursor {
         position: fixed;
@@ -506,10 +571,13 @@
         opacity: 0;
         border: 0;
         background: rgba(255,255,255,.94);
-        box-shadow: 0 0 10px rgba(255,255,255,.26), 0 0 2px rgba(255,255,255,.76);
+        box-shadow:
+          0 0 0 1px rgba(0,0,0,.52),
+          0 0 10px rgba(255,255,255,.26),
+          0 1px 3px rgba(0,0,0,.42);
         transform: translate3d(-80px, -80px, 0) scale(.9);
         transition: opacity .16s ease, box-shadow .16s ease;
-        mix-blend-mode: screen;
+        mix-blend-mode: difference;
         will-change: transform, opacity;
       }
       .polish-click-cursor.is-visible {
@@ -528,7 +596,10 @@
       }
       .polish-click-cursor.is-active {
         opacity: 1;
-        box-shadow: 0 0 20px rgba(255,255,255,.34), 0 0 4px rgba(255,255,255,.9);
+        box-shadow:
+          0 0 0 1px rgba(0,0,0,.58),
+          0 0 20px rgba(255,255,255,.34),
+          0 1px 4px rgba(0,0,0,.48);
       }
       .polish-click-ring {
         position: fixed;
@@ -543,11 +614,14 @@
         pointer-events: none;
         z-index: 9997;
         opacity: 0;
-        border: 1px solid rgba(255,255,255,.32);
-        box-shadow: 0 0 14px rgba(255,255,255,.08), inset 0 0 8px rgba(255,255,255,.03);
+        border: 1px solid rgba(255,255,255,.42);
+        box-shadow:
+          0 0 0 1px rgba(0,0,0,.34),
+          0 0 14px rgba(255,255,255,.08),
+          inset 0 0 8px rgba(255,255,255,.03);
         transform: translate3d(-90px, -90px, 0) scale(.92);
         transition: opacity .2s ease, border-color .18s ease, box-shadow .18s ease, width .18s ease, height .18s ease;
-        mix-blend-mode: screen;
+        mix-blend-mode: difference;
         will-change: transform, opacity;
       }
       .polish-click-ring.is-visible {
@@ -556,7 +630,10 @@
       .polish-click-ring.is-active {
         opacity: .86;
         border-color: rgba(255,255,255,.58);
-        box-shadow: 0 0 18px rgba(255,255,255,.13), inset 0 0 9px rgba(255,255,255,.045);
+        box-shadow:
+          0 0 0 1px rgba(0,0,0,.38),
+          0 0 18px rgba(255,255,255,.13),
+          inset 0 0 9px rgba(255,255,255,.045);
       }
       .polish-click-ring::after {
         content: "";
@@ -568,7 +645,7 @@
         border-radius: 50%;
         opacity: 0;
         background: rgba(255,255,255,.92);
-        box-shadow: 0 0 6px rgba(255,255,255,.35);
+        box-shadow: 0 0 0 1px rgba(0,0,0,.44), 0 0 6px rgba(255,255,255,.35);
         transform: rotate(0deg) translateX(var(--polish-ring-orbit-radius)) translate(-50%, -50%);
         transform-origin: 0 0;
         transition: opacity .16s ease;
@@ -702,19 +779,60 @@
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        transition: opacity .24s ease, visibility .24s ease;
+        transform: translate3d(0, -10px, 0) scale(.985);
+        transform-origin: 50% 0;
+        transition:
+          opacity .28s cubic-bezier(.16, 1, .3, 1),
+          transform .34s cubic-bezier(.16, 1, .3, 1),
+          visibility 0s linear .34s;
+        will-change: opacity, transform;
+        contain: paint;
       }
       .polish-mobile-menu-panel.is-open {
         opacity: 1;
         visibility: visible;
         pointer-events: auto;
+        transform: translate3d(0, 0, 0) scale(1);
+        transition-delay: 0s;
+      }
+      .polish-mobile-menu-panel.is-closed {
+        opacity: 0;
+        visibility: hidden !important;
+        pointer-events: none;
+        transform: translate3d(0, -10px, 0) scale(.985);
+      }
+      .polish-mobile-menu-panel.is-closing {
+        opacity: 0;
+        visibility: visible;
+        pointer-events: none;
+        transform: translate3d(0, -10px, 0) scale(.985);
       }
       .polish-mobile-menu-panel__inner {
         width: min(100%, 340px);
         display: grid;
         gap: 18px;
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(.99);
+        transition:
+          opacity .26s cubic-bezier(.16, 1, .3, 1),
+          transform .34s cubic-bezier(.16, 1, .3, 1);
+        will-change: opacity, transform;
+      }
+      .polish-mobile-menu-panel.is-open .polish-mobile-menu-panel__inner {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      .polish-mobile-menu-panel.is-closed .polish-mobile-menu-panel__inner {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(.99);
+      }
+      .polish-mobile-menu-panel.is-closing .polish-mobile-menu-panel__inner {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(.99);
       }
       .polish-mobile-menu-panel a {
+        --polish-mobile-menu-enter-y: 26px;
+        --polish-mobile-menu-scale: .965;
         position: relative;
         display: flex;
         align-items: center;
@@ -728,13 +846,70 @@
         font-weight: 300;
         line-height: 1;
         letter-spacing: 0;
-        transform: translate3d(var(--polish-mobile-menu-x, 0px), var(--polish-mobile-menu-y, 0px), 0);
+        opacity: 0;
+        filter: blur(10px);
+        transform: translate3d(var(--polish-mobile-menu-x, 0px), calc(var(--polish-mobile-menu-y, 0px) + var(--polish-mobile-menu-enter-y)), 0) scale(var(--polish-mobile-menu-scale));
         transition:
-          transform .18s ease-out,
+          opacity .34s ease,
+          transform .46s cubic-bezier(.16, 1, .3, 1),
           color .22s ease,
           border-color .22s ease,
-          filter .22s ease;
-        will-change: transform;
+          filter .38s ease;
+        transition-delay: 0ms;
+        will-change: opacity, transform;
+      }
+      @keyframes polish-mobile-menu-link-in {
+        0% {
+          opacity: 0;
+          filter: blur(11px);
+          transform: translate3d(var(--polish-mobile-menu-x, 0px), calc(var(--polish-mobile-menu-y, 0px) + 28px), 0) scale(.955);
+        }
+        62% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 1;
+          filter: blur(0);
+          transform: translate3d(var(--polish-mobile-menu-x, 0px), var(--polish-mobile-menu-y, 0px), 0) scale(1);
+        }
+      }
+      @keyframes polish-mobile-menu-link-out {
+        0% {
+          opacity: 1;
+          filter: blur(0);
+          transform: translate3d(var(--polish-mobile-menu-x, 0px), var(--polish-mobile-menu-y, 0px), 0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          filter: blur(8px);
+          transform: translate3d(var(--polish-mobile-menu-x, 0px), calc(var(--polish-mobile-menu-y, 0px) - 18px), 0) scale(.972);
+        }
+      }
+      .polish-mobile-menu-panel.is-open a {
+        --polish-mobile-menu-enter-y: 0px;
+        --polish-mobile-menu-scale: 1;
+        opacity: 1;
+        filter: blur(0);
+        transition-delay: var(--polish-mobile-menu-delay, 0ms);
+        animation: polish-mobile-menu-link-in .52s cubic-bezier(.16, 1, .3, 1) backwards;
+        animation-delay: var(--polish-mobile-menu-delay, 0ms);
+      }
+      .polish-mobile-menu-panel.is-closed a {
+        --polish-mobile-menu-enter-y: 14px;
+        --polish-mobile-menu-scale: .985;
+        opacity: 0;
+        filter: blur(7px);
+        transition-delay: 0ms;
+        animation: none;
+      }
+      .polish-mobile-menu-panel.is-closing a {
+        --polish-mobile-menu-enter-y: -18px;
+        --polish-mobile-menu-scale: .972;
+        opacity: 0;
+        filter: blur(8px);
+        transition-delay: var(--polish-mobile-menu-exit-delay, 0ms);
+        animation: polish-mobile-menu-link-out .30s cubic-bezier(.55, 0, .2, 1) both;
+        animation-delay: var(--polish-mobile-menu-exit-delay, 0ms);
       }
       .polish-mobile-menu-panel a::before {
         content: "";
@@ -766,7 +941,7 @@
         transform: translate3d(0, -50%, 0) scaleX(1);
       }
       .polish-mobile-menu-panel a:active {
-        transform: translate3d(var(--polish-mobile-menu-x, 0px), var(--polish-mobile-menu-y, 0px), 0) scale(.985);
+        transform: translate3d(var(--polish-mobile-menu-x, 0px), calc(var(--polish-mobile-menu-y, 0px) + var(--polish-mobile-menu-enter-y)), 0) scale(.985);
       }
       @media (max-height: 620px) and (max-width: 900px) {
         .polish-mobile-menu-panel {
@@ -887,6 +1062,23 @@
       html:not(.polish-compact-nav) .polish-mobile-nav-dock,
       html:not(.polish-compact-nav) .polish-mobile-menu-panel {
         display: none !important;
+      }
+      html.polish-mobile-menu-open .polish-mobile-menu-panel.is-open {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translate3d(0, 0, 0) scale(1) !important;
+      }
+      html.polish-mobile-menu-open .polish-mobile-menu-panel.is-open .polish-mobile-menu-panel__inner {
+        opacity: 1 !important;
+        transform: translate3d(0, 0, 0) scale(1) !important;
+      }
+      html.polish-mobile-menu-open .polish-mobile-menu-panel.is-open a {
+        --polish-mobile-menu-enter-y: 0px;
+        --polish-mobile-menu-scale: 1;
+        opacity: 1;
+        filter: blur(0);
+        transition-delay: var(--polish-mobile-menu-delay, 0ms);
       }
       @media (max-width: 767px), (hover: none), (pointer: coarse) {
         html.polish-hide-system-cursor,
@@ -1058,6 +1250,50 @@
       html.polish-hover-sync-scrolling #projects [data-cursor="pointer"]:hover:not(.is-polish-hovered) span,
       html.polish-hover-sync-scrolling #projects [data-cursor="pointer"]:hover:not(.is-polish-hovered) svg {
         transform: none;
+      }
+      #about [data-polish-profile-card] {
+        border-color: rgba(255,255,255,.13) !important;
+        background-color: rgba(255,255,255,.006) !important;
+        box-shadow:
+          inset 0 0 0 1px rgba(255,255,255,.018),
+          0 0 0 1px rgba(0,0,0,.18) !important;
+        transition:
+          border-color .42s cubic-bezier(.16,1,.3,1),
+          background-color .42s cubic-bezier(.16,1,.3,1),
+          box-shadow .42s cubic-bezier(.16,1,.3,1),
+          color .28s ease !important;
+      }
+      #about [data-polish-profile-card] svg,
+      #about [data-polish-profile-card] [class*="text-foreground/30"] {
+        transition:
+          color .38s cubic-bezier(.16,1,.3,1),
+          opacity .38s cubic-bezier(.16,1,.3,1) !important;
+      }
+      #about [data-polish-profile-card].is-polish-hovered {
+        border-color: rgba(255,255,255,.26) !important;
+        background-color: rgba(255,255,255,.018) !important;
+        box-shadow:
+          inset 0 0 0 1px rgba(255,255,255,.032),
+          0 0 18px rgba(255,255,255,.034) !important;
+      }
+      #about [data-polish-profile-card].is-polish-hovered svg {
+        color: rgba(255,255,255,.60) !important;
+      }
+      #about [data-polish-profile-card].is-polish-hovered [class*="text-foreground/30"] {
+        color: rgba(255,255,255,.50) !important;
+      }
+      html.polish-hover-sync-scrolling #about [data-polish-profile-card]:hover:not(.is-polish-hovered) {
+        border-color: rgba(255,255,255,.13) !important;
+        background-color: rgba(255,255,255,.006) !important;
+        box-shadow:
+          inset 0 0 0 1px rgba(255,255,255,.018),
+          0 0 0 1px rgba(0,0,0,.18) !important;
+      }
+      html.polish-hover-sync-scrolling #about [data-polish-profile-card]:hover:not(.is-polish-hovered) svg {
+        color: rgba(255,255,255,.30) !important;
+      }
+      html.polish-hover-sync-scrolling #about [data-polish-profile-card]:hover:not(.is-polish-hovered) [class*="text-foreground/30"] {
+        color: rgba(255,255,255,.30) !important;
       }
       main > section:first-of-type > .relative.z-\\[10\\]:not(.polish-hero-scroll-content) {
         opacity: 1 !important;
@@ -1330,11 +1566,18 @@
         display: block;
       }
       .polish-random-grid-media image {
+        --polish-inner-parallax-y: 0px;
+        --polish-media-scale: 1.035;
         filter: saturate(.9) contrast(1.04) brightness(.78);
+        transform: translate3d(0, var(--polish-inner-parallax-y), 0) scale(var(--polish-media-scale));
+        transform-box: fill-box;
+        transform-origin: center;
         transition: filter .24s ease;
+        will-change: transform, filter;
       }
       .polish-layer-tile:hover .polish-random-grid-media image,
       .polish-layer-tile.is-polish-hovered .polish-random-grid-media image {
+        --polish-media-scale: 1.048;
         filter: saturate(.96) contrast(1.08) brightness(.86);
       }
       .polish-random-grid-cell {
@@ -1490,6 +1733,7 @@
         filter: saturate(.9) contrast(1.04) brightness(.78);
       }
       html.polish-hover-sync-scrolling .polish-layer-tile:hover:not(.is-polish-hovered) .polish-random-grid-media image {
+        --polish-media-scale: 1.035;
         filter: saturate(.9) contrast(1.04) brightness(.78);
       }
       html.polish-hover-sync-scrolling .polish-layer-tile:hover:not(.is-polish-hovered) .polish-layer-caption {
@@ -1522,6 +1766,12 @@
         pointer-events: auto;
         opacity: 1;
       }
+      .polish-project-detail.is-scroll-ready .polish-project-detail__scroll {
+        pointer-events: auto;
+        touch-action: pan-y;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
       .polish-project-detail:not(.is-open) .polish-project-detail__back {
         display: none !important;
         visibility: hidden !important;
@@ -1539,6 +1789,9 @@
         padding: clamp(96px, 9vw, 128px) clamp(18px, 5vw, 72px) clamp(110px, 12vw, 150px);
         scrollbar-width: thin;
         scrollbar-color: rgba(255,255,255,.20) rgba(0,0,0,.34);
+      }
+      .polish-project-detail__scroll:focus {
+        outline: none;
       }
       .polish-project-detail__scroll::-webkit-scrollbar {
         width: 10px;
@@ -1686,42 +1939,37 @@
         position: relative;
         z-index: 5;
         flex: 0 0 auto;
-        width: 38px;
-        min-width: 38px;
-        height: 38px;
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
         padding: 0;
-        border-radius: 50%;
-        border: 1px solid rgba(255,255,255,.24);
-        background: rgba(255,255,255,.052);
-        color: rgba(255,255,255,.82);
-        display: inline-grid;
-        place-items: center;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+        color: rgba(255,255,255,.66);
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
-        box-shadow:
-          0 0 22px rgba(255,255,255,.08),
-          inset 0 1px 0 rgba(255,255,255,.11),
-          inset 0 0 18px rgba(255,255,255,.025);
-        -webkit-backdrop-filter: blur(34px) saturate(1.16);
-        backdrop-filter: blur(34px) saturate(1.16);
+        place-items: center;
+        box-shadow: none;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
         transform: translate3d(var(--polish-magnetic-x, 0px), var(--polish-magnetic-y, 0px), 0);
         transition: transform .18s ease-out, border-color .22s ease, background-color .22s ease, color .22s ease, box-shadow .22s ease;
         will-change: transform;
       }
       .polish-project-detail__back:hover,
       .polish-project-detail__back.is-polish-hot {
-        border-color: rgba(255,255,255,.42);
-        background: rgba(255,255,255,.085);
-        background-color: rgba(255,255,255,.085);
-        color: rgba(255,255,255,.98);
-        box-shadow:
-          0 0 30px rgba(255,255,255,.14),
-          inset 0 1px 0 rgba(255,255,255,.16),
-          inset 0 0 20px rgba(255,255,255,.04);
+        border-color: transparent;
+        background: transparent;
+        background-color: transparent;
+        color: rgba(255,255,255,.88);
+        box-shadow: none;
       }
       .polish-project-detail__back.polish-click-target.is-polish-hot {
-        border-color: rgba(255,255,255,.42);
-        background-color: rgba(255,255,255,.085);
-        color: rgba(255,255,255,.98);
+        border-color: transparent;
+        background-color: transparent;
+        color: rgba(255,255,255,.88);
       }
       .polish-project-detail__back svg {
         width: 16px;
@@ -1729,8 +1977,50 @@
         opacity: .94;
         filter: drop-shadow(0 0 8px rgba(255,255,255,.18));
       }
-      .polish-project-detail__back span {
+      .polish-project-detail__back-label {
         display: none;
+      }
+      .polish-project-detail__back-icon {
+        position: relative;
+        display: block;
+        width: 19px;
+        height: 20px;
+        color: currentColor;
+      }
+      .polish-project-detail__back-line {
+        position: absolute;
+        left: 50%;
+        width: 19px;
+        height: 1.5px;
+        border-radius: 999px;
+        background: currentColor;
+        box-shadow: 0 0 7px rgba(255,255,255,.10);
+        transform: translateX(-50%);
+        transform-origin: center;
+        transition:
+          top .24s cubic-bezier(.16, 1, .3, 1),
+          transform .24s cubic-bezier(.16, 1, .3, 1),
+          opacity .18s ease;
+      }
+      .polish-project-detail__back-line:nth-child(1) {
+        top: 5px;
+      }
+      .polish-project-detail__back-line:nth-child(2) {
+        top: 10px;
+      }
+      .polish-project-detail__back-line:nth-child(3) {
+        top: 15px;
+      }
+      .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-line:nth-child(1) {
+        top: 10px;
+        transform: translateX(-50%) rotate(42deg);
+      }
+      .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-line:nth-child(2) {
+        opacity: 0;
+      }
+      .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-line:nth-child(3) {
+        top: 10px;
+        transform: translateX(-50%) rotate(-42deg);
       }
       .polish-project-detail__hero {
         display: block;
@@ -1772,14 +2062,14 @@
         -webkit-mask-image: none;
         mask-image: none;
         transition: max-height .28s ease;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255,255,255,.22) rgba(0,0,0,.30);
-        -ms-overflow-style: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
         overscroll-behavior: contain;
       }
       .polish-project-detail__body::-webkit-scrollbar {
-        width: 7px;
-        height: 7px;
+        width: 0;
+        height: 0;
+        display: none;
       }
       .polish-project-detail__body::-webkit-scrollbar-track {
         background: rgba(0,0,0,.30);
@@ -1796,18 +2086,19 @@
       .polish-project-detail__body-wrap {
         position: relative;
         max-width: 780px;
-        padding-right: 22px;
+        padding-right: 26px;
       }
       .polish-project-detail__body-scrollbar {
         display: none;
         position: absolute;
-        top: 10px;
-        right: 5px;
-        bottom: 14px;
-        width: 3px;
+        top: 8px;
+        right: -6px;
+        bottom: 12px;
+        width: 22px;
+        box-sizing: border-box;
         border-radius: 999px;
-        background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.13), rgba(255,255,255,.08));
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+        background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.14), rgba(255,255,255,.08)) center / 3px 100% no-repeat;
+        box-shadow: none;
         opacity: 0;
         pointer-events: none;
         z-index: 3;
@@ -1837,16 +2128,39 @@
         position: absolute;
         top: 0;
         left: 50%;
-        width: 3px;
+        width: 4px;
         height: var(--polish-body-scroll-thumb-height, 34px);
-        min-height: 30px;
+        min-height: 36px;
         border-radius: 999px;
         background: linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.28));
         box-shadow:
           0 0 12px rgba(255,255,255,.12),
           inset 0 1px 0 rgba(255,255,255,.18);
         transform: translate3d(-50%, var(--polish-body-scroll-thumb-top, 0px), 0);
-        transition: height .16s ease, transform .08s linear;
+        transition: background .12s ease, box-shadow .12s ease;
+        will-change: transform;
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .polish-project-detail__body-wrap.has-more .polish-project-detail__body-scrollbar {
+          pointer-events: auto;
+          cursor: grab;
+          touch-action: none;
+        }
+        .polish-project-detail__body-wrap.has-more .polish-project-detail__body-scrollbar span {
+          pointer-events: auto;
+          cursor: grab;
+        }
+        .polish-project-detail__body-scrollbar:hover span,
+        .polish-project-detail__body-scrollbar.is-dragging span {
+          background: linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.36));
+          box-shadow:
+            0 0 16px rgba(255,255,255,.16),
+            inset 0 1px 0 rgba(255,255,255,.24);
+        }
+        .polish-project-detail__body-scrollbar.is-dragging,
+        .polish-project-detail__body-scrollbar.is-dragging span {
+          cursor: grabbing;
+        }
       }
       .polish-project-detail__body-wrap::after {
         display: none;
@@ -1857,6 +2171,10 @@
       .polish-project-detail__body-wrap.has-more .polish-project-detail__body {
         -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 28px, #000 calc(100% - 32px), transparent 100%);
         mask-image: linear-gradient(180deg, transparent 0%, #000 28px, #000 calc(100% - 32px), transparent 100%);
+      }
+      .polish-project-detail__body-wrap.has-more .polish-project-detail__body-scrollbar {
+        display: block;
+        opacity: .92;
       }
       .polish-project-detail__body-wrap.has-more.is-at-start .polish-project-detail__body {
         -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 32px), transparent 100%);
@@ -1992,18 +2310,22 @@
         background: rgba(0,0,0,.32);
       }
       .polish-project-detail__image-frame img {
+        --polish-inner-parallax-y: 0px;
+        --polish-detail-image-scale: 1.06;
         position: relative;
         z-index: 1;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transform: scale(1.02);
+        transform: translate3d(0, var(--polish-inner-parallax-y), 0) scale(var(--polish-detail-image-scale));
+        transform-origin: center;
         filter: saturate(.9) contrast(1.04) brightness(.82);
-        transition: transform .48s cubic-bezier(.16, 1, .3, 1), filter .48s cubic-bezier(.16, 1, .3, 1);
+        transition: filter .32s cubic-bezier(.16, 1, .3, 1);
+        will-change: transform, filter;
       }
       .polish-project-detail__image-frame:hover img,
       .polish-project-detail__image-frame.is-polish-hovered img {
-        transform: scale(1.045);
+        --polish-detail-image-scale: 1.08;
         filter: saturate(.96) contrast(1.08) brightness(.86);
       }
       html.polish-hover-sync-scrolling .polish-project-detail__image-frame:hover:not(.is-polish-hovered) {
@@ -2019,7 +2341,7 @@
         transform: translate3d(-130%,0,0) skewX(-16deg);
       }
       html.polish-hover-sync-scrolling .polish-project-detail__image-frame:hover:not(.is-polish-hovered) img {
-        transform: scale(1.02);
+        --polish-detail-image-scale: 1.06;
         filter: saturate(.9) contrast(1.04) brightness(.82);
       }
       .polish-project-detail__image figcaption {
@@ -2109,6 +2431,15 @@
       .polish-project-detail.is-open .polish-project-detail__image:nth-child(1) { animation-delay: .10s; }
       .polish-project-detail.is-open .polish-project-detail__image:nth-child(2) { animation-delay: .16s; }
       .polish-project-detail.is-open .polish-project-detail__image:nth-child(3) { animation-delay: .22s; }
+      .polish-project-detail.is-open.is-scroll-ready .polish-project-detail__lead,
+      .polish-project-detail.is-open.is-scroll-ready .polish-project-detail__body,
+      .polish-project-detail.is-open.is-scroll-ready .polish-project-detail__hero-media,
+      .polish-project-detail.is-open.is-scroll-ready .polish-project-detail__image {
+        animation: polish-detail-enter-fast .30s cubic-bezier(.22, 1, .36, 1) both;
+        animation-delay: 0s !important;
+      }
+      .polish-project-detail.is-open.is-scroll-ready .polish-project-detail__image:nth-child(2) { animation-delay: .025s !important; }
+      .polish-project-detail.is-open.is-scroll-ready .polish-project-detail__image:nth-child(3) { animation-delay: .05s !important; }
       @keyframes polish-detail-enter {
         0% {
           opacity: 0;
@@ -2118,6 +2449,18 @@
         100% {
           opacity: 1;
           transform: translate3d(0, 0, 0) scale(1);
+          filter: blur(0);
+        }
+      }
+      @keyframes polish-detail-enter-fast {
+        0% {
+          opacity: .01;
+          transform: translate3d(0, 10px, 0);
+          filter: blur(2px);
+        }
+        100% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
           filter: blur(0);
         }
       }
@@ -2213,6 +2556,21 @@
           line-height: 1.05;
           overflow-wrap: anywhere;
         }
+        html.polish-detail-opening body::after {
+          content: "";
+          position: fixed;
+          inset: 0;
+          z-index: 2147480400;
+          pointer-events: none;
+          background: #020203;
+        }
+        .polish-project-detail {
+          z-index: 2147480500;
+          transition: none;
+        }
+        .polish-lightbox {
+          z-index: 2147480700;
+        }
         .polish-project-detail__scroll {
           padding: calc(84px + env(safe-area-inset-top, 0px)) 16px calc(86px + env(safe-area-inset-bottom, 0px));
         }
@@ -2305,6 +2663,32 @@
         .polish-project-detail__back svg path {
           stroke-width: 2;
         }
+        .polish-project-detail__back-icon {
+          width: 19px;
+          height: 20px;
+        }
+        .polish-project-detail__back-line {
+          width: 19px;
+          height: 1.5px;
+          box-shadow: 0 0 7px rgba(255,255,255,.07);
+        }
+        .polish-project-detail__back-line:nth-child(1) {
+          top: 5px;
+        }
+        .polish-project-detail__back-line:nth-child(2) {
+          top: 10px;
+        }
+        .polish-project-detail__back-line:nth-child(3) {
+          top: 15px;
+        }
+        .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-line:nth-child(1) {
+          top: 10px;
+          transform: translateX(-50%) rotate(42deg);
+        }
+        .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-line:nth-child(3) {
+          top: 10px;
+          transform: translateX(-50%) rotate(-42deg);
+        }
         .polish-project-detail__title {
           font-size: clamp(38px, 14vw, 68px);
           line-height: .96;
@@ -2327,7 +2711,7 @@
           display: none;
         }
         .polish-project-detail__body-wrap {
-          padding-right: 24px;
+          padding-right: 26px;
         }
         .polish-project-detail__body-wrap.has-more .polish-project-detail__body-scrollbar {
           display: block;
@@ -2426,6 +2810,10 @@
         animation: polish-title-word-enter .82s cubic-bezier(.16, 1, .3, 1) both;
         animation-delay: calc(var(--polish-title-delay, 0ms) + var(--polish-word-index, 0) * 58ms);
       }
+      .polish-project-detail__title.polish-title-stagger.is-polish-title-entered:not(.is-polish-title-settled) .polish-title-word {
+        animation-duration: .42s;
+        animation-delay: calc(var(--polish-title-delay, 0ms) + var(--polish-word-index, 0) * 24ms);
+      }
       .polish-title-stagger.is-polish-title-settled .polish-title-word {
         opacity: 1 !important;
         transform: translate3d(0, 0, 0) rotateX(0deg) !important;
@@ -2479,6 +2867,21 @@
       .polish-scroll-indicator,
       .polish-scroll-indicator * {
         will-change: auto !important;
+      }
+      .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-icon > .polish-project-detail__back-line.is-top {
+        top: 10px !important;
+        opacity: 1 !important;
+        transform: translate3d(-50%, 0, 0) rotate(42deg) !important;
+      }
+      .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-icon > .polish-project-detail__back-line.is-mid {
+        top: 10px !important;
+        opacity: 0 !important;
+        transform: translate3d(-50%, 0, 0) scaleX(.36) !important;
+      }
+      .polish-project-detail.is-open.is-close-icon-ready .polish-project-detail__back-icon > .polish-project-detail__back-line.is-bottom {
+        top: 10px !important;
+        opacity: 1 !important;
+        transform: translate3d(-50%, 0, 0) rotate(-42deg) !important;
       }
       .polish-progressive-blur {
         position: fixed;
@@ -2725,7 +3128,7 @@
     document.body.appendChild(dock);
 
     const panel = document.createElement('div');
-    panel.className = 'polish-mobile-menu-panel';
+    panel.className = 'polish-mobile-menu-panel is-closed';
     panel.setAttribute('aria-hidden', 'true');
     panel.innerHTML =
       '<div class="polish-mobile-menu-panel__inner">' +
@@ -2735,9 +3138,15 @@
         '<a href="#contact" data-polish-nav-target="#contact">' + escapeHtml(config.ctaText || 'Contact') + '<span>04</span></a>' +
       '</div>';
     document.body.appendChild(panel);
+    const menuLinks = Array.from(panel.querySelectorAll('a'));
+    menuLinks.forEach((link, index) => {
+      link.style.setProperty('--polish-mobile-menu-delay', (index * 62) + 'ms');
+      link.style.setProperty('--polish-mobile-menu-exit-delay', ((menuLinks.length - 1 - index) * 34) + 'ms');
+    });
 
     const linkStates = new WeakMap();
     let activeLink = null;
+    let closeTimer = 0;
 
     function getLinkState(link) {
       let state = linkStates.get(link);
@@ -2784,8 +3193,26 @@
     }
 
     function setOpen(open) {
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = 0;
+      }
       button.classList.toggle('is-open', open);
-      panel.classList.toggle('is-open', open);
+      if (open) {
+        panel.classList.remove('is-open', 'is-closing');
+        panel.classList.add('is-closed');
+        void panel.offsetWidth;
+        panel.classList.remove('is-closed');
+        panel.classList.add('is-open');
+      } else {
+        panel.classList.remove('is-open', 'is-closed');
+        panel.classList.add('is-closing');
+        closeTimer = setTimeout(() => {
+          panel.classList.remove('is-closing');
+          panel.classList.add('is-closed');
+          closeTimer = 0;
+        }, 560);
+      }
       button.setAttribute('aria-expanded', open ? 'true' : 'false');
       button.setAttribute('aria-label', open ? 'Close mobile navigation' : 'Open mobile navigation');
       panel.setAttribute('aria-hidden', open ? 'false' : 'true');
@@ -2798,6 +3225,10 @@
       const home = document.querySelector('main > section:first-of-type') || document.querySelector('main');
       if (home) home.scrollIntoView({ behavior: 'smooth', block: 'start' });
       if (history.pushState) history.pushState(null, '', location.pathname + location.search);
+    }
+
+    function closeMenuInPlace() {
+      setOpen(false);
     }
 
     button.addEventListener('click', (event) => {
@@ -2818,7 +3249,8 @@
       const clickedBlank = event.target === panel || event.target === panel.querySelector('.polish-mobile-menu-panel__inner');
       if (clickedBlank) {
         event.preventDefault();
-        returnHomeFromBlank();
+        event.stopPropagation();
+        closeMenuInPlace();
         return;
       }
     });
@@ -2866,7 +3298,10 @@
       const enabled = isCompactNavViewport();
       document.documentElement.classList.toggle('polish-compact-nav', enabled);
       if (!enabled) {
-        document.querySelector('.polish-mobile-menu-panel')?.classList.remove('is-open');
+        const panel = document.querySelector('.polish-mobile-menu-panel');
+        panel?.classList.remove('is-open');
+        panel?.classList.remove('is-closing');
+        panel?.classList.add('is-closed');
         document.querySelector('.polish-mobile-menu-fallback')?.classList.remove('is-open');
         document.querySelector('.polish-mobile-menu-fallback')?.setAttribute('aria-expanded', 'false');
         document.documentElement.classList.remove('polish-mobile-menu-open');
@@ -3041,6 +3476,12 @@
       const polishMobilePanel = link.closest('.polish-mobile-menu-panel');
       if (polishMobilePanel) {
         polishMobilePanel.classList.remove('is-open');
+        polishMobilePanel.classList.remove('is-closed');
+        polishMobilePanel.classList.add('is-closing');
+        setTimeout(() => {
+          polishMobilePanel.classList.remove('is-closing');
+          polishMobilePanel.classList.add('is-closed');
+        }, 360);
         polishMobilePanel.setAttribute('aria-hidden', 'true');
         document.documentElement.classList.remove('polish-mobile-menu-open');
         const polishMobileButton = document.querySelector('.polish-mobile-menu-fallback');
@@ -3399,6 +3840,7 @@
     if (sections[0]) sections[0].classList.add('polish-hero-cover-first-section');
 
     let raf = 0;
+    let watchTimer = 0;
     const state = { hero, main, content, sections, requestUpdate, destroy };
 
     function update() {
@@ -3410,20 +3852,51 @@
       const rect = hero.getBoundingClientRect();
       const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
       const progress = clamp(-rect.top / Math.max(1, Math.min(rect.height || viewport, viewport)), 0, 1);
-      const hideVideo = rect.bottom <= 2 || progress >= 0.995;
+      const videoY = clamp(progress * -28, -28, 0);
+      const videoScale = 1 + progress * 0.018;
+      hero.style.setProperty('--polish-hero-video-y', videoY.toFixed(1) + 'px');
+      hero.style.setProperty('--polish-hero-video-scale', videoScale.toFixed(4));
+      const bridge = document.querySelector('.polish-marquee-removed');
+      const bridgeRect = bridge ? bridge.getBoundingClientRect() : null;
+      const hideVideo = bridgeRect ? bridgeRect.bottom <= 2 : (rect.bottom <= 2 || progress >= 0.995);
       hero.classList.toggle('is-polish-hero-video-hidden', hideVideo);
     }
 
     function requestUpdate() {
+      update();
       if (!raf) raf = requestAnimationFrame(update);
+      startWatch();
+    }
+
+    function startWatch() {
+      watchHeroEdge();
+      if (!watchTimer) watchTimer = window.setInterval(watchHeroEdge, 80);
+    }
+
+    function watchHeroEdge() {
+      update();
+      if (!document.body.contains(hero) || heroScrollMotionState !== state) return;
+      const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+      const rect = hero.getBoundingClientRect();
+      const bridge = document.querySelector('.polish-marquee-removed');
+      const bridgeRect = bridge ? bridge.getBoundingClientRect() : null;
+      const heroNear = rect.bottom > -viewport * .4 && rect.top < viewport * 1.15;
+      const bridgeNear = bridgeRect ? bridgeRect.bottom > -viewport * .4 && bridgeRect.top < viewport * 1.15 : false;
+      if (!heroNear && !bridgeNear && watchTimer) {
+        window.clearInterval(watchTimer);
+        watchTimer = 0;
+      }
     }
 
     function destroy() {
       window.removeEventListener('scroll', requestUpdate);
       window.removeEventListener('resize', requestUpdate);
       if (raf) cancelAnimationFrame(raf);
+      if (watchTimer) window.clearInterval(watchTimer);
       hero.classList.remove('polish-hero-scroll-motion');
       hero.classList.remove('is-polish-hero-video-hidden');
+      hero.style.removeProperty('--polish-hero-video-y');
+      hero.style.removeProperty('--polish-hero-video-scale');
       if (state.main) state.main.classList.remove('polish-hero-cover-main');
       if (state.content) state.content.classList.remove('polish-hero-scroll-content');
       state.sections.forEach((section) => section.classList.remove('polish-hero-cover-section', 'polish-hero-cover-first-section'));
@@ -3434,6 +3907,7 @@
     window.addEventListener('resize', requestUpdate, { passive: true });
     heroScrollMotionState = state;
     update();
+    startWatch();
   }
 
   function collectHeroCoverSections(hero) {
@@ -3466,6 +3940,19 @@
     setTitleEntranceMarkup(title, '<span>' + escapeHtml(line1) + '</span><br/><span class="text-foreground/30">' + escapeHtml(line2) + '</span>', line1 + '|' + line2);
     title.removeAttribute('data-polish-no-elastic');
     setupTitleEntrance(section, false);
+  }
+
+  function markProfileStatementCards(statement) {
+    if (!statement) return;
+    const labels = ['Frontend Development', 'UI/UX Design', 'Full Stack', 'Creative Coding'];
+    Array.from(statement.querySelectorAll('.group')).forEach((card) => {
+      const text = (card.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!labels.some((label) => text.indexOf(label) !== -1)) return;
+      card.dataset.polishProfileCard = 'true';
+      card.removeAttribute('data-cursor');
+      const motionWrap = card.parentElement;
+      if (motionWrap && motionWrap instanceof HTMLElement) motionWrap.dataset.polishProfileCardWrap = 'true';
+    });
   }
 
   function applySiteArchitecture() {
@@ -3520,6 +4007,7 @@
       statement.dataset.polishSectionRole = 'statement';
       setPlainText(statement.querySelector('.text-xs.font-mono'), '04 - Statement');
       replaceTitleMarkup(statement, 'Profile', 'statement');
+      markProfileStatementCards(statement);
       disableStatementBodyMotion();
     }
 
@@ -3847,6 +4335,11 @@
       release(active);
       active = null;
     }, { passive: true });
+    window.addEventListener('scroll', () => {
+      if (!active) return;
+      release(active);
+      active = null;
+    }, { passive: true });
   }
 
   function setupPointerPerformanceGate() {
@@ -3867,11 +4360,24 @@
     let y = -1;
     let raf = 0;
     let scrollTimer = 0;
-    const selector = '#projects [data-cursor="pointer"], .polish-layer-tile, .polish-project-detail__image-frame';
+    const selector = '#projects [data-cursor="pointer"], .polish-layer-tile, .polish-project-detail__image-frame, #about [data-polish-profile-card]';
+
+    function resetProfileCardMotion(card) {
+      if (!card || !card.matches || !card.matches('#about [data-polish-profile-card]')) return;
+      const wrap = card.closest('[data-polish-profile-card-wrap]') || card.parentElement;
+      if (!wrap || !(wrap instanceof HTMLElement)) return;
+      wrap.style.transition = 'transform .42s cubic-bezier(.16,1,.3,1)';
+      wrap.style.transform = 'perspective(1000px)';
+    }
 
     function clearStale(activeItem) {
       document.querySelectorAll('.is-polish-hovered').forEach((node) => {
-        if (node !== activeItem) node.classList.remove('is-polish-hovered');
+        if (node === activeItem) return;
+        node.classList.remove('is-polish-hovered');
+        resetProfileCardMotion(node);
+      });
+      document.querySelectorAll('#about [data-polish-profile-card]').forEach((node) => {
+        if (node !== activeItem) resetProfileCardMotion(node);
       });
     }
 
@@ -3901,6 +4407,12 @@
     }
 
     window.addEventListener('pointermove', (event) => {
+      x = event.clientX;
+      y = event.clientY;
+      document.documentElement.classList.remove('polish-hover-sync-scrolling');
+      requestSync();
+    }, { passive: true });
+    window.addEventListener('mousemove', (event) => {
       x = event.clientX;
       y = event.clientY;
       document.documentElement.classList.remove('polish-hover-sync-scrolling');
@@ -4050,7 +4562,10 @@
     title.dataset.polishTitleEntered = 'true';
     const wordCount = Math.max(1, title.querySelectorAll('.polish-title-word').length);
     const titleDelay = Number.parseFloat(title.style.getPropertyValue('--polish-title-delay')) || 0;
-    const duration = Math.min(1900, 980 + wordCount * 58 + titleDelay);
+    const isDetailTitle = Boolean(title.closest('.polish-project-detail'));
+    const duration = isDetailTitle
+      ? Math.min(680, 460 + wordCount * 24 + titleDelay)
+      : Math.min(1900, 980 + wordCount * 58 + titleDelay);
     setTitleEntranceActive(title, true);
     requestAnimationFrame(() => {
       title.classList.add('is-polish-title-entered');
@@ -4591,9 +5106,9 @@
     const detail = document.createElement('section');
     detail.className = 'polish-project-detail';
     detail.setAttribute('aria-hidden', 'true');
-    detail.innerHTML = '<div class="polish-project-detail__scroll"><div class="polish-project-detail__shell">' +
+    detail.innerHTML = '<div class="polish-project-detail__scroll" tabindex="-1"><div class="polish-project-detail__shell">' +
       '<div class="polish-project-detail__top"><div class="polish-project-detail__nav-material-reflection" data-polish-nav-material-reflection aria-hidden="true"></div><div class="polish-project-detail__nav-links">' +
-      '<button class="polish-project-detail__back" type="button" data-polish-detail-close data-cursor="pointer" aria-label="Close project detail"><span>Close</span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></div></div>' +
+      '<button class="polish-project-detail__back" type="button" data-polish-detail-close data-cursor="pointer" aria-label="Close project detail"><span class="polish-project-detail__back-label">Close</span><span class="polish-project-detail__back-icon" aria-hidden="true"><span class="polish-project-detail__back-line is-top"></span><span class="polish-project-detail__back-line is-mid"></span><span class="polish-project-detail__back-line is-bottom"></span></span></button></div></div>' +
       '<div data-polish-detail-content></div></div></div>';
     document.body.appendChild(detail);
     const lightbox = document.createElement('div');
@@ -4616,6 +5131,7 @@
     let navMaterialItems = [];
     let detailNavGutter = 0;
     const revealTimers = new WeakMap();
+    let revealObserver = null;
 
     function setGalleryControlsLocked(locked) {
       [prev, next].forEach((button) => {
@@ -4643,7 +5159,7 @@
     }
 
     function buildRandomGridMedia(item, title, maskId, seed) {
-      const gridCount = 24;
+      const gridCount = 16;
       const cell = 100 / gridCount;
       const order = shuffledIndexes(gridCount * gridCount, seed);
       let cells = '';
@@ -4654,7 +5170,7 @@
       });
       return '<svg class="polish-layer-media polish-random-grid-media" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="' + title + '">' +
         '<defs><mask id="' + maskId + '" maskUnits="userSpaceOnUse"><rect width="100" height="100" fill="#000"></rect>' + cells + '</mask></defs>' +
-        '<image href="' + escapeHtml(item.image) + '" width="100" height="100" preserveAspectRatio="xMidYMid slice" mask="url(#' + maskId + ')"></image>' +
+        '<image href="' + escapeHtml(item.image) + '" x="-8" y="-8" width="116" height="116" preserveAspectRatio="xMidYMid slice" mask="url(#' + maskId + ')"></image>' +
         '</svg>';
     }
 
@@ -4704,23 +5220,75 @@
       });
     }
 
-    function showRandomGridTilesImmediately() {
-      const tiles = Array.from(grid.querySelectorAll('[data-polish-layer-tile]'));
-      tiles.forEach((tile) => {
-        const oldTimer = revealTimers.get(tile);
-        if (oldTimer) clearTimeout(oldTimer);
-        tile.classList.remove('is-random-grid-revealing');
-        tile.classList.add('is-random-grid-revealed');
-        tile.querySelectorAll('.polish-random-grid-cell').forEach((cell) => {
-          cell.getAnimations().forEach((animation) => animation.cancel());
-          cell.style.opacity = '';
-          cell.setAttribute('opacity', '1');
+    function finishRandomGridTileImmediately(tile) {
+      const oldTimer = revealTimers.get(tile);
+      if (oldTimer) clearTimeout(oldTimer);
+      tile.classList.remove('is-random-grid-revealing');
+      tile.classList.add('is-random-grid-revealed');
+      tile.querySelectorAll('.polish-random-grid-cell').forEach((cell) => {
+        cell.getAnimations().forEach((animation) => animation.cancel());
+        cell.style.opacity = '';
+        cell.setAttribute('opacity', '1');
+      });
+    }
+
+    function isTileNearViewport(tile) {
+      const rect = tile.getBoundingClientRect();
+      return !!rect.width && !!rect.height && rect.bottom >= -160 && rect.top <= window.innerHeight + 160;
+    }
+
+    function getRandomGridRevealObserver() {
+      if (revealObserver || !('IntersectionObserver' in window)) return revealObserver;
+      revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting && entry.intersectionRatio <= 0) return;
+          const tile = entry.target;
+          revealObserver.unobserve(tile);
+          if (tile.dataset.polishRandomGridReveal === 'true') {
+            revealRandomGridTile(tile);
+          } else {
+            finishRandomGridTileImmediately(tile);
+          }
+          delete tile.dataset.polishRandomGridReveal;
         });
+      }, { root: null, rootMargin: '160px 0px', threshold: 0.01 });
+      return revealObserver;
+    }
+
+    function queueRandomGridTile(tile, reveal) {
+      if (isTileNearViewport(tile)) {
+        if (reveal) revealRandomGridTile(tile);
+        else finishRandomGridTileImmediately(tile);
+        return;
+      }
+      const observer = getRandomGridRevealObserver();
+      if (!observer) {
+        if (reveal) revealRandomGridTile(tile);
+        else finishRandomGridTileImmediately(tile);
+        return;
+      }
+      tile.dataset.polishRandomGridReveal = reveal ? 'true' : 'false';
+      observer.observe(tile);
+    }
+
+    function unobserveRandomGridTiles() {
+      if (!revealObserver) return;
+      Array.from(grid.querySelectorAll('[data-polish-layer-tile]')).forEach((tile) => {
+        revealObserver.unobserve(tile);
+        delete tile.dataset.polishRandomGridReveal;
+      });
+    }
+
+    function showRandomGridTilesImmediately() {
+      Array.from(grid.querySelectorAll('[data-polish-layer-tile]')).forEach((tile) => {
+        queueRandomGridTile(tile, false);
       });
     }
 
     function revealRandomGridTiles() {
-      Array.from(grid.querySelectorAll('[data-polish-layer-tile]')).forEach(revealRandomGridTile);
+      Array.from(grid.querySelectorAll('[data-polish-layer-tile]')).forEach((tile) => {
+        queueRandomGridTile(tile, true);
+      });
     }
 
     function cloneRect(rect) {
@@ -4794,6 +5362,24 @@
       }, 240);
     }
 
+    function getTextScrollMetrics(body, rail) {
+      const railRect = rail.getBoundingClientRect();
+      const trackHeight = Math.max(1, railRect.height || rail.clientHeight || body.clientHeight - 24);
+      const scrollRange = Math.max(0, body.scrollHeight - body.clientHeight);
+      const thumbHeight = clamp(trackHeight * (body.clientHeight / Math.max(body.scrollHeight, 1)), 36, trackHeight);
+      const maxThumbTop = Math.max(0, trackHeight - thumbHeight);
+      const thumbTop = scrollRange ? clamp((body.scrollTop / scrollRange) * maxThumbTop, 0, maxThumbTop) : 0;
+      return { trackHeight, scrollRange, thumbHeight, maxThumbTop, thumbTop };
+    }
+
+    function applyTextScrollbarProgress(rail, metrics, progress) {
+      const nextProgress = clamp(progress, 0, 1);
+      const nextTop = metrics.maxThumbTop ? metrics.maxThumbTop * nextProgress : 0;
+      rail.style.setProperty('--polish-body-scroll-thumb-height', metrics.thumbHeight.toFixed(1) + 'px');
+      rail.style.setProperty('--polish-body-scroll-thumb-top', nextTop.toFixed(1) + 'px');
+      rail.setAttribute('aria-valuenow', String(Math.round(nextProgress * 100)));
+    }
+
     function updateTextScrollCue() {
       const body = detail.querySelector('.polish-project-detail__body');
       const wrap = detail.querySelector('.polish-project-detail__body-wrap');
@@ -4809,14 +5395,139 @@
       if (!hasMore) {
         rail.style.setProperty('--polish-body-scroll-thumb-height', '34px');
         rail.style.setProperty('--polish-body-scroll-thumb-top', '0px');
+        rail.setAttribute('aria-hidden', 'true');
+        rail.setAttribute('aria-valuenow', '0');
+        rail.tabIndex = -1;
         return;
       }
-      const trackHeight = Math.max(1, rail.clientHeight || body.clientHeight - 24);
-      const scrollRange = Math.max(1, body.scrollHeight - body.clientHeight);
-      const thumbHeight = clamp(trackHeight * (body.clientHeight / Math.max(body.scrollHeight, 1)), 30, trackHeight);
-      const thumbTop = clamp((body.scrollTop / scrollRange) * (trackHeight - thumbHeight), 0, trackHeight - thumbHeight);
-      rail.style.setProperty('--polish-body-scroll-thumb-height', thumbHeight.toFixed(1) + 'px');
-      rail.style.setProperty('--polish-body-scroll-thumb-top', thumbTop.toFixed(1) + 'px');
+      const metrics = getTextScrollMetrics(body, rail);
+      const progress = metrics.scrollRange ? clamp(body.scrollTop / metrics.scrollRange, 0, 1) : 0;
+      applyTextScrollbarProgress(rail, metrics, progress);
+      rail.setAttribute('aria-hidden', 'false');
+      rail.tabIndex = 0;
+    }
+
+    function setupTextScrollControl(body) {
+      const wrap = body && body.closest('.polish-project-detail__body-wrap');
+      const rail = wrap && wrap.querySelector('.polish-project-detail__body-scrollbar');
+      const thumb = rail && rail.querySelector('span');
+      if (!body || !wrap || !rail || !thumb || rail.dataset.polishScrollControl === 'true') return;
+      rail.dataset.polishScrollControl = 'true';
+
+      let drag = null;
+
+      function syncWrapState(scrollTop, metrics) {
+        const hasMore = metrics.scrollRange > 0;
+        wrap.classList.toggle('has-more', hasMore);
+        wrap.classList.toggle('is-at-start', !hasMore || scrollTop <= 8);
+        wrap.classList.toggle('is-at-end', !hasMore || scrollTop + body.clientHeight >= body.scrollHeight - 8);
+        rail.setAttribute('aria-hidden', hasMore ? 'false' : 'true');
+        rail.tabIndex = hasMore ? 0 : -1;
+      }
+
+      function scrollToProgress(progress) {
+        const metrics = getTextScrollMetrics(body, rail);
+        if (!metrics.scrollRange || !metrics.maxThumbTop) {
+          body.scrollTop = 0;
+          updateTextScrollCue();
+          return;
+        }
+        const nextProgress = clamp(progress, 0, 1);
+        const nextScrollTop = nextProgress * metrics.scrollRange;
+        body.scrollTop = nextScrollTop;
+        applyTextScrollbarProgress(rail, metrics, nextProgress);
+        syncWrapState(nextScrollTop, metrics);
+      }
+
+      function scrollFromClientY(clientY, grabOffset) {
+        const rect = rail.getBoundingClientRect();
+        let progress = rect.height ? (clientY - rect.top) / rect.height : 0;
+        if (Number.isFinite(grabOffset)) {
+          const metrics = getTextScrollMetrics(body, rail);
+          const nextTop = clamp(clientY - rect.top - grabOffset, 0, metrics.maxThumbTop);
+          progress = metrics.maxThumbTop ? nextTop / metrics.maxThumbTop : 0;
+        }
+        scrollToProgress(progress);
+      }
+
+      function normalizeWheelDelta(event) {
+        let delta = Math.abs(event.deltaY || 0) >= Math.abs(event.deltaX || 0) ? event.deltaY : event.deltaX;
+        if (!delta) return 0;
+        if (event.deltaMode === 1) delta *= 18;
+        else if (event.deltaMode === 2) delta *= Math.max(1, body.clientHeight * .86);
+        return delta;
+      }
+
+      function scrollByDelta(delta) {
+        const metrics = getTextScrollMetrics(body, rail);
+        if (!metrics.scrollRange) return false;
+        const nextScrollTop = clamp(body.scrollTop + delta, 0, metrics.scrollRange);
+        const progress = metrics.scrollRange ? nextScrollTop / metrics.scrollRange : 0;
+        body.scrollTop = nextScrollTop;
+        applyTextScrollbarProgress(rail, metrics, progress);
+        syncWrapState(nextScrollTop, metrics);
+        return true;
+      }
+
+      function handleWheel(event) {
+        if (isMobileLikeViewport() || event.ctrlKey) return;
+        const delta = normalizeWheelDelta(event);
+        if (!delta) return;
+        if (scrollByDelta(delta)) event.preventDefault();
+      }
+
+      rail.addEventListener('pointerdown', (event) => {
+        if (event.button > 0 || isMobileLikeViewport()) return;
+        const metrics = getTextScrollMetrics(body, rail);
+        if (!metrics.scrollRange) return;
+        event.preventDefault();
+        const thumbRect = thumb.getBoundingClientRect();
+        const startedOnThumb = event.target === thumb;
+        const grabOffset = startedOnThumb ? event.clientY - thumbRect.top : null;
+        drag = { pointerId: event.pointerId, grabOffset };
+        rail.classList.add('is-dragging');
+        try {
+          rail.setPointerCapture(event.pointerId);
+        } catch {}
+        scrollFromClientY(event.clientY, grabOffset);
+      });
+
+      rail.addEventListener('pointermove', (event) => {
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        scrollFromClientY(event.clientY, drag.grabOffset);
+      });
+
+      function endDrag(event) {
+        if (!drag || (event && drag.pointerId !== event.pointerId)) return;
+        try {
+          rail.releasePointerCapture(drag.pointerId);
+        } catch {}
+        drag = null;
+        rail.classList.remove('is-dragging');
+      }
+
+      rail.addEventListener('pointerup', endDrag);
+      rail.addEventListener('pointercancel', endDrag);
+
+      body.addEventListener('wheel', handleWheel, { passive: false });
+      rail.addEventListener('wheel', handleWheel, { passive: false });
+
+      rail.addEventListener('keydown', (event) => {
+        const line = 42;
+        const page = Math.max(80, body.clientHeight * 0.82);
+        let delta = 0;
+        if (event.key === 'ArrowDown') delta = line;
+        else if (event.key === 'ArrowUp') delta = -line;
+        else if (event.key === 'PageDown') delta = page;
+        else if (event.key === 'PageUp') delta = -page;
+        else if (event.key === 'Home') body.scrollTop = 0;
+        else if (event.key === 'End') body.scrollTop = body.scrollHeight;
+        else return;
+        event.preventDefault();
+        if (delta) scrollByDelta(delta);
+        else updateTextScrollCue();
+      });
     }
 
     function clearDetailNavMaterialReflection() {
@@ -4899,9 +5610,9 @@
     }
 
     function closeDetail(pushState) {
-      detail.classList.remove('is-open');
+      detail.classList.remove('is-open', 'is-scroll-ready', 'is-close-icon-ready');
       detail.setAttribute('aria-hidden', 'true');
-      document.documentElement.classList.remove('polish-detail-open');
+      document.documentElement.classList.remove('polish-detail-open', 'polish-detail-opening');
       clearDetailNavMaterialReflection();
       if (pushState && location.hash.indexOf('#work-') === 0) {
         history.pushState(null, '', location.pathname + location.search);
@@ -4920,21 +5631,43 @@
       const externalHref = escapeHtml(item.externalHref || '#projects');
       const externalAttrs = /^https?:/i.test(item.externalHref || '') ? 'target="_blank" rel="noopener noreferrer"' : '';
       const images = item.images || [normalizeProjectImage(item.image, item.image, item.title)];
+      document.documentElement.classList.add('polish-detail-opening');
+      detail.classList.remove('is-scroll-ready', 'is-close-icon-ready');
       detailContent.innerHTML = '<div class="polish-project-detail__hero">' +
         '<div><h2 class="polish-project-detail__title">' + title + '</h2><span class="polish-project-detail__meta">' + meta + '</span>' +
-        facts + '<p class="polish-project-detail__lead">' + summary + '</p><div class="polish-project-detail__body-wrap"><div class="polish-project-detail__body">' + body + '</div><div class="polish-project-detail__body-scrollbar" aria-hidden="true"><span></span></div></div>' +
+        facts + '<p class="polish-project-detail__lead">' + summary + '</p><div class="polish-project-detail__body-wrap"><div id="polish-project-detail-body" class="polish-project-detail__body">' + body + '</div><div class="polish-project-detail__body-scrollbar" role="scrollbar" aria-hidden="true" aria-controls="polish-project-detail-body" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="-1"><span></span></div></div>' +
         '<div class="polish-project-detail__actions"><a class="polish-project-detail__link" href="' + externalHref + '" ' + externalAttrs + ' data-cursor="pointer">Visit external link</a></div></div></div>' +
         '<div class="polish-project-detail__gallery">' + images.map((image, imgIndex) => (
           '<figure class="polish-project-detail__image polish-project-detail__image--' + escapeHtml(image.ratio || 'square') + (image.fit === 'contain' ? ' polish-project-detail__image--contain' : '') + '"><div class="polish-project-detail__image-frame" data-cursor="pointer" data-polish-lightbox-src="' + escapeHtml(image.src) + '" data-polish-lightbox-caption="' + escapeHtml(image.caption || title) + '"><img src="' + escapeHtml(image.src) + '" alt="' + title + ' related image ' + (imgIndex + 1) + '" loading="lazy" decoding="async"/></div>' + (image.caption ? '<figcaption>' + escapeHtml(image.caption) + '</figcaption>' : '') + '</figure>'
         )).join('') + '</div>';
       updateDetailNavGutter();
       detailScroll.scrollTop = 0;
+      document.documentElement.classList.add('polish-detail-open');
       detail.classList.add('is-open');
       detail.setAttribute('aria-hidden', 'false');
-      document.documentElement.classList.add('polish-detail-open');
+      detail.classList.add('is-scroll-ready');
+      requestAnimationFrame(() => {
+        if (!detail.classList.contains('is-open')) return;
+        detail.classList.add('is-close-icon-ready');
+      });
+      setTimeout(() => {
+        if (!detail.classList.contains('is-open')) return;
+        detail.classList.add('is-close-icon-ready');
+      }, 40);
+      setTimeout(() => {
+        document.documentElement.classList.remove('polish-detail-opening');
+      }, 320);
+      try {
+        detailScroll.focus({ preventScroll: true });
+      } catch {
+        detailScroll.focus();
+      }
       setupTitleEntrance(detailContent, true);
       const bodyEl = detail.querySelector('.polish-project-detail__body');
-      if (bodyEl) bodyEl.addEventListener('scroll', updateTextScrollCue, { passive: true });
+      if (bodyEl) {
+        bodyEl.addEventListener('scroll', updateTextScrollCue, { passive: true });
+        setupTextScrollControl(bodyEl);
+      }
       buildDetailNavMaterialReflection();
       requestAnimationFrame(updateTextScrollCue);
       requestAnimationFrame(updateDetailNavMaterialReflection);
@@ -5118,6 +5851,7 @@
       grid.classList.remove('is-page-entering');
       if (!animate) grid.classList.add('is-changing');
       setTimeout(() => {
+        unobserveRandomGridTiles();
         grid.innerHTML = visible.map((item, offset) => {
           const number = String(start + offset + 1).padStart(2, '0');
           const href = '#work-' + escapeHtml(item.slug);
@@ -5283,6 +6017,130 @@
     window.addEventListener('resize', requestUpdate, { passive: true });
   }
 
+  function setupInnerImageParallax(config) {
+    if (!config.innerImageParallax) return;
+    if (document.documentElement.dataset.polishInnerImageParallax === 'true') return;
+    document.documentElement.dataset.polishInnerImageParallax = 'true';
+    if (config.respectReducedMotion && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const selector = '.polish-project-detail__image-frame img';
+    const strength = Number(config.innerImageParallaxStrength) || 0.009;
+    const damping = clamp(Number(config.innerImageParallaxDamping) || 0.16, 0.08, 0.28);
+    const states = new WeakMap();
+    let targets = [];
+    let measureRaf = 0;
+    let renderRaf = 0;
+    let refreshRaf = 0;
+
+    function getFrame(el) {
+      return el.closest('.polish-project-detail__image-frame') ||
+        el.closest('.polish-layer-tile') ||
+        el.parentElement;
+    }
+
+    function getState(el) {
+      let state = states.get(el);
+      if (!state) {
+        state = { y: 0, targetY: 0 };
+        states.set(el, state);
+      }
+      return state;
+    }
+
+    function collectTargets() {
+      refreshRaf = 0;
+      targets = Array.from(document.querySelectorAll(selector)).map((el) => ({
+        el,
+        frame: getFrame(el),
+        isDetail: !!el.closest('.polish-project-detail__image-frame'),
+        state: getState(el)
+      })).filter((item) => item.frame);
+      requestMeasure();
+    }
+
+    function scheduleCollect() {
+      if (!refreshRaf) refreshRaf = requestAnimationFrame(collectTargets);
+    }
+
+    function resetTargets() {
+      targets.forEach((item) => {
+        item.state.y = 0;
+        item.state.targetY = 0;
+        item.el.style.setProperty('--polish-inner-parallax-y', '0px');
+      });
+    }
+
+    function measure() {
+      measureRaf = 0;
+      if (isMobileLikeViewport()) {
+        resetTargets();
+        return;
+      }
+
+      const mid = window.innerHeight * 0.5;
+      targets.forEach((item) => {
+        if (!item.el.isConnected) return;
+        if (!item.frame || !item.frame.isConnected) item.frame = getFrame(item.el);
+        if (!item.frame) return;
+        if (item.isDetail && item.el.closest('.polish-project-detail__image--contain')) {
+          item.state.targetY = 0;
+          return;
+        }
+
+        const rect = item.frame.getBoundingClientRect();
+        if (!rect.width || !rect.height || rect.bottom < -160 || rect.top > window.innerHeight + 160) {
+          item.state.y = 0;
+          item.state.targetY = 0;
+          item.el.style.setProperty('--polish-inner-parallax-y', '0px');
+          return;
+        }
+
+        const center = rect.top + rect.height * 0.5;
+        const maxOffset = item.isDetail ? 3 : 2;
+        item.state.targetY = clamp((mid - center) * strength, -maxOffset, maxOffset);
+      });
+      requestRender();
+    }
+
+    function render() {
+      renderRaf = 0;
+      if (isMobileLikeViewport()) {
+        resetTargets();
+        return;
+      }
+
+      let needsNextFrame = false;
+      targets.forEach((item) => {
+        if (!item.el.isConnected) return;
+        const state = item.state;
+        state.y += (state.targetY - state.y) * damping;
+        if (Math.abs(state.y - state.targetY) < 0.08) state.y = state.targetY;
+        item.el.style.setProperty('--polish-inner-parallax-y', state.y.toFixed(2) + 'px');
+        if (Math.abs(state.y - state.targetY) > 0.08) needsNextFrame = true;
+      });
+
+      if (needsNextFrame) requestRender();
+    }
+
+    function requestMeasure() {
+      if (!measureRaf) measureRaf = requestAnimationFrame(measure);
+    }
+
+    function requestRender() {
+      if (!renderRaf) renderRaf = requestAnimationFrame(render);
+    }
+
+    collectTargets();
+    const observer = new MutationObserver(scheduleCollect);
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('scroll', requestMeasure, { passive: true });
+    document.addEventListener('scroll', requestMeasure, { passive: true, capture: true });
+    window.addEventListener('resize', () => {
+      scheduleCollect();
+      requestMeasure();
+    }, { passive: true });
+  }
+
   function start(config, projectItems) {
     if (!config.enabled) return;
     injectStyles();
@@ -5301,8 +6159,11 @@
     setupMagneticButtons(config);
     setupPointerPerformanceGate();
     setupHoverStateSync();
+    setupGalleryReplacement(config, projectItems);
+    setupInnerImageParallax(config);
     watchGalleryReplacement(config, projectItems);
     applySiteArchitecture();
+    setupHeroScrollMotion(config);
     disableStatementBodyMotion();
     disableContactBodyMotion();
     setupParallax(config);
