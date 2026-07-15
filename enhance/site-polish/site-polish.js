@@ -8,6 +8,7 @@
     removeMarqueeStrip: true,
     separateContactCta: true,
     ctaText: 'Email Me',
+    detailNavMode: 'legacy',
     clickHover: true,
     cursorClickMotion: true,
     bootSettle: false,
@@ -21,7 +22,7 @@
     heroVideo: true,
     heroVideoSrc: 'media/hero-abstract-loop.mp4',
     heroVideoPoster: 'media/hero-abstract-poster.jpg',
-    heroVideoMobile: false,
+    heroVideoMobile: true,
     heroVideoLazy: true,
     heroVideoLazyDelay: 650,
     heroVideoPreload: 'none',
@@ -32,6 +33,7 @@
     innerImageParallaxDamping: 0.16,
     galleryReplacement: true,
     galleryPageSize: 3,
+    galleryMobilePageSize: 4,
     galleryRevealEffect: 'randomGrid',
     galleryMinPages: 2,
     galleryDemoPlaceholders: true,
@@ -52,7 +54,7 @@
     if (!document.querySelector('#polish-first-paint-guard, style[data-enhance="site-polish-early"]')) {
       const style = document.createElement('style');
       style.dataset.enhance = 'site-polish-early';
-      style.textContent = '#projects + section:not([id]):not(.polish-gallery-section){display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}';
+      style.textContent = '#projects + section:not([id]):not(.polish-gallery-section){display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}main>section:first-of-type>div.relative.text-center>.mb-8{display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}html:not(.polish-first-paint-ready) main>section:first-of-type{opacity:0!important;visibility:hidden!important;}main>section:first-of-type{transition:opacity .36s cubic-bezier(.16,1,.3,1);}html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.20) rgba(0,0,0,.34);}html::-webkit-scrollbar,body::-webkit-scrollbar{width:10px;height:10px;}html::-webkit-scrollbar-track,body::-webkit-scrollbar-track{background:rgba(0,0,0,.34);border-radius:999px;}html::-webkit-scrollbar-thumb,body::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.13));border:2px solid rgba(0,0,0,.48);border-radius:999px;}';
       (document.head || document.documentElement).appendChild(style);
     }
 
@@ -65,8 +67,30 @@
 
   installInitialStateGuards();
 
+  function releaseFirstPaintGuard() {
+    if (document.documentElement.classList.contains('polish-first-paint-ready')) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.add('polish-first-paint-ready');
+      });
+    });
+  }
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function getEditableContentRaw(path) {
+    let value = window.__EDITABLE_SITE_CONTENT__;
+    String(path || '').split('.').forEach((key) => {
+      value = value == null ? undefined : value[key];
+    });
+    return value;
+  }
+
+  function getEditableContentValue(path, fallback) {
+    const value = getEditableContentRaw(path);
+    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
   }
 
   function isMobileLikeViewport() {
@@ -1417,6 +1441,12 @@
       html.polish-detail-open body {
         overflow: hidden;
       }
+      @media (min-width: 901px) {
+        html.polish-detail-open body {
+          box-sizing: border-box;
+          padding-right: var(--polish-detail-page-gutter, 0px);
+        }
+      }
       .polish-gallery-transition-layer {
         position: fixed;
         inset: 0;
@@ -1748,6 +1778,7 @@
         opacity: .72;
       }
       .polish-project-detail {
+        --polish-detail-nav-pad: max(48px, calc((100vw - 1280px) / 2 + 48px));
         position: fixed;
         inset: 0;
         z-index: 1002;
@@ -1765,6 +1796,18 @@
       .polish-project-detail.is-open {
         pointer-events: auto;
         opacity: 1;
+      }
+      .polish-project-detail.is-closing {
+        pointer-events: none;
+        opacity: 0;
+      }
+      .polish-project-detail.is-closing .polish-project-detail__top {
+        justify-content: flex-end;
+      }
+      .polish-project-detail.is-closing .polish-project-detail__top > :not(.polish-project-detail__nav-links),
+      .polish-project-detail.is-closing .polish-project-detail__nav-links > :not(.polish-project-detail__back),
+      .polish-project-detail.is-closing .polish-project-detail__nav-material-reflection {
+        display: none !important;
       }
       .polish-project-detail.is-scroll-ready .polish-project-detail__scroll {
         pointer-events: auto;
@@ -1837,7 +1880,7 @@
         height: calc(64px + env(safe-area-inset-top, 0px));
         min-height: calc(64px + env(safe-area-inset-top, 0px));
         max-height: calc(64px + env(safe-area-inset-top, 0px));
-        padding: env(safe-area-inset-top, 0px) clamp(18px, 5vw, 72px) 0;
+        padding: env(safe-area-inset-top, 0px) var(--polish-detail-nav-pad) 0;
         margin: 0;
         overflow: hidden;
         isolation: auto;
@@ -2309,6 +2352,10 @@
         padding: 10px;
         background: rgba(0,0,0,.32);
       }
+      .polish-project-detail__image--contain .polish-project-detail__image-frame video {
+        object-fit: contain;
+        background: rgba(0,0,0,.64);
+      }
       .polish-project-detail__image-frame img {
         --polish-inner-parallax-y: 0px;
         --polish-detail-image-scale: 1.06;
@@ -2322,6 +2369,22 @@
         filter: saturate(.9) contrast(1.04) brightness(.82);
         transition: filter .32s cubic-bezier(.16, 1, .3, 1);
         will-change: transform, filter;
+      }
+      .polish-project-detail__image-frame video {
+        position: relative;
+        z-index: 1;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #050506;
+      }
+      .polish-project-detail__image-frame--video {
+        cursor: auto;
+      }
+      .polish-project-detail__image-frame--video::before,
+      .polish-project-detail__image-frame--video::after {
+        display: none;
       }
       .polish-project-detail__image-frame:hover img,
       .polish-project-detail__image-frame.is-polish-hovered img {
@@ -2566,7 +2629,7 @@
         }
         .polish-project-detail {
           z-index: 2147480500;
-          transition: none;
+          transition: opacity .32s ease;
         }
         .polish-lightbox {
           z-index: 2147480700;
@@ -2740,7 +2803,7 @@
           aspect-ratio: 3 / 4;
         }
       }
-      @media (max-width: 860px) {
+      @media (max-width: 900px) {
         .polish-gallery-head {
           display: block;
         }
@@ -2757,7 +2820,38 @@
           padding-right: 16px;
         }
         .polish-gallery-grid {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .polish-layer-caption {
+          min-height: 68%;
+          padding: 12px;
+        }
+        .polish-layer-index {
+          margin-bottom: 6px;
+          font-size: 9px;
+          letter-spacing: .18em;
+        }
+        .polish-layer-name {
+          display: -webkit-box;
+          overflow: hidden;
+          font-size: clamp(13px, 4vw, 16px);
+          line-height: 1.08;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+        }
+        .polish-layer-meta {
+          overflow: hidden;
+          margin-top: 6px;
+          font-size: 8px;
+          letter-spacing: .12em;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .polish-layer-summary,
+        .polish-layer-link {
+          display: none;
         }
       }
       .polish-title-stagger {
@@ -2882,6 +2976,213 @@
         top: 10px !important;
         opacity: 1 !important;
         transform: translate3d(-50%, 0, 0) rotate(-42deg) !important;
+      }
+      .polish-shared-nav-frame {
+        position: relative;
+      }
+      html[data-polish-detail-nav-mode="shared"] nav.polish-shared-nav-controller-ready {
+        transition-property: background-color, border-color, -webkit-backdrop-filter, backdrop-filter !important;
+      }
+      .polish-shared-nav-home-item,
+      .polish-mobile-nav-brand {
+        transition:
+          opacity .42s cubic-bezier(.16, 1, .3, 1),
+          transform .56s cubic-bezier(.16, 1, .3, 1),
+          filter .48s cubic-bezier(.16, 1, .3, 1);
+        transition-delay: var(--polish-shared-nav-restore-delay, 0ms);
+        will-change: opacity, transform, filter;
+      }
+      .polish-shared-detail-close {
+        position: absolute;
+        top: 50%;
+        right: 48px;
+        z-index: 8;
+        display: grid;
+        place-items: center;
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: rgba(255,255,255,.70);
+        cursor: none !important;
+        opacity: 0;
+        filter: blur(6px);
+        pointer-events: none;
+        transform: translate3d(var(--polish-magnetic-x, 0px), calc(-50% + var(--polish-magnetic-y, 0px)), 0);
+        transition:
+          opacity .38s cubic-bezier(.16, 1, .3, 1),
+          filter .42s cubic-bezier(.16, 1, .3, 1),
+          color .42s cubic-bezier(.16, 1, .3, 1);
+        will-change: opacity, transform, filter, color;
+      }
+      .polish-shared-detail-close *,
+      .polish-shared-detail-close.polish-click-target.is-polish-hot {
+        cursor: none !important;
+      }
+      .polish-shared-detail-close.polish-click-target.is-polish-hot {
+        transform: translate3d(var(--polish-magnetic-x, 0px), calc(-50% + var(--polish-magnetic-y, 0px)), 0);
+      }
+      .polish-shared-detail-close__glyph {
+        position: relative;
+        display: block;
+        width: 24px;
+        height: 24px;
+        opacity: .7;
+        filter: drop-shadow(0 0 5px rgba(255,255,255,.04));
+        transform: translate3d(0, 8px, 0) rotate(-5deg) scale(.74);
+        transition:
+          opacity .42s cubic-bezier(.16, 1, .3, 1),
+          filter .46s cubic-bezier(.16, 1, .3, 1),
+          transform .52s cubic-bezier(.16, 1, .3, 1);
+        will-change: opacity, filter, transform;
+      }
+      .polish-shared-detail-close:hover,
+      .polish-shared-detail-close:focus-visible,
+      .polish-shared-detail-close.is-polish-hot {
+        color: rgba(255,255,255,.82);
+      }
+      .polish-shared-detail-close:hover .polish-shared-detail-close__glyph,
+      .polish-shared-detail-close:focus-visible .polish-shared-detail-close__glyph,
+      .polish-shared-detail-close.is-polish-hot .polish-shared-detail-close__glyph {
+        opacity: .86;
+        filter: drop-shadow(0 0 8px rgba(255,255,255,.12));
+      }
+      .polish-shared-detail-close:focus-visible {
+        outline: 1px solid rgba(255,255,255,.36);
+        outline-offset: 2px;
+      }
+      .polish-shared-detail-close__line {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 19px;
+        height: 1.5px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0;
+        box-shadow: 0 0 7px rgba(255,255,255,.07);
+        transform-origin: 50% 50%;
+        transition:
+          opacity .24s ease,
+          transform .36s cubic-bezier(.16, 1, .3, 1);
+      }
+      .polish-shared-detail-close__line:first-child {
+        transform: translate3d(-50%, -50%, 0) rotate(0deg) scaleX(.38);
+      }
+      .polish-shared-detail-close__line:last-child {
+        transform: translate3d(-50%, -50%, 0) rotate(0deg) scaleX(.38);
+      }
+      html[data-polish-detail-nav-mode="shared"] .polish-project-detail {
+        z-index: 1002 !important;
+      }
+      html[data-polish-detail-nav-mode="shared"] .polish-lightbox {
+        z-index: 1005 !important;
+      }
+      html[data-polish-detail-nav-mode="shared"].polish-detail-opening body::after {
+        z-index: 1001 !important;
+      }
+      html[data-polish-detail-nav-mode="shared"] .polish-project-detail__top {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active nav,
+      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active .polish-mobile-nav-dock {
+        right: var(--polish-shared-nav-gutter, 0px) !important;
+        z-index: 1004 !important;
+      }
+      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active main {
+        isolation: auto !important;
+      }
+      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active nav .polish-shared-nav-home-item {
+        opacity: 0 !important;
+        filter: blur(8px) !important;
+        pointer-events: none !important;
+        transform: translate3d(0, -12px, 0) scale(.975) !important;
+        transition-delay: var(--polish-shared-nav-exit-delay, 0ms);
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close,
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close {
+        opacity: 1;
+        filter: blur(0);
+        pointer-events: auto;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close {
+        transition-delay: 150ms;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__glyph,
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__glyph {
+        opacity: 1;
+        filter: drop-shadow(0 0 7px rgba(255,255,255,.07));
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__glyph {
+        transition-delay: 145ms;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line,
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line {
+        opacity: 1;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line {
+        transition-delay: 180ms;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line:first-child,
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line:first-child {
+        transform: translate3d(-50%, -50%, 0) rotate(42deg) scaleX(1);
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line:last-child,
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line:last-child {
+        transform: translate3d(-50%, -50%, 0) rotate(-42deg) scaleX(1);
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-detail-close {
+        opacity: 0;
+        filter: blur(6px);
+        pointer-events: none;
+        transition-delay: 0ms;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-detail-close__glyph {
+        opacity: .64;
+        filter: drop-shadow(0 0 4px rgba(255,255,255,.03));
+        transform: translate3d(0, -7px, 0) rotate(5deg) scale(.78);
+        transition-delay: 0ms;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-nav-home-item {
+        opacity: 1 !important;
+        filter: blur(0) !important;
+        pointer-events: none !important;
+        transform: translate3d(0, 0, 0) scale(1) !important;
+        transition-delay: calc(76ms + var(--polish-shared-nav-restore-delay, 0ms));
+      }
+      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active .polish-mobile-menu-panel {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active.polish-compact-nav .polish-mobile-nav-dock {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active .polish-mobile-nav-brand {
+        opacity: 0;
+        filter: blur(7px);
+        pointer-events: none;
+        transform: translate3d(0, -8px, 0) scale(.985);
+        transition-delay: 0ms;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .polish-shared-nav-home-item,
+        .polish-mobile-nav-brand,
+        .polish-shared-detail-close,
+        .polish-shared-detail-close__glyph,
+        .polish-shared-detail-close__line {
+          transition-duration: .22s !important;
+          transition-delay: 0ms !important;
+        }
       }
       .polish-progressive-blur {
         position: fixed;
@@ -3114,11 +3415,15 @@
     dock.setAttribute('aria-hidden', 'false');
     const brand = document.createElement('a');
     brand.className = 'polish-mobile-nav-brand';
+    brand.dataset.polishNavRole = 'brand';
     brand.href = '#';
     brand.setAttribute('aria-label', 'Return to home');
-    brand.innerHTML = 'YN<span>.</span>';
+    const mobileBrandText = getEditableContentValue('nav.brand', 'YN.');
+    const mobileBrandBase = mobileBrandText.endsWith('.') ? mobileBrandText.slice(0, -1) : mobileBrandText;
+    brand.innerHTML = escapeHtml(mobileBrandBase) + (mobileBrandText.endsWith('.') ? '<span>.</span>' : '');
     const button = document.createElement('button');
     button.className = 'polish-mobile-menu-fallback md:hidden';
+    button.dataset.polishNavRole = 'menu-toggle';
     button.type = 'button';
     button.setAttribute('aria-label', 'Open mobile navigation');
     button.setAttribute('aria-expanded', 'false');
@@ -3132,10 +3437,10 @@
     panel.setAttribute('aria-hidden', 'true');
     panel.innerHTML =
       '<div class="polish-mobile-menu-panel__inner">' +
-        '<a href="#gallery" data-polish-nav-target="#gallery" data-polish-nav-gallery="true">Works<span>01</span></a>' +
-        '<a href="#projects" data-polish-nav-target="#projects">Trajectory<span>02</span></a>' +
-        '<a href="#about" data-polish-nav-target="#about">Statement<span>03</span></a>' +
-        '<a href="#contact" data-polish-nav-target="#contact">' + escapeHtml(config.ctaText || 'Contact') + '<span>04</span></a>' +
+        '<a href="#gallery" data-polish-nav-role="works" data-polish-nav-target="#gallery" data-polish-nav-gallery="true">' + escapeHtml(getEditableContentValue('nav.contact', 'Works')) + '<span>01</span></a>' +
+        '<a href="#projects" data-polish-nav-role="trajectory" data-polish-nav-target="#projects">' + escapeHtml(getEditableContentValue('nav.projects', 'Trajectory')) + '<span>02</span></a>' +
+        '<a href="#about" data-polish-nav-role="statement" data-polish-nav-target="#about">' + escapeHtml(getEditableContentValue('nav.about', 'Statement')) + '<span>03</span></a>' +
+        '<a href="#contact" data-polish-nav-role="cta" data-polish-nav-target="#contact">' + escapeHtml(getEditableContentValue('nav.cta', config.ctaText || 'Contact')) + '<span>04</span></a>' +
       '</div>';
     document.body.appendChild(panel);
     const menuLinks = Array.from(panel.querySelectorAll('a'));
@@ -3288,6 +3593,7 @@
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') setOpen(false);
     });
+    window.addEventListener('polish:mobile-menu-close', () => setOpen(false));
     window.addEventListener('resize', () => {
       if (!isCompactNavViewport()) setOpen(false);
     }, { passive: true });
@@ -3378,40 +3684,74 @@
 
     if (!config.separateContactCta) return;
 
-    const setNavItem = (link, label, href, aria) => {
+    const setDirectNavText = (link, label) => {
+      if (!link || !label) return;
+      const directText = Array.from(link.childNodes).find((node) => node.nodeType === 3 && String(node.nodeValue || '').trim());
+      if (directText) {
+        if (String(directText.nodeValue || '').trim() !== label) directText.nodeValue = label;
+        return;
+      }
+      link.insertBefore(document.createTextNode(label), link.firstChild);
+    };
+
+    const setNavItem = (link, role, label, href, aria) => {
       if (!link) return;
-      link.textContent = label;
+      link.dataset.polishNavRole = role;
+      setDirectNavText(link, label);
       link.setAttribute('href', href);
       link.setAttribute('aria-label', aria || ('Jump to ' + label));
       link.dataset.polishNavTarget = href;
       if (href === '#gallery') link.dataset.polishNavGallery = 'true';
+      else delete link.dataset.polishNavGallery;
     };
 
-    function applyDesktopNav() {
-      const links = Array.from(nav.querySelectorAll('a'));
-      const aboutLink = links.find((link) => (link.getAttribute('href') || '') === '#about' || /^about$/i.test((link.textContent || '').trim()));
-      const projectsLink = links.find((link) => (link.getAttribute('href') || '') === '#projects' || /^projects$/i.test((link.textContent || '').trim()));
-      const contactLink = links.find((link) => {
-        const text = (link.textContent || '').trim();
-        const href = link.getAttribute('href') || '';
-        return href === '#contact' || /^contact$/i.test(text);
-      });
-      const cta = links.find((link) => /get in touch|email me|start a project/i.test((link.textContent || '').trim()));
+    function getDesktopNavRoles() {
       const navGroup = nav.querySelector('.hidden.md\\:flex');
-      setNavItem(contactLink, 'Works', '#gallery', 'Jump to selected works');
-      setNavItem(projectsLink, 'Trajectory', '#projects', 'Jump to trajectory');
-      setNavItem(aboutLink, 'Statement', '#about', 'Jump to profile statement');
-      if (cta) {
-        cta.textContent = config.ctaText || 'Contact';
-        cta.setAttribute('href', '#contact');
-        cta.setAttribute('aria-label', 'Jump to contact');
-        cta.dataset.polishNavTarget = '#contact';
-      }
-      if (navGroup) {
-        [contactLink, projectsLink, aboutLink, cta].forEach((link) => {
-          const item = link && link.closest('div');
-          if (item && item.parentElement === navGroup) navGroup.appendChild(item);
-        });
+      if (!navGroup) return null;
+      const links = Array.from(navGroup.querySelectorAll('a'));
+      const claimed = new Set();
+      const take = (role, fallback) => {
+        const existing = links.find((link) => link.dataset.polishNavRole === role && !claimed.has(link));
+        const link = existing || links.find((candidate) => !claimed.has(candidate) && fallback(candidate));
+        if (!link) return null;
+        claimed.add(link);
+        link.dataset.polishNavRole = role;
+        return link;
+      };
+      const cta = take('cta', (link) =>
+        link.classList.contains('rounded-full') ||
+        /get in touch|email me|start a project/i.test((link.textContent || '').trim())
+      ) || take('cta', (link) => (link.getAttribute('href') || '') === '#contact');
+      const statement = take('statement', (link) =>
+        (link.getAttribute('href') || '') === '#about' || /^(about|statement)$/i.test((link.textContent || '').trim())
+      );
+      const trajectory = take('trajectory', (link) =>
+        (link.getAttribute('href') || '') === '#projects' || /^(projects|trajectory)$/i.test((link.textContent || '').trim())
+      );
+      const works = take('works', (link) =>
+        (link.getAttribute('href') || '') === '#gallery' || /^(works)$/i.test((link.textContent || '').trim())
+      ) || take('works', (link) => (link.getAttribute('href') || '') === '#contact');
+      return { navGroup, works, trajectory, statement, cta };
+    }
+
+    function applyDesktopNav() {
+      const roles = getDesktopNavRoles();
+      if (!roles) return;
+      setNavItem(roles.works, 'works', getEditableContentValue('nav.contact', 'Works'), '#gallery', 'Jump to selected works');
+      setNavItem(roles.trajectory, 'trajectory', getEditableContentValue('nav.projects', 'Trajectory'), '#projects', 'Jump to trajectory');
+      setNavItem(roles.statement, 'statement', getEditableContentValue('nav.about', 'Statement'), '#about', 'Jump to profile statement');
+      setNavItem(roles.cta, 'cta', getEditableContentValue('nav.cta', config.ctaText || 'Contact'), '#contact', 'Jump to contact');
+      const orderedLinks = [roles.works, roles.trajectory, roles.statement, roles.cta].filter(Boolean);
+      const orderedItems = orderedLinks.map((link) => Array.from(roles.navGroup.children).find((item) => item.contains(link))).filter(Boolean);
+      orderedItems.forEach((item, index) => {
+        item.classList.add('polish-shared-nav-home-item');
+        item.dataset.polishNavItemRole = orderedLinks[index].dataset.polishNavRole;
+        item.style.setProperty('--polish-shared-nav-exit-delay', ((orderedItems.length - 1 - index) * 22) + 'ms');
+        item.style.setProperty('--polish-shared-nav-restore-delay', (index * 30) + 'ms');
+      });
+      const currentItems = Array.from(roles.navGroup.children).filter((item) => orderedItems.includes(item));
+      if (orderedItems.some((item, index) => currentItems[index] !== item)) {
+        orderedItems.forEach((item) => roles.navGroup.appendChild(item));
       }
     }
 
@@ -3419,26 +3759,31 @@
       Array.from(document.querySelectorAll('div.fixed.inset-0')).forEach((panel) => {
         if (panel.closest('.polish-project-detail, .polish-lightbox')) return;
         const links = Array.from(panel.querySelectorAll('a'));
-        if (!links.length || !links.some((link) => /about|projects|contact|works|trajectory|statement/i.test(link.textContent || ''))) return;
+        if (!links.length || !links.some((link) =>
+          link.dataset.polishNavRole ||
+          /^#(gallery|projects|about|contact)$/.test(link.dataset.polishNavTarget || link.getAttribute('href') || '') ||
+          /about|projects|contact|works|trajectory|statement/i.test(link.textContent || '')
+        )) return;
         const targetOf = (link) => link.dataset.polishNavTarget || link.getAttribute('href') || '';
         const byTarget = (target) => links.find((link) => targetOf(link) === target);
         const byText = (pattern) => links.find((link) => pattern.test((link.textContent || '').trim()));
-        const aboutLink = byTarget('#about') || byText(/^(about|statement)$/i);
-        const projectsLink = byTarget('#projects') || byText(/^(projects|trajectory)$/i);
-        let worksLink = byTarget('#gallery') || byText(/^works$/i);
-        let contactLink = byTarget('#contact') || byText(/^contact$/i);
+        const byRole = (role) => links.find((link) => link.dataset.polishNavRole === role);
+        const aboutLink = byRole('statement') || byTarget('#about') || byText(/^(about|statement)$/i);
+        const projectsLink = byRole('trajectory') || byTarget('#projects') || byText(/^(projects|trajectory)$/i);
+        let worksLink = byRole('works') || byTarget('#gallery') || byText(/^works$/i);
+        let contactLink = byRole('cta') || byTarget('#contact') || byText(/^contact$/i);
         if (!worksLink && contactLink) {
           worksLink = contactLink;
           contactLink = null;
         }
-        setNavItem(worksLink, 'Works', '#gallery', 'Jump to selected works');
-        setNavItem(projectsLink, 'Trajectory', '#projects', 'Jump to trajectory');
-        setNavItem(aboutLink, 'Statement', '#about', 'Jump to profile statement');
-        if (contactLink) setNavItem(contactLink, 'Contact', '#contact', 'Jump to contact');
+        setNavItem(worksLink, 'works', getEditableContentValue('nav.contact', 'Works'), '#gallery', 'Jump to selected works');
+        setNavItem(projectsLink, 'trajectory', getEditableContentValue('nav.projects', 'Trajectory'), '#projects', 'Jump to trajectory');
+        setNavItem(aboutLink, 'statement', getEditableContentValue('nav.about', 'Statement'), '#about', 'Jump to profile statement');
+        if (contactLink) setNavItem(contactLink, 'cta', getEditableContentValue('nav.cta', 'Contact'), '#contact', 'Jump to contact');
         if (!Array.from(panel.querySelectorAll('a')).some((link) => (link.dataset.polishNavTarget || link.getAttribute('href')) === '#contact')) {
           const contact = document.createElement('a');
           contact.className = links[0].className || 'text-3xl font-light text-foreground/70 hover:text-foreground transition-colors';
-          setNavItem(contact, 'Contact', '#contact', 'Jump to contact');
+          setNavItem(contact, 'cta', getEditableContentValue('nav.cta', 'Contact'), '#contact', 'Jump to contact');
           panel.querySelector('.flex.flex-col')?.appendChild(contact);
         }
         const seenTargets = new Set();
@@ -3453,11 +3798,150 @@
 
     applyDesktopNav();
     applyMobileNav();
+    if (nav.dataset.polishEditableNavListener !== 'true') {
+      nav.dataset.polishEditableNavListener = 'true';
+      window.addEventListener('editable:content-ready', () => {
+        applyDesktopNav();
+        applyMobileNav();
+      });
+    }
     if (document.documentElement.dataset.polishMobileNavWatcher !== 'true') {
       document.documentElement.dataset.polishMobileNavWatcher = 'true';
       const observer = new MutationObserver(() => requestAnimationFrame(applyMobileNav));
       observer.observe(document.body, { childList: true, subtree: true });
     }
+  }
+
+  function resolveDetailNavMode(config) {
+    return config && config.detailNavMode === 'shared' ? 'shared' : 'legacy';
+  }
+
+  function setupSharedDetailNav(config) {
+    const root = document.documentElement;
+    const mode = resolveDetailNavMode(config);
+    root.dataset.polishDetailNavMode = mode;
+    root.dataset.polishDetailNavState = 'home';
+    root.classList.remove('polish-shared-detail-active');
+    if (mode !== 'shared' || root.dataset.polishSharedDetailNav === 'true') return;
+    root.dataset.polishSharedDetailNav = 'true';
+    let ensureRaf = 0;
+
+    function ensureControls() {
+      ensureRaf = 0;
+      const nav = document.querySelector('nav');
+      const frame = nav && nav.firstElementChild;
+      if (frame) {
+        nav.classList.add('polish-shared-nav-controller-ready');
+        frame.classList.add('polish-shared-nav-frame');
+        const brandItem = frame.firstElementChild;
+        if (brandItem) {
+          brandItem.classList.add('polish-shared-nav-home-item');
+          brandItem.dataset.polishNavItemRole = 'brand';
+          brandItem.style.setProperty('--polish-shared-nav-exit-delay', '88ms');
+          brandItem.style.setProperty('--polish-shared-nav-restore-delay', '0ms');
+          const brandLink = brandItem.querySelector('a');
+          if (brandLink) brandLink.dataset.polishNavRole = 'brand';
+        }
+        let close = frame.querySelector('[data-polish-shared-detail-close]');
+        if (!close) {
+          close = document.createElement('button');
+          close.type = 'button';
+          close.className = 'polish-shared-detail-close';
+          close.dataset.polishSharedDetailClose = 'true';
+          close.dataset.polishNavRole = 'detail-close';
+          close.setAttribute('aria-label', 'Close project detail');
+          close.setAttribute('aria-hidden', 'true');
+          close.tabIndex = -1;
+          close.innerHTML = '<span class="polish-shared-detail-close__glyph" aria-hidden="true"><span class="polish-shared-detail-close__line"></span><span class="polish-shared-detail-close__line"></span></span>';
+          frame.appendChild(close);
+        }
+        close.removeAttribute('data-cursor');
+        close.style.setProperty('cursor', 'none', 'important');
+      }
+      const mobileBrand = document.querySelector('.polish-mobile-nav-brand');
+      if (mobileBrand) mobileBrand.dataset.polishNavRole = 'brand';
+      const mobileButton = document.querySelector('.polish-mobile-menu-fallback');
+      if (mobileButton) mobileButton.dataset.polishNavRole = 'menu-toggle';
+    }
+
+    function scheduleEnsure() {
+      if (!ensureRaf) ensureRaf = requestAnimationFrame(ensureControls);
+    }
+
+    function setHomeContentHidden(hidden) {
+      const nav = document.querySelector('nav');
+      const navGroup = nav && nav.querySelector('.hidden.md\\:flex');
+      const brandItem = nav && nav.firstElementChild && nav.firstElementChild.firstElementChild;
+      const mobileBrand = document.querySelector('.polish-mobile-nav-brand');
+      [navGroup, brandItem, mobileBrand].forEach((node) => {
+        if (!node) return;
+        node.inert = hidden;
+        if (hidden) {
+          node.dataset.polishSharedNavHidden = 'true';
+          node.setAttribute('aria-hidden', 'true');
+        } else if (node.dataset.polishSharedNavHidden === 'true') {
+          delete node.dataset.polishSharedNavHidden;
+          node.removeAttribute('aria-hidden');
+        }
+      });
+    }
+
+    function getActiveCloseControl() {
+      if (root.classList.contains('polish-compact-nav')) return document.querySelector('.polish-mobile-menu-fallback');
+      return document.querySelector('[data-polish-shared-detail-close]');
+    }
+
+    function applyState(nextState) {
+      ensureControls();
+      const active = /^(entering|open|closing)$/.test(nextState);
+      root.dataset.polishDetailNavState = active ? nextState : 'home';
+      root.classList.toggle('polish-shared-detail-active', active);
+      if (!active) root.style.removeProperty('--polish-shared-nav-gutter');
+      if (nextState === 'entering') window.dispatchEvent(new CustomEvent('polish:mobile-menu-close'));
+      setHomeContentHidden(active);
+      const desktopClose = document.querySelector('[data-polish-shared-detail-close]');
+      if (desktopClose) {
+        desktopClose.setAttribute('aria-hidden', active ? 'false' : 'true');
+        desktopClose.tabIndex = active ? 0 : -1;
+      }
+      const mobileButton = document.querySelector('.polish-mobile-menu-fallback');
+      if (mobileButton) {
+        const iconOpen = active && nextState !== 'closing';
+        mobileButton.classList.toggle('is-open', iconOpen);
+        if (active) {
+          mobileButton.dataset.polishSharedDetailClose = 'true';
+          mobileButton.setAttribute('aria-label', 'Close project detail');
+          mobileButton.setAttribute('aria-expanded', 'false');
+        } else {
+          delete mobileButton.dataset.polishSharedDetailClose;
+          mobileButton.setAttribute('aria-label', 'Open mobile navigation');
+        }
+      }
+      if (nextState === 'open') {
+        requestAnimationFrame(() => {
+          const control = getActiveCloseControl();
+          if (!control || !root.classList.contains('polish-shared-detail-active')) return;
+          try { control.focus({ preventScroll: true }); } catch { control.focus(); }
+        });
+      }
+    }
+
+    document.addEventListener('polish:detail-nav-state', (event) => {
+      applyState(event.detail && event.detail.state ? event.detail.state : 'home');
+    });
+    document.addEventListener('click', (event) => {
+      if (!root.classList.contains('polish-shared-detail-active')) return;
+      const close = event.target && event.target.closest && event.target.closest('[data-polish-shared-detail-close]');
+      if (!close) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      const detail = document.querySelector('.polish-project-detail.is-open');
+      if (detail) detail.dispatchEvent(new CustomEvent('polish:request-close'));
+    }, true);
+    const observer = new MutationObserver(scheduleEnsure);
+    observer.observe(document.body, { childList: true, subtree: true });
+    ensureControls();
   }
 
   function setupGalleryNavJump() {
@@ -4005,15 +4489,15 @@
 
     if (statement) {
       statement.dataset.polishSectionRole = 'statement';
-      setPlainText(statement.querySelector('.text-xs.font-mono'), '04 - Statement');
-      replaceTitleMarkup(statement, 'Profile', 'statement');
+      setPlainText(statement.querySelector('.text-xs.font-mono'), getEditableContentValue('about.label', '04 - Statement'));
+      replaceTitleMarkup(statement, getEditableContentValue('about.titleLine1', 'Profile'), getEditableContentValue('about.titleLine2', 'statement'));
       markProfileStatementCards(statement);
       disableStatementBodyMotion();
     }
 
     if (contact) {
       contact.dataset.polishSectionRole = 'contact';
-      setPlainText(contact.querySelector('.text-xs.font-mono'), '05 - Contact');
+      setPlainText(contact.querySelector('.text-xs.font-mono'), getEditableContentValue('contact.label', '05 - Contact'));
       disableContactBodyMotion();
     }
 
@@ -4259,6 +4743,7 @@
   function setupMagneticButtons(config) {
     if (!config.magneticButtons || isMobileLikeViewport()) return;
     const selector = 'a, button, [role="button"], [data-cursor="pointer"], summary';
+    const navMagneticReach = 36;
     const states = new WeakMap();
     let active = null;
 
@@ -4274,8 +4759,9 @@
     function render(el) {
       const state = getState(el);
       state.raf = 0;
-      state.x += (state.tx - state.x) * 0.32;
-      state.y += (state.ty - state.y) * 0.32;
+      const easing = el.matches('nav [data-polish-nav-role]') ? 0.22 : 0.32;
+      state.x += (state.tx - state.x) * easing;
+      state.y += (state.ty - state.y) * easing;
       if (Math.abs(state.x) < 0.01) state.x = 0;
       if (Math.abs(state.y) < 0.01) state.y = 0;
       el.style.setProperty('--polish-magnetic-x', state.x.toFixed(2) + 'px');
@@ -4302,8 +4788,48 @@
       tweenTo(el, 0, 0);
     }
 
+    function getNavMagneticMatch(x, y) {
+      const navState = document.documentElement.dataset.polishDetailNavState || 'home';
+      if (navState === 'closing') return null;
+      const detailActive = /^(entering|open)$/.test(navState);
+      let best = null;
+      document.querySelectorAll('nav [data-polish-nav-role]').forEach((control) => {
+        const isDetailClose = control.dataset.polishNavRole === 'detail-close';
+        if (isDetailClose !== detailActive) return;
+        const style = getComputedStyle(control);
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < 0.08) return;
+        const rect = control.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const controlState = getState(control);
+        const left = rect.left - controlState.x;
+        const right = rect.right - controlState.x;
+        const top = rect.top - controlState.y;
+        const bottom = rect.bottom - controlState.y;
+        const outsideX = Math.max(left - x, 0, x - right);
+        const outsideY = Math.max(top - y, 0, y - bottom);
+        const edgeDistance = Math.hypot(outsideX, outsideY);
+        if (edgeDistance > navMagneticReach) return;
+        const centerDistance = Math.hypot(x - (left + rect.width * 0.5), y - (top + rect.height * 0.5));
+        const score = edgeDistance * 1000 + centerDistance;
+        if (best && best.score <= score) return;
+        const linear = clamp(1 - edgeDistance / navMagneticReach, 0, 1);
+        best = {
+          control,
+          influence: linear * linear * (3 - 2 * linear),
+          score
+        };
+      });
+      return best;
+    }
+
     document.addEventListener('pointermove', (event) => {
-      const target = event.target && event.target.closest && event.target.closest(selector);
+      let target = event.target && event.target.closest && event.target.closest(selector);
+      let navMagneticInfluence = 0;
+      const navMatch = getNavMagneticMatch(event.clientX, event.clientY);
+      if (navMatch) {
+        target = navMatch.control;
+        navMagneticInfluence = navMatch.influence;
+      }
       const detailMagneticAllowed = target && target.closest('.polish-project-detail__link, .polish-project-detail__back');
       const skipMagnetic = target && (
         target.closest('.polish-gallery-grid, #projects') ||
@@ -4320,16 +4846,33 @@
       active = target;
 
       const rect = target.getBoundingClientRect();
-      const dx = event.clientX - (rect.left + rect.width * 0.5);
-      const dy = event.clientY - (rect.top + rect.height * 0.5);
-      const isDetailClose = target.matches('.polish-project-detail__back');
+      const state = getState(target);
+      const isNavControl = target.matches('nav [data-polish-nav-role]');
+      const centerX = rect.left + rect.width * 0.5 - (isNavControl ? state.x : 0);
+      const centerY = rect.top + rect.height * 0.5 - (isNavControl ? state.y : 0);
+      const dx = event.clientX - centerX;
+      const dy = event.clientY - centerY;
+      const isDetailClose = target.matches('.polish-project-detail__back, .polish-shared-detail-close');
       const sizeFactor = clamp(Math.min(rect.width, rect.height) / 80, 0.55, 1);
-      const maxX = isDetailClose ? 7 : 14 * sizeFactor;
-      const maxY = isDetailClose ? 6 : 10 * sizeFactor;
-      const strengthX = isDetailClose ? 0.42 : 0.16;
-      const strengthY = isDetailClose ? 0.42 : 0.2;
+      const maxX = isNavControl ? 6.5 : (isDetailClose ? 7 : 14 * sizeFactor);
+      const maxY = isNavControl ? 5.5 : (isDetailClose ? 6 : 10 * sizeFactor);
+      const strengthX = isNavControl ? 0.20 * navMagneticInfluence : (isDetailClose ? 0.42 : 0.16);
+      const strengthY = isNavControl ? 0.20 * navMagneticInfluence : (isDetailClose ? 0.42 : 0.2);
       tweenTo(target, clamp(dx * strengthX, -maxX, maxX), clamp(dy * strengthY, -maxY, maxY));
     }, { passive: true });
+
+    document.addEventListener('polish:detail-nav-state', (event) => {
+      const stateName = event.detail && event.detail.state;
+      if (stateName !== 'closing' && stateName !== 'closed') return;
+      const close = document.querySelector('.polish-shared-detail-close');
+      if (!close) return;
+      if (active === close) active = null;
+      const state = getState(close);
+      state.tx = 0;
+      state.ty = 0;
+      close.classList.remove('is-polish-hot');
+      if (!state.raf) state.raf = requestAnimationFrame(() => render(close));
+    });
 
     document.addEventListener('pointerleave', () => {
       release(active);
@@ -4480,26 +5023,36 @@
   function normalizeHeroTitle() {
     const title = document.querySelector('main section h1');
     if (!title) return null;
-    if (title.dataset.polishHeroTitleNormalized === 'true' && title.querySelectorAll('.polish-title-word').length === 2) return title;
 
     const labelled = Array.from(title.querySelectorAll('span[aria-label]'))
       .map((node) => (node.getAttribute('aria-label') || node.textContent || '').replace(/\s+/g, ' ').trim())
       .filter(Boolean);
     const compact = (title.textContent || '').replace(/\s+/g, ' ').trim();
-    const first = labelled[0] || compact.match(/^Creative/i)?.[0] || 'Creative';
-    const second = labelled[1] || compact.replace(first, '').trim() || 'Developer';
+    const configuredFirst = getEditableContentRaw('hero.line1');
+    const configuredSecond = getEditableContentRaw('hero.line2');
+    let first = typeof configuredFirst === 'string'
+      ? configuredFirst.trim()
+      : (labelled[0] || compact.match(/^Creative/i)?.[0] || 'Creative');
+    let second = typeof configuredSecond === 'string'
+      ? configuredSecond.trim()
+      : (labelled[1] || compact.replace(first, '').trim() || 'Developer');
+    if (!first && !second) first = 'Creative';
+    const markupKey = 'hero|' + first + '|' + second;
+    const expectedWords = (first ? 1 : 0) + (second ? 1 : 0);
+    if (title.dataset.polishHeroTitleNormalized === 'true' && title.dataset.polishTitleMarkupKey === markupKey && title.querySelectorAll('.polish-title-word').length === expectedWords) return title;
 
     resetTitleEntrance(title);
     title.dataset.polishHeroTitleNormalized = 'true';
-    title.dataset.polishTitleMarkupKey = 'hero|' + first + '|' + second;
+    title.dataset.polishTitleMarkupKey = markupKey;
     title.classList.add('polish-hero-title-normalized');
     title.style.opacity = '1';
     title.style.transform = 'none';
     title.style.filter = 'none';
-    title.innerHTML =
-      '<span class="polish-title-word gradient-text text-glow" style="--polish-word-index:0">' + escapeHtml(first) + '</span>' +
-      '<br/>' +
-      '<span class="polish-title-word text-foreground text-glow" style="--polish-word-index:1">' + escapeHtml(second) + '</span>';
+    const lines = [];
+    if (first) lines.push('<span class="polish-title-word gradient-text text-glow" style="--polish-word-index:0">' + escapeHtml(first) + '</span>');
+    if (first && second) lines.push('<br/>');
+    if (second) lines.push('<span class="polish-title-word text-foreground text-glow" style="--polish-word-index:' + (first ? '1' : '0') + '">' + escapeHtml(second) + '</span>');
+    title.innerHTML = lines.join('');
     return title;
   }
 
@@ -4870,14 +5423,24 @@
 
   function normalizeProjectImage(value, fallbackSrc, fallbackCaption) {
     if (typeof value === 'string') {
-      return { src: value, ratio: 'square', fit: 'cover', caption: fallbackCaption || '' };
+      return {
+        src: value,
+        type: /\.(mp4|webm|ogg|mov|m4v)(?:[?#].*)?$/i.test(value) ? 'video' : 'image',
+        ratio: 'square',
+        fit: 'cover',
+        caption: fallbackCaption || '',
+        poster: ''
+      };
     }
     const image = value && typeof value === 'object' ? value : {};
+    const src = image.src || fallbackSrc;
     return {
-      src: image.src || fallbackSrc,
+      src,
+      type: image.type === 'video' || /\.(mp4|webm|ogg|mov|m4v)(?:[?#].*)?$/i.test(src || '') ? 'video' : 'image',
       ratio: /^(wide|portrait|square)$/.test(image.ratio || '') ? image.ratio : 'square',
       fit: image.fit === 'contain' ? 'contain' : 'cover',
       caption: image.caption || fallbackCaption || '',
+      poster: image.poster || '',
       palette: Array.isArray(image.palette) ? image.palette : null,
       accent: image.accent || image.color || '',
       accent2: image.accent2 || image.color2 || '',
@@ -4911,10 +5474,9 @@
   }
 
   function resolveGalleryPageSize(config, itemCount) {
+    if (window.innerWidth <= 900) return clamp(Number(config.galleryMobilePageSize) || 4, 2, 8);
     if (config.galleryPageSize !== 'auto') return clamp(Number(config.galleryPageSize) || 6, 2, 8);
     if (itemCount <= 4) return itemCount || 1;
-    if (window.innerWidth < 560) return 3;
-    if (window.innerWidth < 860) return 4;
     return 6;
   }
 
@@ -5071,6 +5633,7 @@
 
   function setupGalleryReplacement(config, projectItems) {
     if (!config.galleryReplacement) return;
+    const detailNavMode = resolveDetailNavMode(config);
     const section = findPhilosophySection();
     if (!section || section.dataset.polishGalleryReady === 'true') return;
     let items = normalizeGalleryItems(config, projectItems);
@@ -5118,7 +5681,9 @@
     document.body.appendChild(lightbox);
     const detailContent = detail.querySelector('[data-polish-detail-content]');
     const detailScroll = detail.querySelector('.polish-project-detail__scroll');
+    const detailTop = detail.querySelector('.polish-project-detail__top');
     const detailNavMaterialReflection = detail.querySelector('[data-polish-nav-material-reflection]');
+    if (detailTop && detailNavMode === 'shared') detailTop.setAttribute('aria-hidden', 'true');
     const lightboxImage = lightbox.querySelector('img');
     const lightboxCaption = lightbox.querySelector('.polish-lightbox__caption');
     let transitioning = false;
@@ -5130,6 +5695,12 @@
     let navMaterialRaf = 0;
     let navMaterialItems = [];
     let detailNavGutter = 0;
+    let detailCloseTimer = 0;
+    let detailOpenTimer = 0;
+    const detailCloseExitMs = 360;
+    let detailReturnScrollY = 0;
+    let hasDetailReturnScrollY = false;
+    let detailReturnFocus = null;
     const revealTimers = new WeakMap();
     let revealObserver = null;
 
@@ -5540,7 +6111,7 @@
 
     function buildDetailNavMaterialReflection() {
       clearDetailNavMaterialReflection();
-      if (!detailNavMaterialReflection) return;
+      if (detailNavMode !== 'legacy' || !detailNavMaterialReflection) return;
       const frames = Array.from(detail.querySelectorAll('.polish-project-detail__image-frame'));
       navMaterialItems = frames.slice(0, 6).map((frame, index) => {
         const image = frame.querySelector('img');
@@ -5561,7 +6132,7 @@
 
     function updateDetailNavMaterialReflection() {
       navMaterialRaf = 0;
-      if (!detailNavMaterialReflection || !detail.classList.contains('is-open') || !navMaterialItems.length) return;
+      if (detailNavMode !== 'legacy' || !detailNavMaterialReflection || !detail.classList.contains('is-open') || !navMaterialItems.length) return;
       const nav = detail.querySelector('.polish-project-detail__top');
       const navRect = nav ? nav.getBoundingClientRect() : null;
       if (!navRect || !navRect.width || !navRect.height) return;
@@ -5607,21 +6178,137 @@
         detailNavGutter = currentGutter;
       }
       detail.style.setProperty('--polish-detail-nav-gutter', detailNavGutter + 'px');
+      document.documentElement.style.setProperty('--polish-detail-page-gutter', detailNavGutter + 'px');
+      document.documentElement.style.setProperty('--polish-shared-nav-gutter', detailNavGutter + 'px');
     }
 
-    function closeDetail(pushState) {
-      detail.classList.remove('is-open', 'is-scroll-ready', 'is-close-icon-ready');
+    function setDetailNavState(state) {
+      document.dispatchEvent(new CustomEvent('polish:detail-nav-state', {
+        detail: { state, detail }
+      }));
+    }
+
+    function captureDetailReturnPosition() {
+      detailReturnScrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      hasDetailReturnScrollY = true;
+    }
+
+    function restoreDetailReturnPosition() {
+      if (!hasDetailReturnScrollY) return;
+      const targetY = detailReturnScrollY;
+      const restore = () => {
+        if (Math.abs((window.scrollY || 0) - targetY) > 1) {
+          window.scrollTo({ left: 0, top: targetY, behavior: 'auto' });
+        }
+      };
+      requestAnimationFrame(restore);
+      setTimeout(restore, 80);
+    }
+
+    function shouldCloseDetailFromSideBlank(event) {
+      if (window.innerWidth < 901) return false;
+      if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return false;
+      if (lightbox.classList.contains('is-open')) return false;
+      const scrollbarEdge = Math.max(18, window.innerWidth - document.documentElement.clientWidth + 18);
+      if (event.clientX >= window.innerWidth - scrollbarEdge) return false;
+      const blocked = event.target.closest(
+        '[data-polish-detail-close], [data-polish-lightbox-src], a, button, input, textarea, select, summary, ' +
+        '.polish-project-detail__top, .polish-project-detail__hero, .polish-project-detail__body-wrap, ' +
+        '.polish-project-detail__actions, .polish-project-detail__gallery, .polish-project-detail__image-frame'
+      );
+      if (blocked) return false;
+      const sideSize = Math.max(72, Math.min(240, window.innerWidth * 0.18));
+      return event.clientX <= sideSize || event.clientX >= window.innerWidth - sideSize;
+    }
+
+    function setDetailCloseIconState(ready) {
+      const lines = detail.querySelectorAll('.polish-project-detail__back-line');
+      if (lines.length < 3) return;
+      const states = ready
+        ? [
+          { top: '10px', opacity: '1', transform: 'translate3d(-50%, 0, 0) rotate(42deg)' },
+          { top: '10px', opacity: '0', transform: 'translate3d(-50%, 0, 0) scaleX(.36)' },
+          { top: '10px', opacity: '1', transform: 'translate3d(-50%, 0, 0) rotate(-42deg)' }
+        ]
+        : [
+          { top: '5px', opacity: '1', transform: 'translate3d(-50%, 0, 0) rotate(0deg)' },
+          { top: '10px', opacity: '1', transform: 'translate3d(-50%, 0, 0) scaleX(1)' },
+          { top: '15px', opacity: '1', transform: 'translate3d(-50%, 0, 0) rotate(0deg)' }
+        ];
+      lines.forEach((line, index) => {
+        const state = states[index];
+        line.style.top = state.top;
+        line.style.opacity = state.opacity;
+        line.style.transform = state.transform;
+      });
+    }
+
+    function finishCloseDetail(pushState) {
+      if (detailCloseTimer) {
+        clearTimeout(detailCloseTimer);
+        detailCloseTimer = 0;
+      }
+      if (detailOpenTimer) {
+        clearTimeout(detailOpenTimer);
+        detailOpenTimer = 0;
+      }
+      detail.classList.remove('is-open', 'is-closing', 'is-scroll-ready', 'is-close-icon-ready');
       detail.setAttribute('aria-hidden', 'true');
       document.documentElement.classList.remove('polish-detail-open', 'polish-detail-opening');
+      document.documentElement.style.removeProperty('--polish-detail-page-gutter');
+      setDetailNavState('closed');
       clearDetailNavMaterialReflection();
       if (pushState && location.hash.indexOf('#work-') === 0) {
         history.pushState(null, '', location.pathname + location.search);
       }
+      restoreDetailReturnPosition();
+      hasDetailReturnScrollY = false;
+      const returnFocus = detailReturnFocus;
+      detailReturnFocus = null;
+      if (returnFocus && returnFocus.isConnected) {
+        requestAnimationFrame(() => {
+          try { returnFocus.focus({ preventScroll: true }); } catch { returnFocus.focus(); }
+        });
+      }
+    }
+
+    function closeDetail(pushState) {
+      if (!detail.classList.contains('is-open')) {
+        finishCloseDetail(pushState);
+        return;
+      }
+      if (detailCloseTimer) return;
+      if (detailOpenTimer) {
+        clearTimeout(detailOpenTimer);
+        detailOpenTimer = 0;
+      }
+      setDetailNavState('closing');
+      detail.classList.add('is-closing');
+      detail.classList.remove('is-scroll-ready', 'is-close-icon-ready');
+      setDetailCloseIconState(false);
+      detail.setAttribute('aria-hidden', 'true');
+      document.documentElement.classList.remove('polish-detail-opening');
+      restoreDetailReturnPosition();
+      detailCloseTimer = setTimeout(() => {
+        finishCloseDetail(pushState);
+      }, detailCloseExitMs);
     }
 
     function openDetail(slug, pushState) {
       const item = itemsBySlug.get(slug);
       if (!item) return false;
+      if (detailCloseTimer) {
+        clearTimeout(detailCloseTimer);
+        detailCloseTimer = 0;
+      }
+      if (detailOpenTimer) {
+        clearTimeout(detailOpenTimer);
+        detailOpenTimer = 0;
+      }
+      setDetailNavState('entering');
+      if (!detail.classList.contains('is-open') && !detail.classList.contains('is-closing')) {
+        captureDetailReturnPosition();
+      }
       const title = escapeHtml(item.title || 'Untitled');
       const meta = escapeHtml(item.meta || 'Project');
       const summary = escapeHtml(item.summary || '');
@@ -5631,15 +6318,25 @@
       const externalHref = escapeHtml(item.externalHref || '#projects');
       const externalAttrs = /^https?:/i.test(item.externalHref || '') ? 'target="_blank" rel="noopener noreferrer"' : '';
       const images = item.images || [normalizeProjectImage(item.image, item.image, item.title)];
+      const renderDetailMedia = (image, imgIndex) => {
+        const ratio = escapeHtml(image.ratio || 'square');
+        const containClass = image.fit === 'contain' ? ' polish-project-detail__image--contain' : '';
+        const caption = image.caption ? '<figcaption>' + escapeHtml(image.caption) + '</figcaption>' : '';
+        const figureClass = 'polish-project-detail__image polish-project-detail__image--' + ratio + containClass;
+        if (image.type === 'video') {
+          const poster = image.poster ? ' poster="' + escapeHtml(image.poster) + '"' : '';
+          return '<figure class="' + figureClass + '"><div class="polish-project-detail__image-frame polish-project-detail__image-frame--video"><video src="' + escapeHtml(image.src) + '"' + poster + ' controls preload="metadata" playsinline aria-label="' + title + ' related video ' + (imgIndex + 1) + '"></video></div>' + caption + '</figure>';
+        }
+        return '<figure class="' + figureClass + '"><div class="polish-project-detail__image-frame" data-cursor="pointer" data-polish-lightbox-src="' + escapeHtml(image.src) + '" data-polish-lightbox-caption="' + escapeHtml(image.caption || item.title || 'Untitled') + '"><img src="' + escapeHtml(image.src) + '" alt="' + title + ' related image ' + (imgIndex + 1) + '" loading="lazy" decoding="async"/></div>' + caption + '</figure>';
+      };
       document.documentElement.classList.add('polish-detail-opening');
-      detail.classList.remove('is-scroll-ready', 'is-close-icon-ready');
+      detail.classList.remove('is-closing', 'is-scroll-ready', 'is-close-icon-ready');
+      setDetailCloseIconState(false);
       detailContent.innerHTML = '<div class="polish-project-detail__hero">' +
         '<div><h2 class="polish-project-detail__title">' + title + '</h2><span class="polish-project-detail__meta">' + meta + '</span>' +
         facts + '<p class="polish-project-detail__lead">' + summary + '</p><div class="polish-project-detail__body-wrap"><div id="polish-project-detail-body" class="polish-project-detail__body">' + body + '</div><div class="polish-project-detail__body-scrollbar" role="scrollbar" aria-hidden="true" aria-controls="polish-project-detail-body" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="-1"><span></span></div></div>' +
         '<div class="polish-project-detail__actions"><a class="polish-project-detail__link" href="' + externalHref + '" ' + externalAttrs + ' data-cursor="pointer">Visit external link</a></div></div></div>' +
-        '<div class="polish-project-detail__gallery">' + images.map((image, imgIndex) => (
-          '<figure class="polish-project-detail__image polish-project-detail__image--' + escapeHtml(image.ratio || 'square') + (image.fit === 'contain' ? ' polish-project-detail__image--contain' : '') + '"><div class="polish-project-detail__image-frame" data-cursor="pointer" data-polish-lightbox-src="' + escapeHtml(image.src) + '" data-polish-lightbox-caption="' + escapeHtml(image.caption || title) + '"><img src="' + escapeHtml(image.src) + '" alt="' + title + ' related image ' + (imgIndex + 1) + '" loading="lazy" decoding="async"/></div>' + (image.caption ? '<figcaption>' + escapeHtml(image.caption) + '</figcaption>' : '') + '</figure>'
-        )).join('') + '</div>';
+        '<div class="polish-project-detail__gallery">' + images.map(renderDetailMedia).join('') + '</div>';
       updateDetailNavGutter();
       detailScroll.scrollTop = 0;
       document.documentElement.classList.add('polish-detail-open');
@@ -5649,13 +6346,18 @@
       requestAnimationFrame(() => {
         if (!detail.classList.contains('is-open')) return;
         detail.classList.add('is-close-icon-ready');
+        setDetailCloseIconState(true);
       });
       setTimeout(() => {
         if (!detail.classList.contains('is-open')) return;
         detail.classList.add('is-close-icon-ready');
+        setDetailCloseIconState(true);
       }, 40);
-      setTimeout(() => {
+      detailOpenTimer = setTimeout(() => {
+        detailOpenTimer = 0;
+        if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return;
         document.documentElement.classList.remove('polish-detail-opening');
+        setDetailNavState('open');
       }, 320);
       try {
         detailScroll.focus({ preventScroll: true });
@@ -5912,12 +6614,25 @@
       const slug = tile.getAttribute('data-project-slug');
       if (!slug) return;
       event.preventDefault();
+      detailReturnFocus = tile;
       openDetail(slug, true);
     });
+    detail.addEventListener('polish:request-close', () => closeDetail(true));
     detail.addEventListener('click', (event) => {
-      if (event.target.closest('[data-polish-detail-close]')) closeDetail(true);
+      if (event.target.closest('[data-polish-detail-close]')) {
+        event.preventDefault();
+        closeDetail(true);
+        return;
+      }
       const lightboxTarget = event.target.closest('[data-polish-lightbox-src]');
-      if (lightboxTarget) openLightbox(lightboxTarget.getAttribute('data-polish-lightbox-src'), lightboxTarget.getAttribute('data-polish-lightbox-caption'), lightboxTarget);
+      if (lightboxTarget) {
+        openLightbox(lightboxTarget.getAttribute('data-polish-lightbox-src'), lightboxTarget.getAttribute('data-polish-lightbox-caption'), lightboxTarget);
+        return;
+      }
+      if (shouldCloseDetailFromSideBlank(event)) {
+        event.preventDefault();
+        closeDetail(true);
+      }
     });
     detailScroll.addEventListener('scroll', scheduleDetailNavMaterialReflection, { passive: true });
     lightbox.addEventListener('click', closeLightbox);
@@ -6142,12 +6857,18 @@
   }
 
   function start(config, projectItems) {
-    if (!config.enabled) return;
+    if (!config.enabled) {
+      releaseFirstPaintGuard();
+      return;
+    }
+    config.detailNavMode = resolveDetailNavMode(config);
+    document.documentElement.dataset.polishDetailNavMode = config.detailNavMode;
     injectStyles();
     setupMobilePointerPolicy();
     setupResponsiveViewportGuard();
     setupCompactNavMode();
     setupNav(config);
+    setupSharedDetailNav(config);
     setupGalleryNavJump();
     disableHeroAvailability();
     disableStatsMotion();
@@ -6169,6 +6890,7 @@
     setupParallax(config);
     setupElasticText(config);
     setupTitleEntrance(document, false);
+    releaseFirstPaintGuard();
     setTimeout(() => {
       disableHeroAvailability();
       disableStatsMotion();
@@ -6194,6 +6916,12 @@
   }
 
   if (DEFAULTS.bootSettle) installBootSettle(DEFAULTS.bootSettleMs, DEFAULTS.diffusionBoot);
+
+  window.addEventListener('editable:content-ready', () => {
+    normalizeHeroTitle();
+    applySiteArchitecture();
+    setupTitleEntrance(document, false);
+  });
 
   let hasStarted = false;
   function boot() {
