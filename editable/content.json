@@ -1,7 +1,7 @@
 {
     "meta":  {
                  "title":  "nwalmolos",
-                 "description":  "Personal portfolio — Design, Code, Create.",
+                 "description":  "Personal portfolio",
                  "author":  "nwalmolos"
              },
     "nav":  {
@@ -12,7 +12,7 @@
                 "cta":  "Contact"
             },
     "hero":  {
-                 "status":  "Available for work",
+                 "status":  "",
                  "line1":  "nwalmolos",
                  "line2":  "",
                  "subtitle":  "Designing and building digital experiences at the intersection of art and technology."
