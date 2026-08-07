@@ -712,9 +712,30 @@
           0 0 10px rgba(255,255,255,.26),
           0 1px 3px rgba(0,0,0,.42);
         transform: translate3d(-80px, -80px, 0) scale(.9);
-        transition: opacity .16s ease, box-shadow .16s ease;
+        transition: opacity .16s ease, background-color .16s ease, box-shadow .16s ease;
         mix-blend-mode: difference;
         will-change: transform, opacity;
+      }
+      .polish-click-cursor::before,
+      .polish-click-cursor::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 12px;
+        height: 1.1px;
+        border-radius: 999px;
+        opacity: 0;
+        background: rgba(255,255,255,.92);
+        filter: drop-shadow(0 0 3px rgba(255,255,255,.2));
+        transform-origin: 50% 50%;
+        transition: opacity .16s ease, transform .24s cubic-bezier(.16, 1, .3, 1);
+      }
+      .polish-click-cursor::before {
+        transform: translate3d(-50%, -50%, 0) rotate(42deg) scaleX(.28);
+      }
+      .polish-click-cursor::after {
+        transform: translate3d(-50%, -50%, 0) rotate(-42deg) scaleX(.28);
       }
       .polish-click-cursor.is-visible {
         opacity: .96;
@@ -789,6 +810,32 @@
       }
       .polish-click-ring.is-active::after {
         opacity: .9;
+      }
+      html.polish-detail-side-close-hot .polish-click-cursor {
+        background: rgba(255,255,255,0);
+        box-shadow: none;
+      }
+      html.polish-detail-side-close-hot .polish-click-cursor::before,
+      html.polish-detail-side-close-hot .polish-click-cursor::after {
+        opacity: .96;
+      }
+      html.polish-detail-side-close-hot .polish-click-cursor::before {
+        transform: translate3d(-50%, -50%, 0) rotate(42deg) scaleX(1);
+      }
+      html.polish-detail-side-close-hot .polish-click-cursor::after {
+        transform: translate3d(-50%, -50%, 0) rotate(-42deg) scaleX(1);
+      }
+      html.polish-detail-side-close-hot .polish-click-ring {
+        opacity: .7;
+        border-color: rgba(255,255,255,.5);
+        box-shadow:
+          0 0 0 1px rgba(0,0,0,.36),
+          0 0 14px rgba(255,255,255,.09),
+          inset 0 0 8px rgba(255,255,255,.035);
+      }
+      html.polish-detail-side-close-hot .polish-click-ring::after {
+        opacity: 0;
+        animation-play-state: paused;
       }
       .polish-click-burst {
         position: fixed;
@@ -2346,6 +2393,7 @@
         grid-row: 3;
         min-width: 0;
         align-self: end;
+        overflow: visible;
       }
       .polish-project-detail__featured-summary {
         grid-column: 2;
@@ -2415,7 +2463,10 @@
         margin: 0;
         max-width: 900px;
         font-size: clamp(42px, 5vw, 74px);
-        line-height: .98;
+        line-height: 1.02;
+        padding-bottom: .12em;
+        margin-bottom: -.12em;
+        overflow: visible;
         color: rgba(255,255,255,.92);
         letter-spacing: -.025em;
         text-wrap: balance;
@@ -2552,6 +2603,9 @@
       }
       .polish-project-detail__body-cue {
         display: none !important;
+      }
+      .polish-project-detail__copy-toggle {
+        display: none;
       }
       .polish-project-detail__body-wrap.has-more .polish-project-detail__body {
         -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 28px, #000 calc(100% - 32px), transparent 100%);
@@ -2722,64 +2776,156 @@
       .polish-project-detail__image--portrait {
         grid-row: span 2;
       }
+      .polish-project-detail__desktop-media-viewport {
+        display: none;
+      }
       @media (min-width: 901px) {
+        .polish-project-detail {
+          transform: translate3d(0, 0, 0);
+          will-change: transform;
+        }
+        .polish-project-detail.is-open.is-stage-entering {
+          animation: polish-detail-curtain-in .48s cubic-bezier(.76, 0, .24, 1) both;
+        }
+        .polish-project-detail.is-closing {
+          opacity: 1;
+          animation: polish-detail-curtain-out .46s cubic-bezier(.55, 0, .2, 1) both;
+        }
         .polish-project-detail__scroll {
-          padding-top: clamp(96px, 7vw, 124px);
+          box-sizing: border-box;
+          height: 100%;
+          overflow: hidden;
+          padding-top: clamp(88px, 8vh, 112px);
           padding-right: clamp(36px, 4.5vw, 80px);
           padding-left: clamp(36px, 4.5vw, 80px);
-          padding-bottom: clamp(130px, 14vw, 210px);
+          padding-bottom: clamp(28px, 4vh, 52px);
         }
         .polish-project-detail__shell {
           --polish-detail-reading-inset: clamp(56px, 18%, 248px);
           width: min(1380px, 100%);
+          height: 100%;
         }
         .polish-project-detail [data-polish-detail-content] {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          column-gap: clamp(14px, 1.5vw, 22px);
-          row-gap: clamp(14px, 1.5vw, 22px);
+          display: block;
+          height: 100%;
         }
         .polish-project-detail__chapter--featured {
-          grid-column: 1 / -1;
-          min-height: 0;
-          margin-bottom: clamp(54px, 5.6vw, 82px);
-        }
-        .polish-project-detail__featured-shell {
-          display: block;
-          width: 100%;
-          min-height: 0;
-          aspect-ratio: 16 / 10;
-          overflow: hidden;
-          border-radius: 10px;
-        }
-        .polish-project-detail__featured-media {
-          position: absolute;
-          inset: 0;
           width: 100%;
           height: 100%;
+          min-height: 0;
+          margin: 0;
+        }
+        .polish-project-detail__featured-shell {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: clamp(14px, 1.45vw, 22px);
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          aspect-ratio: auto;
+          overflow: visible;
+          border-radius: 0;
+        }
+        .polish-project-detail__featured-media {
+          display: none;
+        }
+        .polish-project-detail__desktop-media-viewport {
+          position: relative;
+          display: block;
+          grid-column: 2;
+          width: 100%;
+          height: 100%;
+          min-height: 0;
           overflow: hidden;
           border-radius: 10px;
-          clip-path: none;
-          transition: none;
+          background: rgba(255,255,255,.018);
+          isolation: isolate;
+          cursor: none;
         }
-        .polish-project-detail__featured-media .polish-project-detail__image-frame img {
-          object-position: 62% 50%;
+        .polish-project-detail__desktop-media-viewport::after {
+          display: none;
+        }
+        .polish-project-detail__desktop-media-track {
+          position: relative;
+          width: 100%;
+          will-change: transform;
+        }
+        .polish-project-detail__desktop-media-group {
+          display: grid;
+          gap: clamp(14px, 1.45vw, 22px);
+          width: 100%;
+          padding-bottom: clamp(14px, 1.45vw, 22px);
+        }
+        .polish-project-detail__desktop-media-card {
+          --polish-rail-focus: 1;
+          position: relative;
+          width: 100%;
+          min-height: 0;
+          margin: 0;
+          grid-column: auto;
+          grid-row: auto;
+          aspect-ratio: 1 / 1;
+          overflow: hidden;
+          border-radius: 10px;
+          opacity: var(--polish-rail-opacity, .94);
+          transform: translate3d(0, 0, 0);
+          transition: opacity .38s cubic-bezier(.16, 1, .3, 1), filter .38s cubic-bezier(.16, 1, .3, 1);
+          will-change: opacity;
+        }
+        .polish-project-detail__desktop-media-card.polish-project-detail__image--wide {
+          aspect-ratio: 16 / 10;
+        }
+        .polish-project-detail__desktop-media-card.polish-project-detail__image--portrait {
+          aspect-ratio: 4 / 5;
+        }
+        .polish-project-detail__desktop-media-card .polish-project-detail__image-frame {
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          border: 0;
+          border-radius: inherit;
+          background: #080a0f;
+          box-shadow: none;
+          transition: filter .42s cubic-bezier(.16, 1, .3, 1);
+        }
+        .polish-project-detail__desktop-media-card .polish-project-detail__image-frame::before,
+        .polish-project-detail__desktop-media-card .polish-project-detail__image-frame::after {
+          display: none;
+        }
+        .polish-project-detail__desktop-media-card .polish-project-detail__image-frame img,
+        .polish-project-detail__desktop-media-card .polish-project-detail__image-frame video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transform: scale(var(--polish-rail-focus));
+          transform-origin: center;
+          filter: saturate(.92) contrast(1.035) brightness(.88);
+          transition: transform .52s cubic-bezier(.16, 1, .3, 1), filter .42s cubic-bezier(.16, 1, .3, 1);
+        }
+        .polish-project-detail__desktop-media-card figcaption {
+          display: none;
+        }
+        .polish-project-detail__desktop-media-card.is-rail-active {
+          --polish-rail-opacity: 1;
+          z-index: 2;
         }
         .polish-project-detail__featured-content {
-          position: absolute;
-          inset: 0 auto 0 0;
+          position: relative;
+          inset: auto;
           z-index: 4;
+          grid-column: 1;
+          grid-row: 1;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
           justify-content: flex-start;
           gap: 0;
           box-sizing: border-box;
-          width: 50%;
+          width: 100%;
           height: 100%;
           min-height: 0;
           overflow: hidden;
-          padding: clamp(34px, 4vw, 58px) clamp(30px, 3.5vw, 52px) clamp(32px, 3.8vw, 54px) clamp(34px, 4vw, 58px);
+          padding: 0 clamp(20px, 2.2vw, 34px) 0 0;
           color: rgba(255,255,255,.96);
           opacity: 1;
           transform: none;
@@ -2799,7 +2945,7 @@
         .polish-project-detail__featured-title .polish-project-detail__title {
           max-width: 10.5em;
           font-size: clamp(40px, 3.7vw, 64px);
-          line-height: .97;
+          line-height: 1.02;
           letter-spacing: -.032em;
           color: rgba(255,255,255,.98);
           text-shadow: 0 18px 54px rgba(0,0,0,.30);
@@ -2854,6 +3000,10 @@
           margin: auto 0 0 !important;
           padding-top: clamp(20px, 2vw, 30px);
         }
+        .polish-project-detail__featured-content .polish-project-detail__body-link {
+          padding-bottom: 0;
+          border-bottom: 0;
+        }
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__featured-story {
           flex: 0 0 auto;
           overflow: visible;
@@ -2875,16 +3025,7 @@
           cursor: none !important;
         }
         .polish-project-detail__featured-shade {
-          display: block;
-          inset: 0;
-          z-index: 3;
-          border-radius: 10px;
-          background:
-            radial-gradient(circle at 18% 17%, rgba(94,108,172,.15), transparent 39%),
-            linear-gradient(90deg, rgba(11,14,23,.91) 0%, rgba(10,13,22,.83) 39%, rgba(7,10,18,.48) 53%, rgba(6,8,15,.10) 77%, transparent 100%),
-            linear-gradient(180deg, rgba(126,140,198,.05), transparent 36%, rgba(9,12,21,.22));
-          clip-path: none;
-          transition: none;
+          display: none;
         }
         .polish-project-detail__featured-reflection {
           display: none;
@@ -2939,7 +3080,7 @@
           margin-top: 0;
         }
         .polish-project-detail__chapter--media {
-          display: block;
+          display: none;
           min-width: 0;
           min-height: 0;
           margin: 0;
@@ -2997,6 +3138,56 @@
           aspect-ratio: 4 / 3;
           border-radius: 10px;
         }
+        .polish-project-detail.is-stage-entering .polish-project-detail__featured-content > * {
+          animation: polish-detail-copy-mask-in .36s cubic-bezier(.16, 1, .3, 1) .14s both;
+        }
+        .polish-project-detail.is-stage-entering .polish-project-detail__featured-content > :nth-child(2) { animation-delay: .17s; }
+        .polish-project-detail.is-stage-entering .polish-project-detail__featured-content > :nth-child(3) { animation-delay: .20s; }
+        .polish-project-detail.is-stage-entering .polish-project-detail__featured-content > :nth-child(4) { animation-delay: .23s; }
+        .polish-project-detail.is-stage-entering .polish-project-detail__featured-content > :nth-child(5) { animation-delay: .26s; }
+        .polish-project-detail.is-stage-entering .polish-project-detail__title .polish-title-word {
+          opacity: 1 !important;
+          animation: none !important;
+          transform: none !important;
+          filter: none !important;
+        }
+        .polish-project-detail.is-stage-entering .polish-project-detail__desktop-media-viewport {
+          animation: polish-detail-media-stage-in .46s cubic-bezier(.16, 1, .3, 1) .06s both;
+        }
+        .polish-project-detail.is-open .polish-project-detail__desktop-media-card,
+        .polish-project-detail.is-open.is-scroll-ready .polish-project-detail__desktop-media-card {
+          animation: none !important;
+        }
+        .polish-project-detail.is-closing .polish-project-detail__featured-content > * {
+          animation: polish-detail-copy-mask-out .26s cubic-bezier(.55, 0, 1, .45) both;
+        }
+        .polish-project-detail.is-closing .polish-project-detail__desktop-media-viewport {
+          animation: polish-detail-media-stage-out .34s cubic-bezier(.55, 0, .2, 1) both;
+        }
+      }
+      @keyframes polish-detail-curtain-in {
+        0% { opacity: .92; transform: translate3d(0, 100%, 0); }
+        100% { transform: translate3d(0, 0, 0); }
+      }
+      @keyframes polish-detail-curtain-out {
+        0% { opacity: 1; transform: translate3d(0, 0, 0); }
+        100% { opacity: 0; transform: translate3d(0, 7vh, 0); }
+      }
+      @keyframes polish-detail-media-stage-in {
+        0% { opacity: 0; transform: translate3d(0, 16px, 0); filter: blur(5px) brightness(.78); clip-path: inset(0 0 8% 0 round 10px); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0) brightness(1); clip-path: inset(0 round 10px); }
+      }
+      @keyframes polish-detail-media-stage-out {
+        0% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0) brightness(1); }
+        100% { opacity: 0; transform: translate3d(0, 12px, 0); filter: blur(2px) brightness(.82); }
+      }
+      @keyframes polish-detail-copy-mask-in {
+        0% { opacity: 0; transform: translate3d(0, 24px, 0); filter: blur(7px); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+      }
+      @keyframes polish-detail-copy-mask-out {
+        0% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+        100% { opacity: 0; transform: translate3d(0, -16px, 0); filter: blur(5px); }
       }
       @media (min-width: 901px) and (max-width: 1199px) {
         .polish-project-detail [data-polish-detail-content] {
@@ -3005,8 +3196,8 @@
       }
       @media (min-width: 901px) and (max-height: 760px) {
         .polish-project-detail__featured-shell {
-          height: clamp(420px, 64vh, 560px);
-          min-height: clamp(420px, 64vh, 560px);
+          height: 100%;
+          min-height: 0;
           aspect-ratio: auto;
         }
         .polish-project-detail__featured-media {
@@ -3443,9 +3634,21 @@
         .polish-project-detail__featured-shell {
           min-height: clamp(560px, 145vw, 720px);
           overflow: hidden;
-          aspect-ratio: 3 / 4;
+          aspect-ratio: auto;
           border-radius: 10px;
+          background: #080b13;
+          box-shadow: 0 18px 48px rgba(0,0,0,.20);
           clip-path: none;
+        }
+        .polish-project-detail__featured-shell::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 6;
+          box-sizing: border-box;
+          border: 1px solid rgba(255,255,255,.075);
+          border-radius: inherit;
+          pointer-events: none;
         }
         .polish-project-detail__featured-media {
           position: absolute;
@@ -3488,18 +3691,18 @@
           display: none;
         }
         .polish-project-detail__featured-content {
-          position: absolute;
-          inset: 0;
+          position: relative;
+          inset: auto;
           z-index: 4;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
           box-sizing: border-box;
           width: 100%;
-          height: 100%;
-          min-height: 0;
-          overflow: hidden;
-          padding: clamp(28px, 7.5vw, 38px);
+          height: auto;
+          min-height: clamp(560px, 145vw, 720px);
+          overflow: visible;
+          padding: clamp(28px, 7.5vw, 38px) clamp(34px, 9vw, 44px) clamp(30px, 8vw, 40px) clamp(28px, 7.5vw, 38px);
           color: rgba(255,255,255,.94);
           opacity: 1;
           transform: none;
@@ -3512,20 +3715,26 @@
         .polish-project-detail__featured-story .polish-project-detail__body-wrap,
         .polish-project-detail__featured-story .polish-project-detail__body,
         .polish-project-detail__featured-content > .polish-project-detail__body-action {
+          box-sizing: border-box;
+          min-width: 0;
+          max-width: 100%;
           width: 100%;
           margin-left: 0;
           text-align: left !important;
         }
         .polish-project-detail__featured-title {
           box-sizing: border-box;
-          padding-right: clamp(24px, 7vw, 38px);
+          padding-right: 0;
         }
         .polish-project-detail__featured-title .polish-project-detail__title,
         .polish-project-detail__featured-summary .polish-project-detail__lead,
         .polish-project-detail__featured-story .polish-project-detail__body p,
         .polish-project-detail__featured-content .polish-project-detail__body-link,
         .polish-project-detail__featured-content .polish-title-word {
+          max-width: 100%;
           margin-left: 0;
+          white-space: normal;
+          overflow-wrap: anywhere;
           text-align: left !important;
         }
         .polish-project-detail__featured-eyebrow {
@@ -3550,32 +3759,92 @@
         }
         .polish-project-detail__featured-story {
           display: flex;
-          flex: 1 1 auto;
+          flex: 0 0 auto;
           flex-direction: column;
           min-height: 0;
-          width: min(100%, 46ch);
-          max-width: 46ch;
+          width: 100%;
+          max-width: 100%;
           margin-top: 26px;
-          overflow: hidden;
+          overflow: visible;
         }
         .polish-project-detail__featured-story .polish-project-detail__body-wrap {
-          display: flex;
-          flex: 1 1 auto;
+          display: block;
+          flex: 0 0 auto;
           box-sizing: border-box;
           min-height: 0;
           width: 100%;
           max-width: none;
-          padding-right: 30px;
+          padding-right: 0;
         }
         .polish-project-detail__featured-story .polish-project-detail__body {
-          flex: 1 1 auto;
+          flex: 0 0 auto;
           box-sizing: border-box;
           width: 100%;
           min-width: 0;
           min-height: 0;
-          overflow: auto;
+          max-height: clamp(154px, 40vw, 190px);
+          overflow: hidden;
+          padding-right: 0;
           overflow-wrap: anywhere;
           color: rgba(255,255,255,.66);
+          -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%);
+          mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%);
+          transition: max-height .38s cubic-bezier(.16, 1, .3, 1);
+        }
+        .polish-project-detail__featured-story .polish-project-detail__body p,
+        .polish-project-detail__featured-summary .polish-project-detail__lead,
+        .polish-project-detail__featured-title .polish-project-detail__title {
+          box-sizing: border-box;
+          min-width: 0;
+          max-width: 100%;
+          width: 100%;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .polish-project-detail__copy-toggle {
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          box-sizing: border-box;
+          width: 100%;
+          margin-top: 14px;
+          padding: 12px 0 4px;
+          border: 0;
+          border-top: 1px solid rgba(255,255,255,.11);
+          border-radius: 0;
+          background: transparent;
+          color: rgba(255,255,255,.72);
+          font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          letter-spacing: .13em;
+          text-transform: uppercase;
+          cursor: none;
+          -webkit-appearance: none;
+          appearance: none;
+        }
+        .polish-project-detail__body-wrap.has-more + .polish-project-detail__copy-toggle:not([hidden]) {
+          display: flex;
+        }
+        .polish-project-detail__copy-toggle-mark {
+          flex: 0 0 auto;
+          font-size: 16px;
+          line-height: 1;
+          transition: transform .34s cubic-bezier(.16, 1, .3, 1);
+        }
+        .polish-project-detail__copy-toggle:focus {
+          outline: none;
+        }
+        .polish-project-detail__copy-toggle:focus-visible {
+          color: rgba(255,255,255,.92);
+          border-top-color: rgba(255,255,255,.24);
+        }
+        .polish-project-detail__featured-shell.is-copy-expanded .polish-project-detail__featured-story .polish-project-detail__body {
+          max-height: none;
+          overflow: visible;
+          -webkit-mask-image: none !important;
+          mask-image: none !important;
+        }
+        .polish-project-detail__featured-shell.is-copy-expanded .polish-project-detail__copy-toggle-mark {
+          transform: rotate(45deg);
         }
         .polish-project-detail__featured-content > .polish-project-detail__body-action {
           flex: 0 0 auto;
@@ -3593,27 +3862,24 @@
           padding-right: 0;
         }
         .polish-project-detail__featured-story .polish-project-detail__body-wrap.has-more .polish-project-detail__body-scrollbar {
-          display: block !important;
+          display: none !important;
         }
         .polish-project-detail__featured-story .polish-project-detail__body-scrollbar {
-          top: 10px;
-          right: 0;
-          bottom: 10px;
-          width: 16px;
-          opacity: .78;
+          display: none !important;
         }
         .polish-project-detail__title {
-          width: min(100%, 9.1em);
-          max-width: 9.1em;
-          font-size: clamp(34px, 9.6vw, 44px);
-          line-height: 1.02;
+          width: 100%;
+          max-width: 100%;
+          font-size: clamp(32px, 8.9vw, 42px);
+          line-height: 1.04;
           letter-spacing: -.028em;
           overflow-wrap: anywhere;
           text-wrap: balance;
         }
         .polish-project-detail__lead {
           margin-top: 0;
-          max-width: min(31ch, 100%);
+          width: 100%;
+          max-width: 100%;
           font-size: clamp(15px, 4.1vw, 18px);
           line-height: 1.55;
           overflow-wrap: anywhere;
@@ -3664,7 +3930,7 @@
           padding-right: 0;
         }
         .polish-project-detail__body-wrap.has-more .polish-project-detail__body-scrollbar {
-          display: block;
+          display: none;
         }
         .polish-project-detail__chapter-visual {
           opacity: 1;
@@ -3927,7 +4193,7 @@
         height: 24px;
         opacity: .7;
         filter: drop-shadow(0 0 5px rgba(255,255,255,.04));
-        transform: translate3d(0, 8px, 0) rotate(-5deg) scale(.74);
+        transform: translate3d(0, 8px, 0) scale(.74);
         transition:
           opacity .42s cubic-bezier(.16, 1, .3, 1),
           filter .46s cubic-bezier(.16, 1, .3, 1),
@@ -3957,18 +4223,21 @@
         height: 1.5px;
         border-radius: 999px;
         background: currentColor;
-        opacity: 0;
+        opacity: 1;
         box-shadow: 0 0 7px rgba(255,255,255,.07);
         transform-origin: 50% 50%;
         transition:
           opacity .24s ease,
           transform .36s cubic-bezier(.16, 1, .3, 1);
       }
-      .polish-shared-detail-close__line:first-child {
-        transform: translate3d(-50%, -50%, 0) rotate(0deg) scaleX(.38);
+      .polish-shared-detail-close__line:nth-child(1) {
+        transform: translate3d(-50%, calc(-50% - 6px), 0) scaleX(.82);
       }
-      .polish-shared-detail-close__line:last-child {
-        transform: translate3d(-50%, -50%, 0) rotate(0deg) scaleX(.38);
+      .polish-shared-detail-close__line:nth-child(2) {
+        transform: translate3d(-50%, -50%, 0) scaleX(1);
+      }
+      .polish-shared-detail-close__line:nth-child(3) {
+        transform: translate3d(-50%, calc(-50% + 6px), 0) scaleX(.82);
       }
       html[data-polish-detail-nav-mode="shared"] .polish-project-detail {
         z-index: 1002 !important;
@@ -3992,12 +4261,29 @@
       html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active main {
         isolation: auto !important;
       }
-      html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active nav .polish-shared-nav-home-item {
-        opacity: 0 !important;
-        filter: blur(8px) !important;
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-nav-home-item {
+        opacity: 1 !important;
+        filter: none !important;
         pointer-events: none !important;
-        transform: translate3d(0, -12px, 0) scale(.975) !important;
-        transition-delay: var(--polish-shared-nav-exit-delay, 0ms);
+        transform: none !important;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-nav-home-item,
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-nav-home-item {
+        opacity: 1 !important;
+        filter: none !important;
+        pointer-events: none !important;
+        transform: none !important;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-nav-home-item > * {
+        animation: polish-shared-nav-home-out .30s cubic-bezier(.55, 0, .2, 1) var(--polish-shared-nav-exit-delay, 0ms) both;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-nav-home-item > * {
+        opacity: 0 !important;
+        filter: blur(7px) !important;
+        transform: translate3d(0, -10px, 0) scale(.982) !important;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-nav-home-item > * {
+        animation: polish-shared-nav-home-in .34s cubic-bezier(.16, 1, .3, 1) calc(72ms + var(--polish-shared-nav-restore-delay, 0ms)) both;
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close,
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close {
@@ -4006,7 +4292,7 @@
         pointer-events: auto;
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close {
-        transition-delay: 150ms;
+        transition-delay: 0ms;
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__glyph,
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__glyph {
@@ -4015,41 +4301,78 @@
         transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__glyph {
-        transition-delay: 145ms;
+        animation: polish-shared-detail-close-in .34s cubic-bezier(.16, 1, .3, 1) 120ms both;
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line,
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line {
         opacity: 1;
       }
-      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line {
-        transition-delay: 180ms;
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line:nth-child(2),
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line:nth-child(2) {
+        opacity: 0;
+        transform: translate3d(-50%, -50%, 0) scaleX(.34);
       }
-      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line:first-child,
-      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line:first-child {
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line {
+        transition-delay: 120ms;
+      }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line:nth-child(1),
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line:nth-child(1) {
         transform: translate3d(-50%, -50%, 0) rotate(42deg) scaleX(1);
       }
-      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line:last-child,
-      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line:last-child {
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-detail-close__line:nth-child(3),
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-detail-close__line:nth-child(3) {
         transform: translate3d(-50%, -50%, 0) rotate(-42deg) scaleX(1);
       }
+      @media (min-width: 901px) {
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-nav-home-item {
+          transition: none !important;
+        }
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-detail-close {
+          transition: color .28s cubic-bezier(.16, 1, .3, 1);
+        }
+        html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="home"] nav .polish-shared-detail-close__glyph {
+          opacity: 0;
+          filter: blur(5px) drop-shadow(0 0 0 rgba(255,255,255,0));
+          transform: translate3d(0, -7px, 0) scale(.78);
+        }
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-detail-close__line {
+          transition: none;
+        }
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-detail-close__line:nth-child(1) {
+          transform: translate3d(-50%, -50%, 0) rotate(42deg) scaleX(1);
+        }
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-detail-close__line:nth-child(2) {
+          opacity: 0;
+          transform: translate3d(-50%, -50%, 0) scaleX(.34);
+        }
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-detail-close__line:nth-child(3) {
+          transform: translate3d(-50%, -50%, 0) rotate(-42deg) scaleX(1);
+        }
+      }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-detail-close {
-        opacity: 0;
-        filter: blur(6px);
+        opacity: 1;
+        filter: blur(0);
         pointer-events: none;
         transition-delay: 0ms;
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-detail-close__glyph {
-        opacity: .64;
-        filter: drop-shadow(0 0 4px rgba(255,255,255,.03));
-        transform: translate3d(0, -7px, 0) rotate(5deg) scale(.78);
-        transition-delay: 0ms;
+        animation: polish-shared-detail-close-out .28s cubic-bezier(.55, 0, .2, 1) both;
       }
-      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-nav-home-item {
-        opacity: 1 !important;
-        filter: blur(0) !important;
-        pointer-events: none !important;
-        transform: translate3d(0, 0, 0) scale(1) !important;
-        transition-delay: calc(76ms + var(--polish-shared-nav-restore-delay, 0ms));
+      @keyframes polish-shared-nav-home-out {
+        0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+        100% { opacity: 0; transform: translate3d(0, -10px, 0) scale(.982); filter: blur(7px); }
+      }
+      @keyframes polish-shared-nav-home-in {
+        0% { opacity: 0; transform: translate3d(0, 9px, 0) scale(.982); filter: blur(7px); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+      }
+      @keyframes polish-shared-detail-close-in {
+        0% { opacity: 0; transform: translate3d(0, 8px, 0) scale(.74); filter: blur(5px) drop-shadow(0 0 0 rgba(255,255,255,0)); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0) drop-shadow(0 0 7px rgba(255,255,255,.07)); }
+      }
+      @keyframes polish-shared-detail-close-out {
+        0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0) drop-shadow(0 0 7px rgba(255,255,255,.07)); }
+        100% { opacity: 0; transform: translate3d(0, -7px, 0) scale(.78); filter: blur(5px) drop-shadow(0 0 0 rgba(255,255,255,0)); }
       }
       html[data-polish-detail-nav-mode="shared"].polish-shared-detail-active .polish-mobile-menu-panel {
         display: none !important;
@@ -4077,6 +4400,11 @@
         .polish-shared-detail-close__line {
           transition-duration: .22s !important;
           transition-delay: 0ms !important;
+        }
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-nav-home-item > *,
+        html[data-polish-detail-nav-mode="shared"] nav .polish-shared-detail-close__glyph {
+          animation-duration: .22s !important;
+          animation-delay: 0ms !important;
         }
       }
       .polish-progressive-blur {
@@ -4641,7 +4969,7 @@
       orderedItems.forEach((item, index) => {
         item.classList.add('polish-shared-nav-home-item');
         item.dataset.polishNavItemRole = orderedLinks[index].dataset.polishNavRole;
-        item.style.setProperty('--polish-shared-nav-exit-delay', ((orderedItems.length - 1 - index) * 22) + 'ms');
+        item.style.setProperty('--polish-shared-nav-exit-delay', ((orderedItems.length - 1 - index) * 8) + 'ms');
         item.style.setProperty('--polish-shared-nav-restore-delay', (index * 30) + 'ms');
       });
       const currentItems = Array.from(roles.navGroup.children).filter((item) => orderedItems.includes(item));
@@ -4732,7 +5060,7 @@
         if (brandItem) {
           brandItem.classList.add('polish-shared-nav-home-item');
           brandItem.dataset.polishNavItemRole = 'brand';
-          brandItem.style.setProperty('--polish-shared-nav-exit-delay', '88ms');
+          brandItem.style.setProperty('--polish-shared-nav-exit-delay', '0ms');
           brandItem.style.setProperty('--polish-shared-nav-restore-delay', '0ms');
           const brandLink = brandItem.querySelector('a');
           if (brandLink) brandLink.dataset.polishNavRole = 'brand';
@@ -4747,7 +5075,7 @@
           close.setAttribute('aria-label', 'Close project detail');
           close.setAttribute('aria-hidden', 'true');
           close.tabIndex = -1;
-          close.innerHTML = '<span class="polish-shared-detail-close__glyph" aria-hidden="true"><span class="polish-shared-detail-close__line"></span><span class="polish-shared-detail-close__line"></span></span>';
+          close.innerHTML = '<span class="polish-shared-detail-close__glyph" aria-hidden="true"><span class="polish-shared-detail-close__line"></span><span class="polish-shared-detail-close__line"></span><span class="polish-shared-detail-close__line"></span></span>';
           frame.appendChild(close);
         }
         close.removeAttribute('data-cursor');
@@ -4781,11 +5109,6 @@
       });
     }
 
-    function getActiveCloseControl() {
-      if (root.classList.contains('polish-compact-nav')) return document.querySelector('.polish-mobile-menu-fallback');
-      return document.querySelector('[data-polish-shared-detail-close]');
-    }
-
     function applyState(nextState) {
       ensureControls();
       const active = /^(entering|open|closing)$/.test(nextState);
@@ -4811,13 +5134,6 @@
           delete mobileButton.dataset.polishSharedDetailClose;
           mobileButton.setAttribute('aria-label', 'Open mobile navigation');
         }
-      }
-      if (nextState === 'open') {
-        requestAnimationFrame(() => {
-          const control = getActiveCloseControl();
-          if (!control || !root.classList.contains('polish-shared-detail-active')) return;
-          try { control.focus({ preventScroll: true }); } catch { control.focus(); }
-        });
       }
     }
 
@@ -5472,7 +5788,9 @@
       }
       ringState.x += (pointer.x - ringState.x) * 0.34;
       ringState.y += (pointer.y - ringState.y) * 0.34;
-      const ringSize = sizes.ring * (pointer.active ? sizes.activeScale : 1);
+      const isDetailSideClose = document.documentElement.classList.contains('polish-detail-side-close-hot');
+      const ringScale = isDetailSideClose ? .92 : (pointer.active ? sizes.activeScale : 1);
+      const ringSize = sizes.ring * ringScale;
       const ringDot = sizes.ringDot * (pointer.active ? sizes.activeScale : 1);
       const ringOrbitRadius = Math.max(0, ringSize / 2 - 0.5);
       ring.style.setProperty('--polish-ring-size', ringSize + 'px');
@@ -5633,6 +5951,7 @@
         paintCursor();
       }
     }, { passive: true });
+    document.addEventListener('polish:detail-side-close-cursor', paintCursor);
   }
 
   function setupMagneticButtons(config) {
@@ -6725,10 +7044,20 @@
     let detailNavGutter = 0;
     let detailCloseTimer = 0;
     let detailOpenTimer = 0;
-    const detailCloseExitMs = 360;
+    let detailSideCloseCursorHot = false;
+    const getDetailCloseExitMs = () => window.innerWidth >= 901 ? 500 : 360;
+    let detailRailRaf = 0;
+    let detailRailMeasureRaf = 0;
+    let detailRailCurrent = 0;
+    let detailRailTarget = 0;
+    let detailRailLoopHeight = 0;
+    let detailRailViewport = null;
+    let detailRailTrack = null;
+    let detailRailActiveCard = null;
+    let detailRailHintTimer = 0;
+    let detailRailUserControlled = false;
     let detailReturnScrollY = 0;
     let hasDetailReturnScrollY = false;
-    let detailReturnFocus = null;
     const revealTimers = new WeakMap();
     let revealObserver = null;
 
@@ -6921,6 +7250,7 @@
 
     function openLightbox(src, caption, source) {
       if (!src || lightboxAnimating || lightboxClosing) return;
+      setDetailSideCloseCursorHot(false);
       lightboxAnimating = true;
       clearTimeout(lightboxTimer);
       const sourceRect = source ? cloneRect(source.getBoundingClientRect()) : null;
@@ -6983,14 +7313,33 @@
       const body = detail.querySelector('.polish-project-detail__body');
       const wrap = detail.querySelector('.polish-project-detail__body-wrap');
       if (!body || !wrap) return;
-      const hasMore = body.scrollHeight > body.clientHeight + 6;
+      const shell = wrap.closest('[data-polish-featured-shell]');
+      const toggle = shell && shell.querySelector('[data-polish-copy-toggle]');
+      const mobileCopyMode = window.innerWidth <= 900;
+      const copyExpanded = Boolean(shell && shell.classList.contains('is-copy-expanded'));
+      let hasMore = body.scrollHeight > body.clientHeight + 6;
+      if (mobileCopyMode) {
+        if (!copyExpanded) wrap.dataset.polishCopyHasMore = hasMore ? 'true' : 'false';
+        else hasMore = wrap.dataset.polishCopyHasMore === 'true';
+      }
       const atStart = body.scrollTop <= 8;
       const atEnd = body.scrollTop + body.clientHeight >= body.scrollHeight - 8;
       wrap.classList.toggle('has-more', hasMore);
       wrap.classList.toggle('is-at-start', !hasMore || atStart);
       wrap.classList.toggle('is-at-end', !hasMore || atEnd);
       const rail = wrap.querySelector('.polish-project-detail__body-scrollbar');
+      if (toggle) {
+        toggle.hidden = !mobileCopyMode || !hasMore;
+        toggle.setAttribute('aria-expanded', copyExpanded ? 'true' : 'false');
+        const label = toggle.querySelector('[data-polish-copy-toggle-label]');
+        if (label) label.textContent = copyExpanded ? 'Show less' : 'Read more';
+      }
       if (!rail) return;
+      if (mobileCopyMode) {
+        rail.setAttribute('aria-hidden', 'true');
+        rail.tabIndex = -1;
+        return;
+      }
       if (!hasMore) {
         rail.style.setProperty('--polish-body-scroll-thumb-height', '34px');
         rail.style.setProperty('--polish-body-scroll-thumb-top', '0px');
@@ -7214,6 +7563,7 @@
       clearDetailSharedTransition();
       if (!sourceTile || !sourceTile.isConnected || !detail.classList.contains('is-open')) return;
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (window.innerWidth >= 901) return;
 
       const sourceMedia = sourceTile.querySelector('.polish-random-grid-media') || sourceTile;
       const sourceRect = cloneRect(sourceMedia.getBoundingClientRect());
@@ -7319,6 +7669,154 @@
       detailChapterRaf = requestAnimationFrame(updateDetailChapterMotion);
     }
 
+    function isDesktopDetailRailActive() {
+      return window.innerWidth >= 901 && detail.classList.contains('is-open') && !detail.classList.contains('is-closing');
+    }
+
+    function wrapDetailRailPosition(value) {
+      if (!detailRailLoopHeight) return 0;
+      return ((value % detailRailLoopHeight) + detailRailLoopHeight) % detailRailLoopHeight;
+    }
+
+    function updateDetailRailCards() {
+      if (!detailRailViewport) return;
+      const viewportRect = detailRailViewport.getBoundingClientRect();
+      const viewportCenter = viewportRect.top + viewportRect.height * .5;
+      let activeCard = null;
+      let activeDistance = Infinity;
+      detailRailViewport.querySelectorAll('[data-polish-detail-rail-card]').forEach((card) => {
+        const rect = card.getBoundingClientRect();
+        const distance = Math.abs(rect.top + rect.height * .5 - viewportCenter);
+        const range = Math.max(viewportRect.height * .82, rect.height, 1);
+        const focus = clamp(1 - distance / range, 0, 1);
+        card.style.setProperty('--polish-rail-focus', (1 + focus * .008).toFixed(4));
+        card.style.setProperty('--polish-rail-opacity', (.78 + focus * .22).toFixed(3));
+        if (distance < activeDistance) {
+          activeDistance = distance;
+          activeCard = card;
+        }
+      });
+      if (detailRailActiveCard && detailRailActiveCard !== activeCard) detailRailActiveCard.classList.remove('is-rail-active');
+      if (activeCard) {
+        activeCard.classList.add('is-rail-active');
+      }
+      detailRailActiveCard = activeCard;
+    }
+
+    function renderDetailRail() {
+      if (!detailRailTrack || !detailRailLoopHeight) return;
+      detailRailTrack.style.transform = 'translate3d(0,' + (-wrapDetailRailPosition(detailRailCurrent)).toFixed(3) + 'px,0)';
+      updateDetailRailCards();
+    }
+
+    function tickDetailRail() {
+      detailRailRaf = 0;
+      if (!isDesktopDetailRailActive() || !detailRailTrack) return;
+      detailRailCurrent += (detailRailTarget - detailRailCurrent) * .18;
+      if (Math.abs(detailRailTarget - detailRailCurrent) < .08) detailRailCurrent = detailRailTarget;
+      if (detailRailLoopHeight && Math.abs(detailRailCurrent) > detailRailLoopHeight * 128) {
+        const cycles = Math.trunc(detailRailCurrent / detailRailLoopHeight);
+        detailRailCurrent -= cycles * detailRailLoopHeight;
+        detailRailTarget -= cycles * detailRailLoopHeight;
+      }
+      renderDetailRail();
+      if (Math.abs(detailRailTarget - detailRailCurrent) >= .08) detailRailRaf = requestAnimationFrame(tickDetailRail);
+    }
+
+    function scheduleDetailRailTick() {
+      if (!detailRailRaf) detailRailRaf = requestAnimationFrame(tickDetailRail);
+    }
+
+    function measureDetailRail() {
+      detailRailMeasureRaf = 0;
+      if (!detailRailViewport || !detailRailTrack) return;
+      const firstGroup = detailRailTrack.querySelector('[data-polish-detail-rail-group]');
+      detailRailLoopHeight = firstGroup ? firstGroup.getBoundingClientRect().height : 0;
+      renderDetailRail();
+    }
+
+    function scheduleDetailRailMeasure() {
+      if (!detailRailMeasureRaf) detailRailMeasureRaf = requestAnimationFrame(measureDetailRail);
+    }
+
+    function stopDetailRailMotion(reset) {
+      if (detailRailRaf) cancelAnimationFrame(detailRailRaf);
+      if (detailRailMeasureRaf) cancelAnimationFrame(detailRailMeasureRaf);
+      if (detailRailHintTimer) clearTimeout(detailRailHintTimer);
+      detailRailRaf = 0;
+      detailRailMeasureRaf = 0;
+      detailRailHintTimer = 0;
+      if (reset && detailRailTrack) detailRailTrack.style.removeProperty('transform');
+      if (reset) {
+        detailRailCurrent = 0;
+        detailRailTarget = 0;
+        detailRailLoopHeight = 0;
+        detailRailUserControlled = false;
+        detailRailActiveCard = null;
+        detailRailViewport = null;
+        detailRailTrack = null;
+      }
+    }
+
+    function startDetailRailMotion() {
+      stopDetailRailMotion(true);
+      if (!isDesktopDetailRailActive()) return;
+      detailRailViewport = detail.querySelector('[data-polish-detail-rail-viewport]');
+      detailRailTrack = detail.querySelector('[data-polish-detail-rail-track]');
+      if (!detailRailViewport || !detailRailTrack) {
+        stopDetailRailMotion(true);
+        return;
+      }
+      detailRailCurrent = 0;
+      detailRailTarget = 0;
+      detailRailUserControlled = false;
+      scheduleDetailRailMeasure();
+      requestAnimationFrame(scheduleDetailRailMeasure);
+      detailRailViewport.querySelectorAll('img').forEach((image) => {
+        if (!image.complete) image.addEventListener('load', scheduleDetailRailMeasure, { once: true });
+      });
+      renderDetailRail();
+      detailRailHintTimer = setTimeout(() => {
+        detailRailHintTimer = 0;
+        if (!isDesktopDetailRailActive() || detailRailUserControlled || !detailRailLoopHeight) return;
+        const firstGroup = detailRailTrack && detailRailTrack.querySelector('[data-polish-detail-rail-group]');
+        const cards = firstGroup ? firstGroup.querySelectorAll('[data-polish-detail-rail-card]') : [];
+        detailRailTarget = cards.length > 1 ? cards[1].offsetTop : detailRailLoopHeight;
+        scheduleDetailRailTick();
+      }, 220);
+    }
+
+    function shouldKeepWheelInDetailText(event) {
+      const body = event.target && event.target.closest && event.target.closest('.polish-project-detail__body');
+      if (!body || body.scrollHeight <= body.clientHeight + 6) return false;
+      if (event.deltaY < 0) return body.scrollTop > 1;
+      if (event.deltaY > 0) return body.scrollTop + body.clientHeight < body.scrollHeight - 1;
+      return true;
+    }
+
+    function handleDetailRailWheel(event) {
+      if (!isDesktopDetailRailActive() || !detailRailTrack || !detailRailLoopHeight) return;
+      if (shouldKeepWheelInDetailText(event)) return;
+      const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+      if (!delta) return;
+      event.preventDefault();
+      detailRailUserControlled = true;
+      if (detailRailHintTimer) clearTimeout(detailRailHintTimer);
+      detailRailHintTimer = 0;
+      detailRailTarget += clamp(delta, -160, 160) * .82;
+      scheduleDetailRailTick();
+    }
+
+    function handleDetailRailResize() {
+      if (!detail.classList.contains('is-open')) return;
+      if (window.innerWidth < 901) {
+        stopDetailRailMotion(true);
+        return;
+      }
+      if (!detailRailTrack || !detailRailTrack.isConnected) startDetailRailMotion();
+      else scheduleDetailRailMeasure();
+    }
+
     function updateDetailNavGutter() {
       const currentGutter = Math.max(0, Math.round(window.innerWidth - document.documentElement.clientWidth));
       if (!document.documentElement.classList.contains('polish-detail-open') || currentGutter > 0) {
@@ -7336,7 +7834,9 @@
         return;
       }
       const navFrame = document.querySelector('nav .polish-shared-nav-frame') || document.querySelector('nav > *');
-      const targetNode = detail.querySelector('.polish-project-detail__featured-media') || detail.querySelector('.polish-project-detail__shell');
+      const targetNode = window.innerWidth >= 901
+        ? (detail.querySelector('[data-polish-detail-rail-viewport]') || detail.querySelector('.polish-project-detail__shell'))
+        : (detail.querySelector('.polish-project-detail__featured-media') || detail.querySelector('.polish-project-detail__shell'));
       const targetRect = targetNode && targetNode.getBoundingClientRect();
       const targetRight = targetRect && targetRect.width && targetRect.height ? targetRect.right : 0;
       const navRect = navFrame && navFrame.getBoundingClientRect();
@@ -7374,6 +7874,7 @@
       if (window.innerWidth < 901) return false;
       if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return false;
       if (lightbox.classList.contains('is-open')) return false;
+      if (!event || !event.target || !event.target.closest) return false;
       const scrollbarEdge = Math.max(18, window.innerWidth - document.documentElement.clientWidth + 18);
       if (event.clientX >= window.innerWidth - scrollbarEdge) return false;
       const blocked = event.target.closest(
@@ -7383,8 +7884,26 @@
         '.polish-project-detail__actions, .polish-project-detail__gallery, .polish-project-detail__image-frame'
       );
       if (blocked) return false;
-      const sideSize = Math.max(72, Math.min(240, window.innerWidth * 0.18));
+      const sideSize = Math.max(120, Math.min(360, window.innerWidth * 0.24));
       return event.clientX <= sideSize || event.clientX >= window.innerWidth - sideSize;
+    }
+
+    function setDetailSideCloseCursorHot(hot) {
+      const next = !!hot;
+      if (detailSideCloseCursorHot === next) return;
+      detailSideCloseCursorHot = next;
+      document.documentElement.classList.toggle('polish-detail-side-close-hot', next);
+      document.dispatchEvent(new CustomEvent('polish:detail-side-close-cursor', {
+        detail: { hot: next }
+      }));
+    }
+
+    function updateDetailSideCloseCursor(event) {
+      if (window.innerWidth < 901 || !detail.classList.contains('is-open') || detail.classList.contains('is-closing')) {
+        setDetailSideCloseCursorHot(false);
+        return;
+      }
+      setDetailSideCloseCursorHot(shouldCloseDetailFromSideBlank(event));
     }
 
     function setDetailCloseIconState(ready) {
@@ -7409,7 +7928,16 @@
       });
     }
 
+    function clearDetailInteractionState() {
+      document.querySelectorAll('.is-polish-hot, .is-polish-hovered').forEach((node) => {
+        node.classList.remove('is-polish-hot', 'is-polish-hovered');
+      });
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active !== document.body) active.blur();
+    }
+
     function finishCloseDetail(pushState) {
+      setDetailSideCloseCursorHot(false);
       if (detailCloseTimer) {
         clearTimeout(detailCloseTimer);
         detailCloseTimer = 0;
@@ -7422,8 +7950,9 @@
         cancelAnimationFrame(detailChapterRaf);
         detailChapterRaf = 0;
       }
+      stopDetailRailMotion(true);
       clearDetailSharedTransition();
-      detail.classList.remove('is-open', 'is-closing', 'is-scroll-ready', 'is-close-icon-ready');
+      detail.classList.remove('is-open', 'is-closing', 'is-scroll-ready', 'is-close-icon-ready', 'is-stage-entering');
       detail.setAttribute('aria-hidden', 'true');
       detailContent.replaceChildren();
       detailScroll.scrollTop = 0;
@@ -7437,13 +7966,7 @@
       }
       restoreDetailReturnPosition();
       hasDetailReturnScrollY = false;
-      const returnFocus = detailReturnFocus;
-      detailReturnFocus = null;
-      if (returnFocus && returnFocus.isConnected) {
-        requestAnimationFrame(() => {
-          try { returnFocus.focus({ preventScroll: true }); } catch { returnFocus.focus(); }
-        });
-      }
+      clearDetailInteractionState();
     }
 
     function closeDetail(pushState) {
@@ -7452,13 +7975,16 @@
         return;
       }
       if (detailCloseTimer) return;
+      setDetailSideCloseCursorHot(false);
+      clearDetailInteractionState();
       clearDetailSharedTransition();
       if (detailOpenTimer) {
         clearTimeout(detailOpenTimer);
         detailOpenTimer = 0;
       }
       setDetailNavState('closing');
-      detail.classList.remove('is-open', 'is-scroll-ready', 'is-close-icon-ready');
+      stopDetailRailMotion(false);
+      detail.classList.remove('is-open', 'is-scroll-ready', 'is-close-icon-ready', 'is-stage-entering');
       detail.classList.add('is-closing');
       setDetailCloseIconState(false);
       detail.setAttribute('aria-hidden', 'true');
@@ -7466,12 +7992,13 @@
       restoreDetailReturnPosition();
       detailCloseTimer = setTimeout(() => {
         finishCloseDetail(pushState);
-      }, detailCloseExitMs);
+      }, getDetailCloseExitMs());
     }
 
     function openDetail(slug, pushState, sourceTile) {
       const item = itemsBySlug.get(slug);
       if (!item) return false;
+      setDetailSideCloseCursorHot(false);
       if (detailCloseTimer) {
         clearTimeout(detailCloseTimer);
         detailCloseTimer = 0;
@@ -7494,6 +8021,7 @@
       const externalHref = escapeHtml(item.externalHref || '#projects');
       const externalAttrs = /^https?:/i.test(item.externalHref || '') ? 'target="_blank" rel="noopener noreferrer"' : '';
       const bodyCopy = paragraphs.filter(Boolean).map((paragraph) => '<p>' + escapeHtml(paragraph).replace(/\n/g, '<br/>') + '</p>').join('');
+      const copyToggle = '<button type="button" class="polish-project-detail__copy-toggle" data-polish-copy-toggle data-cursor="pointer" aria-expanded="false" hidden><span data-polish-copy-toggle-label>Read more</span><span class="polish-project-detail__copy-toggle-mark" aria-hidden="true">+</span></button>';
       const bodyAction = '<p class="polish-project-detail__body-action"><a class="polish-project-detail__body-link" href="' + externalHref + '" ' + externalAttrs + ' data-cursor="pointer">View complete project <span aria-hidden="true">↗</span></a></p>';
       const images = Array.isArray(item.images) && item.images.length
         ? item.images
@@ -7526,8 +8054,21 @@
         return '<section class="polish-project-detail__chapter polish-project-detail__chapter--media ' + sideClass + '" data-polish-detail-chapter>' +
           '<div class="polish-project-detail__chapter-visual">' + renderDetailMedia(image, imageIndex + 1, false) + '</div></section>';
       }).join('');
+      const desktopRailItems = images.map((image, imageIndex) => {
+        return renderDetailMedia(image, imageIndex, true).replace(
+          '<figure class="',
+          '<figure data-polish-detail-rail-card data-polish-rail-index="' + imageIndex + '" class="polish-project-detail__desktop-media-card '
+        );
+      }).join('');
+      const desktopRail = '<div class="polish-project-detail__desktop-media-viewport" data-polish-detail-rail-viewport>' +
+        '<div class="polish-project-detail__desktop-media-track" data-polish-detail-rail-track>' +
+        '<div class="polish-project-detail__desktop-media-group" data-polish-detail-rail-group>' + desktopRailItems + '</div>' +
+        '<div class="polish-project-detail__desktop-media-group" aria-hidden="true" inert>' + desktopRailItems + '</div>' +
+        '</div></div>';
       document.documentElement.classList.add('polish-detail-opening');
-      detail.classList.remove('is-closing', 'is-scroll-ready', 'is-close-icon-ready');
+      stopDetailRailMotion(true);
+      detail.classList.remove('is-closing', 'is-scroll-ready', 'is-close-icon-ready', 'is-stage-entering');
+      detail.classList.add('is-stage-entering');
       setDetailCloseIconState(false);
       detailContent.innerHTML = '<section class="polish-project-detail__chapter polish-project-detail__chapter--featured is-active" data-polish-detail-chapter>' +
         '<div class="polish-project-detail__featured-shell' + copyLayoutClass + '" data-polish-featured-shell>' +
@@ -7537,8 +8078,8 @@
         '<div class="polish-project-detail__featured-eyebrow"><span class="polish-project-detail__meta">' + meta + '</span>' + facts + '</div>' +
         '<div class="polish-project-detail__featured-title"><h2 class="polish-project-detail__title">' + title + '</h2></div>' +
         '<div class="polish-project-detail__featured-summary"><p class="polish-project-detail__lead">' + summary + '</p></div>' +
-        '<div class="polish-project-detail__featured-story"><div class="polish-project-detail__body-wrap"><div class="polish-project-detail__body">' + bodyCopy + '</div><div class="polish-project-detail__body-scrollbar" role="scrollbar" aria-label="Project text scroll position" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-hidden="true"><span></span></div></div></div>' + bodyAction +
-        '</div></div></section>' +
+        '<div class="polish-project-detail__featured-story"><div class="polish-project-detail__body-wrap"><div class="polish-project-detail__body">' + bodyCopy + '</div><div class="polish-project-detail__body-scrollbar" role="scrollbar" aria-label="Project text scroll position" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-hidden="true"><span></span></div></div>' + copyToggle + '</div>' + bodyAction +
+        '</div>' + desktopRail + '</div></section>' +
         mediaChapters;
       const detailBody = detailContent.querySelector('.polish-project-detail__body');
       setupTextScrollControl(detailBody);
@@ -7549,23 +8090,21 @@
       detail.setAttribute('aria-hidden', 'false');
       detail.classList.add('is-scroll-ready');
       requestAnimationFrame(updateDetailNavGutter);
+      requestAnimationFrame(startDetailRailMotion);
       requestAnimationFrame(() => startDetailSharedTransition(sourceTile, firstImage));
       requestAnimationFrame(() => {
         if (!detail.classList.contains('is-open')) return;
         detail.classList.add('is-close-icon-ready');
         setDetailCloseIconState(true);
       });
-      setTimeout(() => {
-        if (!detail.classList.contains('is-open')) return;
-        detail.classList.add('is-close-icon-ready');
-        setDetailCloseIconState(true);
-      }, 40);
+      const detailOpenSettleMs = window.innerWidth >= 901 ? 720 : 320;
       detailOpenTimer = setTimeout(() => {
         detailOpenTimer = 0;
         if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return;
+        detail.classList.remove('is-stage-entering');
         document.documentElement.classList.remove('polish-detail-opening');
         setDetailNavState('open');
-      }, 320);
+      }, detailOpenSettleMs);
       try {
         detailScroll.focus({ preventScroll: true });
       } catch {
@@ -7819,11 +8358,28 @@
       const slug = tile.getAttribute('data-project-slug');
       if (!slug) return;
       event.preventDefault();
-      detailReturnFocus = tile;
       openDetail(slug, true, tile);
     });
     detail.addEventListener('polish:request-close', () => closeDetail(true));
+    detail.addEventListener('wheel', handleDetailRailWheel, { passive: false });
     detail.addEventListener('click', (event) => {
+      const copyToggle = event.target.closest('[data-polish-copy-toggle]');
+      if (copyToggle) {
+        event.preventDefault();
+        const shell = copyToggle.closest('[data-polish-featured-shell]');
+        const wrap = shell && shell.querySelector('.polish-project-detail__body-wrap');
+        const body = shell && shell.querySelector('.polish-project-detail__body');
+        if (!shell || !wrap || !body) return;
+        const expanded = !shell.classList.contains('is-copy-expanded');
+        shell.classList.toggle('is-copy-expanded', expanded);
+        copyToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        if (!expanded) body.scrollTop = 0;
+        requestAnimationFrame(() => {
+          updateTextScrollCue();
+          scheduleDetailChapterMotion();
+        });
+        return;
+      }
       if (event.target.closest('[data-polish-detail-close]')) {
         event.preventDefault();
         closeDetail(true);
@@ -7842,15 +8398,23 @@
     detailScroll.addEventListener('scroll', scheduleDetailNavMaterialReflection, { passive: true });
     detailScroll.addEventListener('scroll', scheduleDetailChapterMotion, { passive: true });
     lightbox.addEventListener('click', closeLightbox);
+    window.addEventListener('pointermove', updateDetailSideCloseCursor, { passive: true });
+    window.addEventListener('pointerleave', () => setDetailSideCloseCursorHot(false), { passive: true });
     window.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
+      event.preventDefault();
+      clearDetailInteractionState();
       if (lightbox.classList.contains('is-open')) closeLightbox();
       else if (detail.classList.contains('is-open')) closeDetail(true);
     });
-    window.addEventListener('resize', scheduleDetailNavMaterialReflection, { passive: true });
+    window.addEventListener('resize', () => {
+      setDetailSideCloseCursorHot(false);
+      scheduleDetailNavMaterialReflection();
+    }, { passive: true });
     window.addEventListener('resize', scheduleDetailChapterMotion, { passive: true });
     window.addEventListener('resize', updateDetailNavGutter, { passive: true });
     window.addEventListener('resize', updateTextScrollCue, { passive: true });
+    window.addEventListener('resize', handleDetailRailResize, { passive: true });
     window.addEventListener('hashchange', syncDetailFromHash);
 
     render(1, false);

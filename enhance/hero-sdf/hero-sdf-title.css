@@ -71,7 +71,12 @@
 
 @media (max-width: 680px) {
   .polish-hero-title-normalized {
-    font-size: min(var(--hero-sdf-font-size, 220px), 12vw) !important;
+    box-sizing: border-box;
+    width: calc(100% - 48px) !important;
+    max-width: calc(100% - 48px) !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    font-size: min(var(--hero-sdf-font-size, 220px), 10.4vw) !important;
     letter-spacing: var(--hero-sdf-letter-spacing, 0.08em) !important;
   }
 }
