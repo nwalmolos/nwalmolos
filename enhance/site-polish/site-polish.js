@@ -1466,10 +1466,21 @@
         transform: translate3d(0, -10px, 0) scale(.985);
       }
       .polish-mobile-menu-panel.is-closing {
-        opacity: 0;
+        opacity: 1;
         visibility: visible;
         pointer-events: none;
-        transform: translate3d(0, -10px, 0) scale(.985);
+        transform: translate3d(0, 0, 0) scale(1);
+        animation: polish-mobile-menu-panel-out .68s cubic-bezier(.55, 0, .2, 1) both;
+      }
+      @keyframes polish-mobile-menu-panel-out {
+        0%, 68% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(0, -10px, 0) scale(.985);
+        }
       }
       .polish-mobile-menu-panel__inner {
         width: min(100%, 340px);
@@ -1491,8 +1502,19 @@
         transform: translate3d(0, 18px, 0) scale(.99);
       }
       .polish-mobile-menu-panel.is-closing .polish-mobile-menu-panel__inner {
-        opacity: 0;
-        transform: translate3d(0, 18px, 0) scale(.99);
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        animation: polish-mobile-menu-inner-out .66s cubic-bezier(.55, 0, .2, 1) both;
+      }
+      @keyframes polish-mobile-menu-inner-out {
+        0%, 64% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(0, 18px, 0) scale(.99);
+        }
       }
       .polish-mobile-menu-panel a {
         --polish-mobile-menu-enter-y: 26px;
@@ -1549,8 +1571,8 @@
         }
         100% {
           opacity: 0;
-          filter: blur(8px);
-          transform: translate3d(var(--polish-mobile-menu-x, 0px), calc(var(--polish-mobile-menu-y, 0px) - 18px), 0) scale(.972);
+          filter: blur(11px);
+          transform: translate3d(var(--polish-mobile-menu-x, 0px), calc(var(--polish-mobile-menu-y, 0px) + 28px), 0) scale(.955);
         }
       }
       .polish-mobile-menu-panel.is-open a {
@@ -1571,12 +1593,12 @@
         animation: none;
       }
       .polish-mobile-menu-panel.is-closing a {
-        --polish-mobile-menu-enter-y: -18px;
-        --polish-mobile-menu-scale: .972;
+        --polish-mobile-menu-enter-y: 28px;
+        --polish-mobile-menu-scale: .955;
         opacity: 0;
-        filter: blur(8px);
+        filter: blur(11px);
         transition-delay: var(--polish-mobile-menu-exit-delay, 0ms);
-        animation: polish-mobile-menu-link-out .30s cubic-bezier(.55, 0, .2, 1) both;
+        animation: polish-mobile-menu-link-out .46s cubic-bezier(.55, 0, .2, 1) both;
         animation-delay: var(--polish-mobile-menu-exit-delay, 0ms);
       }
       .polish-mobile-menu-panel a::before {
@@ -5179,7 +5201,7 @@
     const menuLinks = Array.from(panel.querySelectorAll('a'));
     menuLinks.forEach((link, index) => {
       link.style.setProperty('--polish-mobile-menu-delay', (index * 62) + 'ms');
-      link.style.setProperty('--polish-mobile-menu-exit-delay', ((menuLinks.length - 1 - index) * 34) + 'ms');
+      link.style.setProperty('--polish-mobile-menu-exit-delay', ((menuLinks.length - 1 - index) * 62) + 'ms');
     });
 
     const linkStates = new WeakMap();
@@ -5231,6 +5253,7 @@
     }
 
     function setOpen(open) {
+      if (open === panel.classList.contains('is-open') && !panel.classList.contains('is-closing')) return;
       if (closeTimer) {
         clearTimeout(closeTimer);
         closeTimer = 0;
@@ -5249,7 +5272,7 @@
           panel.classList.remove('is-closing');
           panel.classList.add('is-closed');
           closeTimer = 0;
-        }, 560);
+        }, 700);
       }
       button.setAttribute('aria-expanded', open ? 'true' : 'false');
       button.setAttribute('aria-label', open ? 'Close mobile navigation' : 'Open mobile navigation');
@@ -5686,7 +5709,7 @@
         setTimeout(() => {
           polishMobilePanel.classList.remove('is-closing');
           polishMobilePanel.classList.add('is-closed');
-        }, 360);
+        }, 700);
         polishMobilePanel.setAttribute('aria-hidden', 'true');
         document.documentElement.classList.remove('polish-mobile-menu-open');
         const polishMobileButton = document.querySelector('.polish-mobile-menu-fallback');
