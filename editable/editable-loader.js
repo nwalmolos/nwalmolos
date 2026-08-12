@@ -26,6 +26,28 @@
     return fetch(path, { cache: 'no-store' }).then((res) => res.ok ? res.json() : null).catch(() => null);
   }
 
+  let localSocialIconsReady;
+  function loadLocalSocialIcons() {
+    if (window.NM_SOCIAL_ICONS) return Promise.resolve(window.NM_SOCIAL_ICONS);
+    if (localSocialIconsReady) return localSocialIconsReady;
+    localSocialIconsReady = new Promise((resolve) => {
+      const existing = document.querySelector('script[data-local-social-icons]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(window.NM_SOCIAL_ICONS || null), { once: true });
+        existing.addEventListener('error', () => resolve(null), { once: true });
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'enhance/site-polish/social-icons.js?v=20260807-simple-icons-1';
+      script.defer = true;
+      script.dataset.localSocialIcons = 'true';
+      script.addEventListener('load', () => resolve(window.NM_SOCIAL_ICONS || null), { once: true });
+      script.addEventListener('error', () => resolve(null), { once: true });
+      (document.head || document.documentElement).appendChild(script);
+    });
+    return localSocialIconsReady;
+  }
+
   function setMeta(name, value) {
     if (!value) return;
     if (name === 'title') document.title = value;
@@ -255,6 +277,7 @@
       const paragraph = contact.querySelector('p');
       if (paragraph && content.contact.paragraph) paragraph.textContent = content.contact.paragraph;
       updateEmailLinks(content.contact.email);
+      if (window.NM_SOCIAL_ICONS) window.NM_SOCIAL_ICONS.apply(content.contact);
     }
 
     const footer = document.querySelector('footer');
@@ -331,7 +354,7 @@
   }
 
   function loadEditableContent() {
-    Promise.all([fetchJson('editable/content.json'), fetchJson('editable/media.json')]).then(([content, media]) => {
+    Promise.all([fetchJson('editable/content.json'), fetchJson('editable/media.json'), loadLocalSocialIcons()]).then(([content, media]) => {
       window.__EDITABLE_SITE_CONTENT__ = content || {};
       applyContent(content);
       applyMedia(media);

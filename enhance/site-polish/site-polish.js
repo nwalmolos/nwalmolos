@@ -4,6 +4,9 @@
   const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260728-pilowlava-sdf-8';
   const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260728-pilowlava-sdf-7';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
+  const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
+  const FRAUNCES_FONT_URL = 'assets/fonts/fraunces/Fraunces-Opsz-500-Latin.woff2?v=20260811-fraunces-1';
+  const BIG_SHOULDERS_FONT_URL = 'assets/fonts/big-shoulders-display/BigShouldersDisplay-700-Latin.woff2?v=20260811-big-shoulders-1';
 
   function installFluidFirstMoveGuard() {
     if (window.__polishFluidFirstMoveGuardInstalled) return;
@@ -57,6 +60,266 @@
   }
 
   installHeroSdfFirstPaintGuard();
+
+  function installSoftGrainOverlay() {
+    if (!document.querySelector('style[data-enhance="soft-grain-overlay"]')) {
+      const style = document.createElement('style');
+      style.dataset.enhance = 'soft-grain-overlay';
+      style.textContent = `
+        .grain-overlay {
+          position: fixed !important;
+          inset: -12% !important;
+          width: 124% !important;
+          height: 124% !important;
+          z-index: 2147481000 !important;
+          pointer-events: none !important;
+          opacity: .12 !important;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='softNoise' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23softNoise)' opacity='.9'/%3E%3C/svg%3E") !important;
+          background-repeat: repeat !important;
+          background-size: 160px 160px !important;
+          mix-blend-mode: screen !important;
+          transform: translate3d(0, 0, 0);
+          transform-origin: center;
+          contain: strict;
+          will-change: transform;
+          animation: polish-soft-grain-flicker .12s steps(1, end) infinite !important;
+          animation-play-state: running !important;
+        }
+        @keyframes polish-soft-grain-flicker {
+          0%, 100% { background-position: 0 0; transform: translate3d(0, 0, 0); }
+          16% { background-position: -23px 17px; transform: translate3d(-3px, 2px, 0); }
+          33% { background-position: 31px -11px; transform: translate3d(2px, -3px, 0); }
+          50% { background-position: -7px 29px; transform: translate3d(-2px, -1px, 0); }
+          66% { background-position: 19px 7px; transform: translate3d(3px, 1px, 0); }
+          83% { background-position: -29px -19px; transform: translate3d(1px, 3px, 0); }
+        }
+        @media (max-width: 767px) {
+          .grain-overlay {
+            opacity: .105 !important;
+            background-size: 144px 144px !important;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .grain-overlay { animation-duration: .16s !important; }
+        }
+        .polish-live-grain {
+          position: fixed;
+          inset: 0;
+          z-index: 2147481000;
+          display: block;
+          width: 100vw;
+          height: 100vh;
+          height: 100dvh;
+          pointer-events: none;
+          mix-blend-mode: normal;
+          opacity: 1;
+          image-rendering: auto;
+          contain: strict;
+        }
+        html.polish-live-grain-ready .grain-overlay {
+          opacity: 0 !important;
+          animation: none !important;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    const ensureOverlay = () => {
+      if (document.querySelector('.grain-overlay')) return;
+      const overlay = document.createElement('div');
+      overlay.className = 'grain-overlay';
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.prepend(overlay);
+    };
+
+    const setupLiveGrain = () => {
+      if (document.querySelector('.polish-live-grain')) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'polish-live-grain';
+      canvas.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(canvas);
+
+      const startCanvasGrain = () => {
+        const context = canvas.getContext('2d', { alpha: true });
+        if (!context) {
+          canvas.remove();
+          return;
+        }
+
+        context.imageSmoothingEnabled = true;
+        let imageData = null;
+        let pixels = null;
+        let seed = 0x9e3779b9;
+        const resizeCanvas = () => {
+          const scale = 1;
+          const width = Math.max(1, Math.round(window.innerWidth * scale));
+          const height = Math.max(1, Math.round(window.innerHeight * scale));
+          if (canvas.width === width && canvas.height === height) return;
+          canvas.width = width;
+          canvas.height = height;
+          context.imageSmoothingEnabled = true;
+          imageData = context.createImageData(width, height);
+          pixels = new Uint32Array(imageData.data.buffer);
+        };
+
+        const nextRandom = () => {
+          seed ^= seed << 13;
+          seed ^= seed >>> 17;
+          seed ^= seed << 5;
+          return seed >>> 0;
+        };
+
+        let frame = 0;
+        let lastRender = 0;
+        const renderCanvasGrain = (time) => {
+          requestAnimationFrame(renderCanvasGrain);
+          if (document.hidden || time - lastRender < 55) return;
+          lastRender = time;
+          resizeCanvas();
+          seed = (seed + 0x6d2b79f5 + frame * 97) >>> 0;
+          for (let index = 0; index < pixels.length; index += 1) {
+            const random = nextRandom();
+            const low = random & 255;
+            const high = (random >>> 16) & 255;
+            const shade = (low + high) >> 1;
+            const alpha = 16 + ((random >>> 24) & 3);
+            pixels[index] = (alpha << 24) | (shade << 16) | (shade << 8) | shade;
+          }
+          context.putImageData(imageData, 0, 0);
+          frame += 1;
+          canvas.dataset.frame = String(frame);
+        };
+
+        document.documentElement.classList.add('polish-live-grain-ready');
+        window.addEventListener('resize', resizeCanvas, { passive: true });
+        resizeCanvas();
+        requestAnimationFrame(renderCanvasGrain);
+      };
+
+      startCanvasGrain();
+      return;
+
+      const gl = canvas.getContext('webgl', {
+        alpha: true,
+        antialias: false,
+        depth: false,
+        stencil: false,
+        premultipliedAlpha: true,
+        preserveDrawingBuffer: false,
+        powerPreference: 'low-power'
+      });
+      if (!gl) {
+        startCanvasGrain();
+        return;
+      }
+
+      const vertexSource = `
+        attribute vec2 aPosition;
+        void main() {
+          gl_Position = vec4(aPosition, 0.0, 1.0);
+        }
+      `;
+      const fragmentSource = `
+        precision highp float;
+        uniform float uFrame;
+
+        float hash(vec2 p) {
+          p = fract(p * vec2(0.1031, 0.1030));
+          p += dot(p, p.yx + 33.33 + uFrame * 0.013);
+          return fract((p.x + p.y) * p.x);
+        }
+
+        void main() {
+          vec2 pixel = floor(gl_FragCoord.xy);
+          float fine = hash(pixel + vec2(uFrame * 37.0, uFrame * -17.0));
+          float soft = hash(floor(pixel * 0.57) + vec2(uFrame * -11.0, uFrame * 29.0));
+          float grain = mix(fine, soft, 0.18);
+          float light = pow(grain, 3.0) * 0.16;
+          gl_FragColor = vec4(vec3(light), 1.0);
+        }
+      `;
+
+      const compile = (type, source) => {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          gl.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      };
+
+      const vertex = compile(gl.VERTEX_SHADER, vertexSource);
+      const fragment = compile(gl.FRAGMENT_SHADER, fragmentSource);
+      if (!vertex || !fragment) {
+        canvas.remove();
+        return;
+      }
+
+      const program = gl.createProgram();
+      gl.attachShader(program, vertex);
+      gl.attachShader(program, fragment);
+      gl.linkProgram(program);
+      gl.deleteShader(vertex);
+      gl.deleteShader(fragment);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        gl.deleteProgram(program);
+        canvas.remove();
+        return;
+      }
+
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      gl.useProgram(program);
+      const position = gl.getAttribLocation(program, 'aPosition');
+      const frameUniform = gl.getUniformLocation(program, 'uFrame');
+      gl.enableVertexAttribArray(position);
+      gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+      const resize = () => {
+        const ratio = Math.min(window.devicePixelRatio || 1, 1.25);
+        const width = Math.max(1, Math.round(window.innerWidth * ratio));
+        const height = Math.max(1, Math.round(window.innerHeight * ratio));
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+          gl.viewport(0, 0, width, height);
+        }
+      };
+
+      let frame = 0;
+      let lastRender = 0;
+      const render = (time) => {
+        requestAnimationFrame(render);
+        if (document.hidden || time - lastRender < 55) return;
+        lastRender = time;
+        resize();
+        frame += 1;
+        gl.uniform1f(frameUniform, frame);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        canvas.dataset.frame = String(frame);
+      };
+
+      document.documentElement.classList.add('polish-live-grain-ready');
+      window.addEventListener('resize', resize, { passive: true });
+      resize();
+      requestAnimationFrame(render);
+    };
+
+    const mount = () => {
+      ensureOverlay();
+      setTimeout(setupLiveGrain, 900);
+      setTimeout(setupLiveGrain, 1900);
+    };
+
+    if (document.body) mount();
+    else document.addEventListener('DOMContentLoaded', mount, { once: true });
+  }
+
+  installSoftGrainOverlay();
   const DEFAULTS = {
     enabled: true,
     navBlur: true,
@@ -133,6 +396,39 @@
       fontPreload.href = PILOWLAVA_FONT_URL;
       fontPreload.dataset.enhance = 'pilowlava-preload';
       (document.head || document.documentElement).appendChild(fontPreload);
+    }
+
+    let notoSansStyle = document.querySelector('link[data-enhance="noto-sans-sc-style"]');
+    if (!notoSansStyle) {
+      notoSansStyle = document.createElement('link');
+      notoSansStyle.rel = 'stylesheet';
+      notoSansStyle.href = NOTO_SANS_SC_STYLE_URL;
+      notoSansStyle.dataset.enhance = 'noto-sans-sc-style';
+      (document.head || document.documentElement).appendChild(notoSansStyle);
+    }
+
+    let frauncesPreload = document.querySelector('link[data-enhance="fraunces-preload"]');
+    if (!frauncesPreload) {
+      frauncesPreload = document.createElement('link');
+      frauncesPreload.rel = 'preload';
+      frauncesPreload.as = 'font';
+      frauncesPreload.type = 'font/woff2';
+      frauncesPreload.crossOrigin = 'anonymous';
+      frauncesPreload.href = FRAUNCES_FONT_URL;
+      frauncesPreload.dataset.enhance = 'fraunces-preload';
+      (document.head || document.documentElement).appendChild(frauncesPreload);
+    }
+
+    let bigShouldersPreload = document.querySelector('link[data-enhance="big-shoulders-preload"]');
+    if (!bigShouldersPreload) {
+      bigShouldersPreload = document.createElement('link');
+      bigShouldersPreload.rel = 'preload';
+      bigShouldersPreload.as = 'font';
+      bigShouldersPreload.type = 'font/woff2';
+      bigShouldersPreload.crossOrigin = 'anonymous';
+      bigShouldersPreload.href = BIG_SHOULDERS_FONT_URL;
+      bigShouldersPreload.dataset.enhance = 'big-shoulders-preload';
+      (document.head || document.documentElement).appendChild(bigShouldersPreload);
     }
 
     let styleLink = document.querySelector('link[data-enhance="hero-sdf-style"]');
@@ -215,6 +511,53 @@
       matchMedia('(hover: none), (pointer: coarse)').matches;
   }
 
+  const SHARED_DETAIL_CLOSE_MAGNETIC_REACH = 36;
+  const GALLERY_BUTTON_POINTER_REACH = 7;
+
+  function pointWithinExpandedControl(control, x, y, reach, offsetX, offsetY) {
+    if (!control || !control.isConnected) return false;
+    const rect = control.getBoundingClientRect();
+    if (!rect.width || !rect.height) return false;
+    const dx = Number.isFinite(offsetX) ? offsetX : 0;
+    const dy = Number.isFinite(offsetY) ? offsetY : 0;
+    const left = rect.left - dx;
+    const right = rect.right - dx;
+    const top = rect.top - dy;
+    const bottom = rect.bottom - dy;
+    const outsideX = Math.max(left - x, 0, x - right);
+    const outsideY = Math.max(top - y, 0, y - bottom);
+    return Math.hypot(outsideX, outsideY) <= reach;
+  }
+
+  function getSharedDetailCloseProximityTarget(x, y) {
+    const navState = document.documentElement.dataset.polishDetailNavState || 'home';
+    if (!/^(entering|open)$/.test(navState)) return null;
+    const control = document.querySelector('[data-polish-shared-detail-close]');
+    if (!control || control.getAttribute('aria-hidden') === 'true') return null;
+    const style = getComputedStyle(control);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < .08) return null;
+    const magneticX = parseFloat(style.getPropertyValue('--polish-magnetic-x')) || 0;
+    const magneticY = parseFloat(style.getPropertyValue('--polish-magnetic-y')) || 0;
+    return pointWithinExpandedControl(
+      control,
+      x,
+      y,
+      SHARED_DETAIL_CLOSE_MAGNETIC_REACH,
+      magneticX,
+      magneticY
+    ) ? control : null;
+  }
+
+  function getGalleryButtonProximityTarget(x, y) {
+    const navState = document.documentElement.dataset.polishDetailNavState || 'home';
+    if (navState !== 'home') return null;
+    return Array.from(document.querySelectorAll('.polish-gallery-button:not(:disabled):not(.is-locked)')).find((control) => {
+      const style = getComputedStyle(control);
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) < .08) return false;
+      return pointWithinExpandedControl(control, x, y, GALLERY_BUTTON_POINTER_REACH);
+    }) || null;
+  }
+
   function loadConfig() {
     return fetch(CONFIG_URL, { cache: 'no-store' })
       .then((res) => res.ok ? res.json() : {})
@@ -238,9 +581,39 @@
     const style = document.createElement('style');
     style.dataset.enhance = 'site-polish';
     style.textContent = `
+      @font-face {
+        font-family: "Smiley Sans Web";
+        src: url("assets/fonts/smiley-sans/SmileySans-Oblique.ttf.woff2?v=20260807-smiley-1") format("woff2");
+        font-style: oblique;
+        font-weight: 400;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Fraunces Web";
+        src: url("${FRAUNCES_FONT_URL}") format("woff2");
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Big Shoulders Display Web";
+        src: url("${BIG_SHOULDERS_FONT_URL}") format("woff2");
+        font-style: normal;
+        font-weight: 700;
+        font-display: swap;
+      }
+      :root {
+        --polish-font-sans: "Noto Sans SC Web", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        --polish-font-subtitle: "Smiley Sans Web", "Smiley Sans", "Noto Sans SC Web", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        --polish-font-accent: "Smiley Sans Web", "Smiley Sans", "Noto Sans SC Web", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        --polish-font-email: "Fraunces Web", Georgia, "Times New Roman", serif;
+        --polish-font-stats: "Big Shoulders Display Web", "Arial Narrow", "Roboto Condensed", sans-serif;
+        --polish-font-mono: "Noto Sans SC Web", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
       html,
       body {
         background: #020203 !important;
+        font-family: var(--polish-font-sans) !important;
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
@@ -254,6 +627,82 @@
       }
       body {
         position: relative;
+      }
+      button,
+      input,
+      select,
+      textarea,
+      nav a,
+      main section h2,
+      main section h3,
+      main section p,
+      main section blockquote,
+      footer {
+        font-family: var(--polish-font-sans) !important;
+        font-optical-sizing: auto;
+        font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+      }
+      .font-mono {
+        font-family: var(--polish-font-mono) !important;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+      }
+      main > section:first-of-type p.mt-8 {
+        font-family: var(--polish-font-subtitle) !important;
+        font-style: oblique;
+        font-weight: 400 !important;
+        font-synthesis: none;
+        max-width: min(46rem, calc(100vw - 48px)) !important;
+        color: rgba(255,255,255,.68) !important;
+        letter-spacing: .035em;
+        line-height: 1.66 !important;
+        text-shadow: 0 1px 18px rgba(0,0,0,.46);
+        text-rendering: geometricPrecision;
+      }
+      main section h2 {
+        font-family: var(--polish-font-subtitle) !important;
+        font-style: oblique;
+        font-weight: 400 !important;
+        font-synthesis: none;
+        letter-spacing: .012em !important;
+        text-rendering: geometricPrecision;
+      }
+      nav a[href="#"].font-mono {
+        font-family: var(--polish-font-accent) !important;
+        font-weight: 800;
+        letter-spacing: .08em;
+      }
+      .polish-layer-name {
+        font-family: var(--polish-font-accent) !important;
+        font-weight: 650;
+        letter-spacing: -.018em;
+      }
+      #projects h3 {
+        font-family: var(--polish-font-accent) !important;
+        font-weight: 650 !important;
+        letter-spacing: -.025em;
+      }
+      #about .text-3xl {
+        font-family: var(--polish-font-stats) !important;
+        font-weight: 700 !important;
+        line-height: .92;
+        letter-spacing: .015em;
+        font-feature-settings: "tnum" 1;
+        font-synthesis: none;
+      }
+      #contact a[href^="mailto:"][class*="text-2xl"] {
+        font-family: var(--polish-font-email) !important;
+        font-weight: 500 !important;
+        letter-spacing: -.02em;
+        font-optical-sizing: auto;
+        font-variation-settings: "opsz" 72;
+        font-synthesis: none;
+      }
+      .polish-project-detail__title {
+        font-family: var(--polish-font-accent) !important;
+        font-weight: 600 !important;
+        letter-spacing: -.035em;
+        font-synthesis: none;
       }
       html {
         scrollbar-width: thin;
@@ -406,6 +855,13 @@
         pointer-events: none !important;
       }
       .polish-hero-scroll-motion {
+        --polish-hero-content-y: 0px;
+        --polish-hero-content-scale: 1;
+        --polish-hero-content-opacity: 1;
+        --polish-hero-indicator-y: 0px;
+        --polish-hero-indicator-opacity: .86;
+        position: relative;
+        z-index: 1;
         background: transparent !important;
         isolation: isolate;
         overflow-x: clip !important;
@@ -431,17 +887,28 @@
         transition: opacity .16s ease, visibility 0s linear .16s;
       }
       .polish-hero-scroll-content {
-        position: relative;
-        z-index: 10;
-        translate: 0 0 !important;
-        transform: none !important;
-        opacity: 1 !important;
-        will-change: auto !important;
+        position: fixed;
+        left: 50%;
+        top: 50svh;
+        z-index: 8;
+        width: min(calc(100vw - 48px), 64rem);
+        max-width: calc(100vw - 48px) !important;
+        margin: 0 !important;
+        translate: none !important;
+        transform: translate3d(-50%, calc(-50% + var(--polish-hero-content-y, 0px)), 0) scale(var(--polish-hero-content-scale, 1)) !important;
+        transform-origin: 50% 54%;
+        opacity: var(--polish-hero-content-opacity, 1) !important;
+        pointer-events: none;
+        will-change: transform, opacity !important;
       }
       html.polish-title-entrance-active .polish-hero-scroll-content {
-        translate: 0 0 !important;
-        transform: none !important;
-        opacity: 1 !important;
+        translate: none !important;
+        transform: translate3d(-50%, calc(-50% + var(--polish-hero-content-y, 0px)), 0) scale(var(--polish-hero-content-scale, 1)) !important;
+        opacity: var(--polish-hero-content-opacity, 1) !important;
+      }
+      .polish-hero-scroll-motion.is-polish-hero-video-hidden > .polish-hero-scroll-content {
+        opacity: 0 !important;
+        visibility: hidden;
       }
       .polish-hero-decor {
         backface-visibility: hidden;
@@ -527,18 +994,26 @@
         background-color: #020203;
       }
       .polish-hero-cover-first-section {
-        background-color: transparent;
+        --polish-hero-cover-y: 0px;
+        background-color: #020203;
         background-image:
           linear-gradient(
             180deg,
-            rgba(2,2,3,0) 0px,
-            rgba(2,2,3,.22) 70px,
-            rgba(2,2,3,.78) 160px,
-            #020203 250px,
+            rgba(255,255,255,.034) 0px,
+            rgba(255,255,255,.012) 72px,
+            rgba(2,2,3,0) 150px,
             #020203 100%
           );
         background-repeat: no-repeat;
         margin-top: clamp(-170px, -16vh, -96px);
+        border-radius: clamp(26px, 2.6vw, 42px) clamp(26px, 2.6vw, 42px) 0 0;
+        box-shadow:
+          0 -1px 0 rgba(255,255,255,.10),
+          0 -34px 90px rgba(0,0,0,.42);
+        overflow: clip;
+        transform: translate3d(0, var(--polish-hero-cover-y, 0px), 0);
+        transform-origin: 50% 0;
+        will-change: transform;
       }
       .polish-hero-cover-main > footer {
         position: relative;
@@ -578,14 +1053,14 @@
         display: none;
       }
       .polish-scroll-indicator {
-        position: absolute !important;
+        position: fixed !important;
         left: 50% !important;
         right: auto !important;
         top: auto !important;
         bottom: clamp(54px, 9vh, 96px) !important;
-        transform: translate3d(-50%, 0, 0) !important;
-        opacity: .86 !important;
-        z-index: 12;
+        transform: translate3d(-50%, var(--polish-hero-indicator-y, 0px), 0) !important;
+        opacity: var(--polish-hero-indicator-opacity, .86) !important;
+        z-index: 7;
         width: max-content;
         max-width: 144px;
         filter: drop-shadow(0 0 16px rgba(255,255,255,.14));
@@ -687,8 +1162,14 @@
         display: none !important;
       }
       @media (max-width: 900px) {
+        .polish-hero-scroll-content {
+          top: 48svh;
+          width: min(calc(100vw - 32px), 64rem);
+          max-width: calc(100vw - 32px) !important;
+        }
         .polish-hero-cover-first-section {
           margin-top: clamp(-132px, -14vh, -76px);
+          border-radius: 22px 22px 0 0;
         }
         .polish-marquee-removed {
           height: clamp(240px, 38vh, 420px) !important;
@@ -1025,10 +1506,14 @@
         border-bottom: 1px solid rgba(255,255,255,.10);
         color: rgba(255,255,255,.82);
         text-decoration: none;
+        font-family: var(--polish-font-accent);
+        font-style: oblique;
         font-size: clamp(26px, 8vw, 38px);
-        font-weight: 300;
+        font-weight: 400;
         line-height: 1;
-        letter-spacing: 0;
+        letter-spacing: .01em;
+        font-synthesis: none;
+        text-rendering: geometricPrecision;
         opacity: 0;
         filter: blur(10px);
         transform: translate3d(var(--polish-mobile-menu-x, 0px), calc(var(--polish-mobile-menu-y, 0px) + var(--polish-mobile-menu-enter-y)), 0) scale(var(--polish-mobile-menu-scale));
@@ -1140,9 +1625,16 @@
         }
       }
       .polish-mobile-menu-panel a span {
-        font: 11px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-family: var(--polish-font-mono);
+        font-style: normal;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1;
         letter-spacing: .18em;
         text-transform: uppercase;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum" 1;
+        font-synthesis: none;
         color: rgba(255,255,255,.34);
       }
       html.polish-compact-nav nav {
@@ -1161,7 +1653,7 @@
         align-items: center;
         justify-content: space-between;
         height: calc(64px + env(safe-area-inset-top, 0px));
-        padding: env(safe-area-inset-top, 0px) 22px 0;
+        padding: env(safe-area-inset-top, 0px) 24px 0;
         background: rgba(4,5,7,.58);
         border-bottom: 1px solid rgba(255,255,255,.045);
         -webkit-backdrop-filter: blur(20px) saturate(1.14);
@@ -1171,8 +1663,14 @@
       html.polish-compact-nav .polish-mobile-nav-brand {
         color: rgba(255,255,255,.72);
         text-decoration: none;
-        font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        letter-spacing: .28em;
+        font-family: var(--polish-font-accent);
+        font-style: oblique;
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: .18em;
+        font-synthesis: none;
+        text-rendering: geometricPrecision;
         text-transform: uppercase;
       }
       html.polish-compact-nav .polish-mobile-nav-brand span {
@@ -1530,7 +2028,7 @@
       .polish-gallery-kicker {
         display: block;
         margin-bottom: 16px;
-        font: 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 11px/1.2 var(--polish-font-mono);
         letter-spacing: .30em;
         text-transform: uppercase;
         color: rgba(255,255,255,.30);
@@ -1564,6 +2062,7 @@
         flex: 0 0 auto;
       }
       .polish-gallery-button {
+        position: relative;
         width: 42px;
         height: 42px;
         border-radius: 50%;
@@ -1573,6 +2072,12 @@
         display: inline-grid;
         place-items: center;
         transition: border-color .22s ease, background-color .22s ease, color .22s ease, transform .22s ease;
+      }
+      .polish-gallery-button::before {
+        content: "";
+        position: absolute;
+        inset: -7px;
+        border-radius: 50%;
       }
       @media (hover: hover) and (pointer: fine) {
         .polish-gallery-controls,
@@ -1853,7 +2358,7 @@
       .polish-layer-index {
         display: block;
         margin-bottom: 8px;
-        font: 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 10px/1 var(--polish-font-mono);
         letter-spacing: .24em;
         color: rgba(255,255,255,.34);
         transition: color .22s ease;
@@ -1869,7 +2374,7 @@
       .polish-layer-meta {
         display: block;
         margin-top: 8px;
-        font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 10px/1.2 var(--polish-font-mono);
         letter-spacing: .16em;
         text-transform: uppercase;
         color: rgba(255,255,255,.36);
@@ -1879,6 +2384,7 @@
         display: -webkit-box;
         margin-top: 10px;
         max-width: 92%;
+        min-height: 2.9em;
         font-size: 12px;
         line-height: 1.45;
         color: rgba(255,255,255,.66);
@@ -1917,7 +2423,7 @@
         align-items: center;
         gap: 7px;
         margin-top: 13px;
-        font: 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 10px/1 var(--polish-font-mono);
         letter-spacing: .18em;
         text-transform: uppercase;
         color: rgba(255,255,255,.42);
@@ -2159,7 +2665,7 @@
       .polish-project-detail__link,
       .polish-project-detail__back,
       .polish-project-detail__nav-link {
-        font: 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 11px/1.2 var(--polish-font-mono);
         letter-spacing: .22em;
         text-transform: uppercase;
       }
@@ -2371,7 +2877,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 7px 14px;
-        font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 10px/1.4 var(--polish-font-mono);
         letter-spacing: .15em;
         text-transform: uppercase;
       }
@@ -2384,7 +2890,7 @@
         grid-column: 2;
         justify-self: end;
         align-self: start;
-        font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 10px/1.4 var(--polish-font-mono);
         letter-spacing: .18em;
         color: rgba(255,255,255,.52);
       }
@@ -2437,7 +2943,7 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        font: 10px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 10px/1.45 var(--polish-font-mono);
         letter-spacing: .15em;
         text-transform: uppercase;
         color: rgba(255,255,255,.30);
@@ -2649,7 +3155,7 @@
         padding: 0 0 5px;
         border-bottom: 1px solid rgba(255,255,255,.22);
         color: rgba(255,255,255,.78);
-        font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 11px/1.3 var(--polish-font-mono);
         letter-spacing: .09em;
         text-transform: uppercase;
         text-decoration: none;
@@ -2683,7 +3189,7 @@
         border: 1px solid rgba(255,255,255,.18);
         background: rgba(255,255,255,.045);
         color: rgba(255,255,255,.78);
-        font: 11px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 11px/1.2 var(--polish-font-mono);
         letter-spacing: .09em;
         text-transform: uppercase;
         text-decoration: none;
@@ -2838,7 +3344,7 @@
           min-height: 0;
           overflow: hidden;
           border-radius: 10px;
-          background: rgba(255,255,255,.018);
+          background: transparent;
           isolation: isolate;
           cursor: none;
         }
@@ -3278,7 +3784,7 @@
       }
       .polish-project-detail__image figcaption {
         margin-top: 9px;
-        font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 11px/1.45 var(--polish-font-mono);
         letter-spacing: .08em;
         color: rgba(255,255,255,.38);
       }
@@ -3335,7 +3841,7 @@
         margin-top: 16px;
         max-width: min(760px, 90vw);
         text-align: center;
-        font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font: 12px/1.6 var(--polish-font-mono);
         letter-spacing: .08em;
         color: rgba(255,255,255,.56);
       }
@@ -3814,7 +4320,7 @@
           border-radius: 0;
           background: transparent;
           color: rgba(255,255,255,.72);
-          font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font: 10px/1.4 var(--polish-font-mono);
           letter-spacing: .13em;
           text-transform: uppercase;
           cursor: none;
@@ -4140,6 +4646,10 @@
       }
       .polish-shared-nav-frame {
         position: relative;
+        width: 100%;
+        max-width: none !important;
+        margin-inline: 0 !important;
+        padding-inline: max(24px, calc((100% - 1280px) / 2)) !important;
       }
       html[data-polish-detail-nav-mode="shared"] nav.polish-shared-nav-controller-ready {
         transition-property: background-color, border-color, -webkit-backdrop-filter, backdrop-filter !important;
@@ -5513,7 +6023,10 @@
       if (heroScrollMotionState.content && heroScrollMotionState.content !== content) {
         heroScrollMotionState.content.classList.remove('polish-hero-scroll-content');
       }
-      heroScrollMotionState.sections.forEach((section) => section.classList.remove('polish-hero-cover-section', 'polish-hero-cover-first-section'));
+      heroScrollMotionState.sections.forEach((section) => {
+        section.classList.remove('polish-hero-cover-section', 'polish-hero-cover-first-section');
+        section.style.removeProperty('--polish-hero-cover-y');
+      });
       heroScrollMotionState.main = main;
       heroScrollMotionState.content = content;
       heroScrollMotionState.sections = collectHeroCoverSections(hero);
@@ -5546,14 +6059,40 @@
       }
       const rect = hero.getBoundingClientRect();
       const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
-      const progress = clamp(-rect.top / Math.max(1, Math.min(rect.height || viewport, viewport)), 0, 1);
-      const videoY = clamp(progress * -28, -28, 0);
-      const videoScale = 1 + progress * 0.018;
+      const heroProgress = clamp(-rect.top / Math.max(1, Math.min(rect.height || viewport, viewport)), 0, 1);
+      const firstCover = state.sections[0] || null;
+      let rawCoverTop = rect.bottom;
+      let coverProgress = heroProgress;
+
+      if (firstCover && document.body.contains(firstCover)) {
+        const appliedCoverY = Number.parseFloat(firstCover.style.getPropertyValue('--polish-hero-cover-y')) || 0;
+        rawCoverTop = firstCover.getBoundingClientRect().top - appliedCoverY;
+        const coverStart = viewport * 1.02;
+        const coverEnd = Math.max(56, Math.min(104, viewport * .10));
+        coverProgress = clamp((coverStart - rawCoverTop) / Math.max(1, coverStart - coverEnd), 0, 1);
+        const easedCover = coverProgress * coverProgress * (3 - 2 * coverProgress);
+        const maxCoverLift = window.innerWidth <= 700 ? 44 : 88;
+        const coverY = (1 - easedCover) * maxCoverLift;
+        firstCover.style.setProperty('--polish-hero-cover-y', coverY.toFixed(1) + 'px');
+      }
+
+      const easedCover = coverProgress * coverProgress * (3 - 2 * coverProgress);
+      const contentFade = clamp((coverProgress - .18) / .72, 0, 1);
+      const contentY = easedCover * -24;
+      const contentScale = 1 - easedCover * .085;
+      const contentOpacity = 1 - contentFade * .94;
+      const indicatorFade = 1 - clamp((coverProgress - .02) / .36, 0, 1);
+      const videoY = clamp(heroProgress * -10 + easedCover * -18, -28, 0);
+      const videoScale = 1 + heroProgress * .010 + easedCover * .022;
+
+      hero.style.setProperty('--polish-hero-content-y', contentY.toFixed(1) + 'px');
+      hero.style.setProperty('--polish-hero-content-scale', contentScale.toFixed(4));
+      hero.style.setProperty('--polish-hero-content-opacity', contentOpacity.toFixed(4));
+      hero.style.setProperty('--polish-hero-indicator-y', (easedCover * -14).toFixed(1) + 'px');
+      hero.style.setProperty('--polish-hero-indicator-opacity', (.86 * indicatorFade).toFixed(4));
       hero.style.setProperty('--polish-hero-video-y', videoY.toFixed(1) + 'px');
       hero.style.setProperty('--polish-hero-video-scale', videoScale.toFixed(4));
-      const bridge = document.querySelector('.polish-marquee-removed');
-      const bridgeRect = bridge ? bridge.getBoundingClientRect() : null;
-      const hideVideo = bridgeRect ? bridgeRect.bottom <= 2 : (rect.bottom <= 2 || progress >= 0.995);
+      const hideVideo = firstCover ? rawCoverTop <= 2 : (rect.bottom <= 2 || heroProgress >= .995);
       hero.classList.toggle('is-polish-hero-video-hidden', hideVideo);
     }
 
@@ -5592,9 +6131,17 @@
       hero.classList.remove('is-polish-hero-video-hidden');
       hero.style.removeProperty('--polish-hero-video-y');
       hero.style.removeProperty('--polish-hero-video-scale');
+      hero.style.removeProperty('--polish-hero-content-y');
+      hero.style.removeProperty('--polish-hero-content-scale');
+      hero.style.removeProperty('--polish-hero-content-opacity');
+      hero.style.removeProperty('--polish-hero-indicator-y');
+      hero.style.removeProperty('--polish-hero-indicator-opacity');
       if (state.main) state.main.classList.remove('polish-hero-cover-main');
       if (state.content) state.content.classList.remove('polish-hero-scroll-content');
-      state.sections.forEach((section) => section.classList.remove('polish-hero-cover-section', 'polish-hero-cover-first-section'));
+      state.sections.forEach((section) => {
+        section.classList.remove('polish-hero-cover-section', 'polish-hero-cover-first-section');
+        section.style.removeProperty('--polish-hero-cover-y');
+      });
       if (heroScrollMotionState === state) heroScrollMotionState = null;
     }
 
@@ -5832,7 +6379,10 @@
     }
 
     function updateFromElement(source) {
-      const target = source && source.closest && source.closest(clickableSelector);
+      const directTarget = source && source.closest && source.closest(clickableSelector);
+      const proximityTarget = getSharedDetailCloseProximityTarget(pointer.x, pointer.y) ||
+        getGalleryButtonProximityTarget(pointer.x, pointer.y);
+      const target = directTarget || proximityTarget;
       pointer.active = !!target;
       setTarget(target || null);
       paintCursor();
@@ -5946,6 +6496,9 @@
     window.addEventListener('scroll', scheduleScrollSync, { passive: true });
     document.addEventListener('pointerout', (event) => {
       if (currentTarget && !currentTarget.contains(event.relatedTarget)) {
+        const proximityTarget = getSharedDetailCloseProximityTarget(pointer.x, pointer.y) ||
+          getGalleryButtonProximityTarget(pointer.x, pointer.y);
+        if (proximityTarget === currentTarget) return;
         pointer.active = false;
         setTarget(null);
         paintCursor();
@@ -5957,7 +6510,7 @@
   function setupMagneticButtons(config) {
     if (!config.magneticButtons || isMobileLikeViewport()) return;
     const selector = 'a, button, [role="button"], [data-cursor="pointer"], summary';
-    const navMagneticReach = 36;
+    const navMagneticReach = SHARED_DETAIL_CLOSE_MAGNETIC_REACH;
     const states = new WeakMap();
     let active = null;
 
@@ -6046,7 +6599,7 @@
       }
       const detailMagneticAllowed = target && target.closest('.polish-project-detail__link, .polish-project-detail__back');
       const skipMagnetic = target && (
-        target.closest('.polish-gallery-grid, #projects') ||
+        target.closest('.polish-gallery-grid, .polish-gallery-controls, #projects') ||
         (target.closest('.polish-project-detail') && !detailMagneticAllowed)
       );
       if (!target || skipMagnetic || !document.body.contains(target)) {
@@ -6728,7 +7281,7 @@
       '<circle cx="' + (265 + index * 16) + '" cy="' + (310 + index * 9) + '" r="78"/>' +
       '</g>' +
       '<rect width="900" height="900" filter="url(#n)" opacity=".6"/>' +
-      '<text x="58" y="810" fill="#fff" fill-opacity=".62" font-family="Arial, sans-serif" font-size="74" font-weight="700" letter-spacing="4">' + label + '</text>' +
+      '<text x="58" y="810" fill="#fff" fill-opacity=".62" font-family="Geist, sans-serif" font-size="74" font-weight="700" letter-spacing="4">' + label + '</text>' +
       '</svg>';
     return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
   }
@@ -7900,6 +8453,10 @@
 
     function updateDetailSideCloseCursor(event) {
       if (window.innerWidth < 901 || !detail.classList.contains('is-open') || detail.classList.contains('is-closing')) {
+        setDetailSideCloseCursorHot(false);
+        return;
+      }
+      if (getSharedDetailCloseProximityTarget(event.clientX, event.clientY)) {
         setDetailSideCloseCursorHot(false);
         return;
       }
