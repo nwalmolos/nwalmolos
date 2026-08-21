@@ -32,22 +32,30 @@
 
 .polish-hero-title-normalized .sdf-title-source {
   display: inline-block;
+  opacity: 1;
   transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.polish-hero-title-normalized > .sdf-title-canvas {
+/* The reflection canvas is mounted on the entire production Hero section.
+   This keeps pointer coordinates and caustic trails active in the empty area,
+   while the SDF mask is still rasterized from the measured title position. */
+main > section:first-of-type {
+  position: relative;
+  isolation: isolate;
+}
+
+main > section:first-of-type > .sdf-title-canvas {
   position: absolute !important;
-  z-index: 2 !important;
-  left: 50% !important;
-  top: 50% !important;
+  z-index: 9 !important;
+  inset: 0 !important;
   display: block !important;
-  width: var(--hero-sdf-canvas-width, 300%) !important;
-  height: var(--hero-sdf-canvas-height, 520%) !important;
+  width: 100% !important;
+  height: 100% !important;
   max-width: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
-  mix-blend-mode: normal !important;
-  transform: translate(-50%, -50%) !important;
+  mix-blend-mode: screen !important;
+  transform: none !important;
   transition: opacity 190ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -55,12 +63,12 @@
   opacity: 0 !important;
 }
 
-.polish-hero-title-normalized[data-sdf-state="ready"] > .sdf-title-canvas {
+main > section:first-of-type > .sdf-title-canvas[data-sdf-canvas-state="ready"] {
   opacity: 1 !important;
 }
 
-.polish-hero-title-normalized[data-sdf-state="fallback"] > .sdf-title-canvas,
-.polish-hero-title-normalized[data-sdf-state="static"] > .sdf-title-canvas {
+main > section:first-of-type > .sdf-title-canvas[data-sdf-canvas-state="fallback"],
+main > section:first-of-type > .sdf-title-canvas[data-sdf-canvas-state="static"] {
   display: none !important;
 }
 
@@ -83,7 +91,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .polish-hero-title-normalized .sdf-title-source,
-  .polish-hero-title-normalized > .sdf-title-canvas {
+  main > section:first-of-type > .sdf-title-canvas {
     transition: none;
   }
 }
