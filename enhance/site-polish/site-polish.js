@@ -505,6 +505,10 @@
     return window.innerWidth <= 767 || matchMedia('(hover: none), (pointer: coarse)').matches;
   }
 
+  function isCoarsePointerInput() {
+    return matchMedia('(hover: none), (pointer: coarse)').matches;
+  }
+
   function isCompactNavViewport() {
     const visualWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
     return Math.min(window.innerWidth || 9999, visualWidth || 9999) <= 1024 ||
@@ -1783,7 +1787,7 @@
         filter: blur(0);
         transition-delay: var(--polish-mobile-menu-delay, 0ms);
       }
-      @media (max-width: 767px), (hover: none), (pointer: coarse) {
+      @media (hover: none), (pointer: coarse) {
         html.polish-hide-system-cursor,
         html.polish-hide-system-cursor *,
         main.cursor-none,
@@ -2101,11 +2105,12 @@
         inset: -7px;
         border-radius: 50%;
       }
-      @media (hover: hover) and (pointer: fine) {
-        .polish-gallery-controls,
-        .polish-gallery-controls * {
-          cursor: none !important;
-        }
+      .polish-gallery-controls,
+      .polish-gallery-controls *,
+      .polish-gallery-button,
+      .polish-gallery-button::before,
+      .polish-gallery-button svg {
+        cursor: none !important;
       }
       .polish-gallery-button:hover {
         border-color: rgba(255,255,255,.42);
@@ -2140,6 +2145,326 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: clamp(12px, 1.8vw, 22px);
+      }
+      .polish-gallery-section.is-polish-works-rail {
+        overflow: visible;
+      }
+      .is-polish-works-rail .polish-gallery-head {
+        margin-bottom: 52px;
+      }
+      .is-polish-works-rail .polish-gallery-controls {
+        height: 44px;
+      }
+      .is-polish-works-rail .polish-gallery-button svg {
+        display: block;
+        width: 17px;
+        height: 17px;
+      }
+      .is-polish-works-rail .polish-gallery-button:active {
+        transform: scale(.94);
+        color: rgba(255,255,255,.62);
+      }
+      .is-polish-works-rail .polish-gallery-count {
+        position: relative;
+        width: 48px;
+        min-width: 48px;
+        height: 18px;
+        overflow: hidden;
+      }
+      .is-polish-works-rail .polish-gallery-count::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 2px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.18);
+        transform: translateY(-50%);
+      }
+      .is-polish-works-rail .polish-gallery-count > span {
+        position: absolute;
+        left: 0;
+        top: calc(50% - 2px);
+        width: 15px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.74);
+        transform: translate3d(calc(var(--polish-progress-phase, 0px) + var(--polish-progress-copy, 0px)),0,0);
+        transition: none;
+        will-change: transform;
+      }
+      .polish-works-viewport {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        overflow: hidden;
+        cursor: grab;
+        touch-action: pan-y;
+        user-select: none;
+      }
+      .polish-works-viewport.is-dragging {
+        cursor: grabbing;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-gallery-grid {
+        --polish-works-gap: clamp(10px, 1.3vw, 16px);
+        height: clamp(392px, 42vw, 600px);
+        display: flex;
+        gap: var(--polish-works-gap);
+        transform: translate3d(0,0,0);
+        will-change: transform;
+      }
+      .polish-works-page {
+        flex: 0 0 100%;
+        min-width: 0;
+        display: flex;
+        gap: var(--polish-works-gap);
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile {
+        --polish-card-weight: 1;
+        --polish-card-mx: 0;
+        --polish-card-my: 0;
+        --polish-rail-depth: 0px;
+        flex: var(--polish-card-weight) 1 0;
+        min-width: 0;
+        height: 100%;
+        aspect-ratio: auto;
+        contain: none;
+        cursor: inherit;
+        will-change: flex-grow, filter, opacity;
+        -webkit-user-drag: none;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile img {
+        -webkit-user-drag: none;
+        user-select: none;
+        pointer-events: none;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile::before {
+        z-index: 5;
+        width: 100%;
+        background: linear-gradient(105deg, transparent 22%, rgba(255,255,255,.16) 46%, transparent 67%);
+        transform: translateX(-130%);
+        transition: none;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-opening::before {
+        animation: polish-works-sheen .82s cubic-bezier(.16,1,.3,1) both;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile::after {
+        z-index: 3;
+        opacity: 1;
+        background: linear-gradient(to bottom, rgba(0,0,0,.02) 28%, rgba(0,0,0,.18) 58%, rgba(0,0,0,.79) 100%);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0);
+        transition: box-shadow .35s;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-visual-open::after {
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-settling::after {
+        animation: polish-works-frame-settle .58s cubic-bezier(.2,.82,.3,1) both;
+      }
+      .polish-works-surface {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+      .polish-works-image {
+        position: absolute;
+        inset: -7%;
+        width: 114% !important;
+        max-width: none !important;
+        height: 114% !important;
+        object-fit: cover;
+        background: #091016;
+        filter: saturate(.88) contrast(1.07) brightness(.86);
+        transform: translate3d(calc(var(--polish-card-mx) * -9px + var(--polish-rail-depth)), calc(var(--polish-card-my) * -7px), 0) scale(1.05);
+        transition: filter .45s ease;
+        will-change: transform;
+      }
+      .polish-layer-tile.is-visual-open .polish-works-image {
+        filter: saturate(.98) contrast(1.08) brightness(.86);
+      }
+      .polish-works-grid-lines {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        opacity: .15;
+        background-image: linear-gradient(rgba(255,255,255,.2) 1px,transparent 1px), linear-gradient(90deg,rgba(255,255,255,.2) 1px,transparent 1px);
+        background-size: 25% 25%;
+        transform: translate3d(calc(var(--polish-card-mx) * 5px), calc(var(--polish-card-my) * 4px), 0) scale(1.08);
+        transition: opacity .38s;
+      }
+      .polish-layer-tile.is-visual-open .polish-works-grid-lines {
+        opacity: .22;
+      }
+      .polish-works-chrome {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        pointer-events: none;
+        font-family: var(--polish-font-mono);
+        text-transform: uppercase;
+      }
+      .polish-works-index {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255,255,255,.48);
+        font-size: 9px;
+        line-height: 1;
+        letter-spacing: .16em;
+        transform: translate3d(calc(var(--polish-card-mx) * 2px), calc(var(--polish-card-my) * 2px), 0);
+        transition: color .45s ease, letter-spacing .72s cubic-bezier(.16,1,.3,1), transform .72s cubic-bezier(.16,1,.3,1);
+      }
+      .polish-works-index::after {
+        content: "";
+        width: 13px;
+        height: 1px;
+        background: rgba(255,255,255,.38);
+        transform-origin: left;
+        transition: width .72s cubic-bezier(.16,1,.3,1), background-color .4s ease;
+      }
+      .polish-layer-tile.is-visual-open .polish-works-index {
+        color: rgba(255,255,255,.78);
+        letter-spacing: .24em;
+        transform: translate3d(5px,3px,0);
+      }
+      .polish-layer-tile.is-visual-open .polish-works-index::after {
+        width: 52px;
+        background: rgba(255,255,255,.66);
+      }
+      .polish-works-kind {
+        position: absolute;
+        top: 14px;
+        right: 15px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: rgba(255,255,255,.34);
+        font-size: 8px;
+        line-height: 1;
+        letter-spacing: .15em;
+        transform: translate3d(calc(var(--polish-card-mx) * -2px), calc(var(--polish-card-my) * 2px), 0);
+        transition: color .4s ease, letter-spacing .68s cubic-bezier(.16,1,.3,1), transform .68s cubic-bezier(.16,1,.3,1);
+      }
+      .polish-works-kind::before {
+        content: "";
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,.42);
+        transition: background-color .38s ease, transform .68s cubic-bezier(.16,1,.3,1);
+      }
+      .polish-layer-tile.is-visual-open .polish-works-kind {
+        color: rgba(255,255,255,.64);
+        letter-spacing: .21em;
+        transform: translate3d(-5px,3px,0);
+      }
+      .polish-layer-tile.is-visual-open .polish-works-kind::before {
+        background: rgba(255,255,255,.7);
+        transform: scale(.72);
+      }
+      .polish-works-copy {
+        position: absolute;
+        z-index: 5;
+        left: 18px;
+        right: 18px;
+        bottom: 20px;
+        min-width: 0;
+        pointer-events: none;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+      .polish-works-name {
+        margin: 0;
+        width: var(--polish-title-lock, 100%);
+        max-width: min(var(--polish-title-lock, 100%), 520px);
+        color: rgba(255,255,255,.88);
+        font-size: clamp(18px,1.9vw,27px);
+        font-weight: 500;
+        font-style: italic;
+        line-height: 1.08;
+        letter-spacing: -.035em;
+        white-space: normal;
+        transition: color .4s;
+        backface-visibility: hidden;
+      }
+      .polish-layer-tile.is-visual-open .polish-works-name {
+        color: rgba(255,255,255,.96);
+      }
+      .polish-works-detail {
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: grid-template-rows .72s cubic-bezier(.22,1,.36,1), opacity .42s .08s, transform .72s cubic-bezier(.22,1,.36,1);
+      }
+      .polish-works-detail > span {
+        display: block;
+        overflow: hidden;
+      }
+      .polish-layer-tile.is-visual-open .polish-works-detail {
+        grid-template-rows: 1fr;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .polish-works-summary {
+        display: block;
+        max-width: 440px;
+        margin: 10px 0 0;
+        color: rgba(255,255,255,.66);
+        font-size: 11px;
+        line-height: 1.48;
+      }
+      .polish-works-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 12px;
+        color: rgba(255,255,255,.55);
+        font: 9px/1 var(--polish-font-mono);
+        letter-spacing: .14em;
+        text-transform: uppercase;
+      }
+      .polish-works-view::after {
+        content: "";
+        width: 20px;
+        height: 1px;
+        background: currentColor;
+        transform-origin: left;
+        transition: width .5s cubic-bezier(.16,1,.3,1);
+      }
+      .polish-layer-tile.is-visual-open .polish-works-view::after {
+        width: 42px;
+      }
+      .polish-works-hint {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 20px;
+        color: rgba(255,255,255,.24);
+        font: 9px/1.4 var(--polish-font-mono);
+        letter-spacing: .16em;
+        text-transform: uppercase;
+      }
+      @keyframes polish-works-sheen {
+        0% { opacity: 0; transform: translateX(-130%); }
+        35% { opacity: .56; }
+        100% { opacity: 0; transform: translateX(150%); }
+      }
+      @keyframes polish-works-frame-settle {
+        0% { box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+        28% { box-shadow: inset 0 0 0 1px rgba(255,255,255,.13); }
+        54% { box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+        100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0); }
       }
       html.polish-detail-open,
       html.polish-detail-open body {
@@ -4494,13 +4819,49 @@
       }
       @media (max-width: 900px) {
         .polish-gallery-head {
-          display: block;
+          display: flex;
         }
         .polish-gallery-controls {
-          margin-top: 22px;
+          margin-top: 0;
         }
         .polish-gallery-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 760px) {
+        .polish-gallery-section.is-polish-works-rail .polish-gallery-grid {
+          --polish-works-gap: 9px;
+          height: clamp(370px, 68vw, 520px);
+        }
+        .is-polish-works-rail .polish-gallery-count {
+          width: 40px;
+          min-width: 40px;
+        }
+        .is-polish-works-rail .polish-gallery-count > span {
+          width: 13px;
+        }
+        .polish-works-page { gap: var(--polish-works-gap); }
+        .polish-works-name {
+          font-size: clamp(15px,4.4vw,18px);
+        }
+        .polish-works-copy {
+          left: 13px;
+          right: 13px;
+          bottom: 15px;
+        }
+        .polish-works-summary {
+          display: none;
+        }
+        .polish-works-index {
+          top: 12px;
+          left: 12px;
+        }
+        .polish-works-kind {
+          top: 12px;
+          right: 12px;
+          max-width: 52%;
+          overflow: hidden;
+          white-space: nowrap;
         }
       }
       @media (max-width: 560px) {
@@ -4511,6 +4872,24 @@
         .polish-gallery-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
+        }
+        .polish-gallery-section.is-polish-works-rail .polish-gallery-grid {
+          gap: var(--polish-works-gap);
+        }
+        .is-polish-works-rail .polish-gallery-head {
+          align-items: center;
+          gap: 14px;
+        }
+        .is-polish-works-rail .polish-gallery-count {
+          width: 32px;
+          min-width: 32px;
+        }
+        .polish-works-kind {
+          font-size: 7px;
+          letter-spacing: .1em;
+        }
+        .polish-works-name {
+          font-size: 15px;
         }
         .polish-layer-caption {
           min-height: 68%;
@@ -5420,7 +5799,7 @@
 
   function setupMobilePointerPolicy() {
     function apply() {
-      if (!isMobileLikeViewport()) return;
+      if (!isCoarsePointerInput()) return;
       document.documentElement.classList.remove('polish-hide-system-cursor', 'polish-custom-cursor-ready');
       document.querySelectorAll('.polish-click-cursor, .polish-click-ring, .polish-click-burst').forEach((node) => node.remove());
       document.querySelectorAll('.polish-native-cursor-hidden').forEach((node) => node.classList.remove('polish-native-cursor-hidden'));
@@ -6304,7 +6683,7 @@
   }
 
   function setupClickHover(config) {
-    if (!config.clickHover || isMobileLikeViewport()) return;
+    if (!config.clickHover || isCoarsePointerInput()) return;
     hideNativeCursorFollowers();
 
     const cursor = document.createElement('span');
@@ -6433,6 +6812,21 @@
       updateFromElement(event.target);
     }
 
+    function primeCursor(event) {
+      cursor.classList.remove('is-passive-hidden');
+      ring.classList.remove('is-passive-hidden');
+      cursor.style.removeProperty('opacity');
+      cursor.style.removeProperty('visibility');
+      ring.style.removeProperty('opacity');
+      ring.style.removeProperty('visibility');
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      pointer.inside = true;
+      lastPointerMoveAt = performance.now();
+      finishCursorHandoff(event.target);
+      paintCursor();
+    }
+
     function leave() {
       clearTimeout(initialHandoffTimer);
       initialHandoffTimer = 0;
@@ -6512,6 +6906,7 @@
       }, 760);
     }
 
+    window.addEventListener('pointermove', primeCursor, { once: true, capture: true, passive: true });
     window.addEventListener('pointermove', move, { passive: true });
     window.addEventListener('pointerdown', spawnClickMotion, { passive: true });
     window.addEventListener('pointerleave', leave, { passive: true });
@@ -6531,7 +6926,7 @@
   }
 
   function setupMagneticButtons(config) {
-    if (!config.magneticButtons || isMobileLikeViewport()) return;
+    if (!config.magneticButtons || isCoarsePointerInput()) return;
     const selector = 'a, button, [role="button"], [data-cursor="pointer"], summary';
     const navMagneticReach = SHARED_DETAIL_CLOSE_MAGNETIC_REACH;
     const states = new WeakMap();
@@ -6676,7 +7071,7 @@
   }
 
   function setupPointerPerformanceGate() {
-    if (isMobileLikeViewport()) return;
+    if (isCoarsePointerInput()) return;
     document.addEventListener('mousemove', (event) => {
       const target = event.target;
       if (!target || !target.closest) return;
@@ -6688,7 +7083,7 @@
   }
 
   function setupHoverStateSync() {
-    if (isMobileLikeViewport()) return;
+    if (isCoarsePointerInput()) return;
     let x = -1;
     let y = -1;
     let raf = 0;
@@ -7558,14 +7953,13 @@
     const section = findPhilosophySection();
     if (!section || section.dataset.polishGalleryReady === 'true') return;
     let items = normalizeGalleryItems(config, projectItems);
-    let pageSize = resolveGalleryPageSize(config, items.length);
-    items = ensureGalleryPaginationItems(items, pageSize, config);
+    let pageSize = window.innerWidth <= 900 ? 2 : 3;
     const itemsBySlug = new Map(items.map((item) => [item.slug, item]));
     const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
     let page = 0;
 
     section.dataset.polishGalleryReady = 'true';
-    section.className = 'polish-gallery-section';
+    section.className = 'polish-gallery-section is-polish-works-rail';
     section.id = 'gallery';
     section.removeAttribute('style');
     section.innerHTML = '<div class="polish-gallery-shell">' +
@@ -7575,9 +7969,11 @@
       '<button class="polish-gallery-button" type="button" data-polish-gallery-prev data-cursor="pointer" aria-label="Previous page"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
       '<span class="polish-gallery-count" data-polish-gallery-count role="status" aria-live="polite"></span>' +
       '<button class="polish-gallery-button" type="button" data-polish-gallery-next data-cursor="pointer" aria-label="Next page"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
-      '</div></div><div class="polish-gallery-grid" data-polish-gallery-grid></div></div>';
+      '</div></div><div class="polish-works-viewport" data-polish-works-viewport><div class="polish-gallery-grid" data-polish-gallery-grid></div></div>' +
+      '<div class="polish-works-hint"><span>Hover — expand</span><span>Drag or arrows — shift works</span></div></div>';
 
     const grid = section.querySelector('[data-polish-gallery-grid]');
+    const worksViewport = section.querySelector('[data-polish-works-viewport]');
     const count = section.querySelector('[data-polish-gallery-count]');
     const prev = section.querySelector('[data-polish-gallery-prev]');
     const next = section.querySelector('[data-polish-gallery-next]');
@@ -8141,11 +8537,11 @@
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       if (window.innerWidth >= 901) return;
 
-      const sourceMedia = sourceTile.querySelector('.polish-random-grid-media') || sourceTile;
+      const sourceMedia = sourceTile.querySelector('.polish-random-grid-media, .polish-works-surface') || sourceTile;
       const sourceRect = cloneRect(sourceMedia.getBoundingClientRect());
       if (!sourceRect || !sourceRect.width || !sourceRect.height) return;
-      const tileImage = sourceTile.querySelector('.polish-random-grid-media image');
-      const tileSrc = tileImage && (tileImage.getAttribute('href') || tileImage.getAttribute('xlink:href'));
+      const tileImage = sourceTile.querySelector('.polish-random-grid-media image, .polish-works-image');
+      const tileSrc = tileImage && (tileImage.getAttribute('href') || tileImage.getAttribute('xlink:href') || tileImage.getAttribute('src'));
       const featuredSrc = featuredImage && (featuredImage.type === 'video' ? featuredImage.poster : featuredImage.src);
       const src = tileSrc || featuredSrc;
       if (!src) return;
@@ -8866,72 +9262,346 @@
       });
     }
 
-    function render(direction, animate) {
-      const start = page * pageSize;
-      const visible = items.slice(start, start + pageSize);
-      if (animate) {
-        animateGalleryTilesOut(direction || 1);
-        animatePixelWipe(direction || 1);
-      }
-      grid.classList.remove('is-page-entering');
-      if (!animate) grid.classList.add('is-changing');
-      setTimeout(() => {
-        unobserveRandomGridTiles();
-        grid.innerHTML = visible.map((item, offset) => {
-          const number = String(start + offset + 1).padStart(2, '0');
-          const href = '#work-' + escapeHtml(item.slug);
-          const title = escapeHtml(item.title || 'Untitled');
-          const meta = escapeHtml(item.meta || 'Link');
-          const summary = escapeHtml(item.summary || item.description || 'A short project note with a direct path to the full work.');
-          const enterX = ((offset % 3) - 1) * 18;
-          const enterY = Math.floor(offset / 3) * 10;
-          const maskId = 'polish-random-grid-' + page + '-' + offset + '-' + String(item.slug || start + offset).replace(/[^a-z0-9_-]/gi, '-');
-          const media = buildRandomGridMedia(item, title, maskId, start + offset + 1);
-          return '<a class="polish-layer-tile" href="' + href + '" data-project-slug="' + escapeHtml(item.slug) + '" data-cursor="pointer" data-polish-layer-tile style="--polish-tile-order:' + offset + ';--polish-enter-x:' + enterX + 'px;--polish-enter-y:' + enterY + 'px">' +
-            media +
-            '<span class="polish-layer-sheen"></span><span class="polish-layer-lines"></span>' +
-            '<span class="polish-layer-caption"><span class="polish-layer-index">' + number + '</span><span class="polish-layer-name">' + title + '</span><span class="polish-layer-meta">' + meta + '</span><span class="polish-layer-summary">' + summary + '</span><span class="polish-layer-link">View project</span></span>' +
-            '</a>';
-        }).join('');
-        count.innerHTML = Array.from({ length: totalPages }, (_, pageIndex) => '<span' + (pageIndex === page ? ' class="is-active"' : '') + '></span>').join('');
-        count.setAttribute('aria-label', 'Page ' + (page + 1) + ' of ' + totalPages);
-        setGalleryControlsLocked(!!animate);
-        showRandomGridTilesImmediately();
-        requestAnimationFrame(() => {
-          grid.classList.remove('is-changing');
-          if (animate) {
-            grid.classList.add('is-page-entering');
-            animateGalleryTilesIn(direction || 1);
-          }
-        });
-        setTimeout(() => {
-          grid.classList.remove('is-page-entering');
-          transitioning = false;
-          setGalleryControlsLocked(false);
-        }, animate ? 780 : 80);
-      }, animate ? 260 : 0);
+    let worksGroups = [];
+    let worksCards = [];
+    let worksGroupSize = 0;
+    let worksGroupIndex = 0;
+    let worksTargetPage = 0;
+    let worksRailX = 0;
+    let worksRailTargetX = 0;
+    let worksRailVelocity = 0;
+    let worksRailFrame = 0;
+    let worksRailLast = performance.now();
+    let worksSpringFrame = 0;
+    let worksSpringLast = performance.now();
+    let worksHoveredCard = null;
+    let worksDragging = false;
+    let worksDragMoved = false;
+    let worksDragStartX = 0;
+    let worksDragStartRailX = 0;
+    let worksDragLastX = 0;
+    let worksDragLastTime = 0;
+    let worksDragVelocity = 0;
+    let worksSuppressClick = false;
+
+    function worksModulo(value, length) {
+      return ((value % length) + length) % length;
     }
 
-    function setPage(nextPage) {
-      if (transitioning || totalPages < 2) return;
-      const currentPage = page;
-      page = (nextPage + totalPages) % totalPages;
-      const direction = page >= currentPage ? 1 : -1;
-      transitioning = true;
-      setGalleryControlsLocked(true);
-      render(direction, true);
+    function worksViewportWidth() {
+      return worksViewport ? worksViewport.getBoundingClientRect().width : 0;
+    }
+
+    function worksPageStep() {
+      if (!worksViewport || !grid) return worksViewportWidth();
+      const gap = parseFloat(getComputedStyle(grid).columnGap || getComputedStyle(grid).gap) || 0;
+      return worksViewportWidth() + gap;
+    }
+
+    function worksCardMarkup(item, index) {
+      const number = String(index + 1).padStart(2, '0');
+      const href = '#work-' + escapeHtml(item.slug);
+      const title = escapeHtml(item.title || 'Untitled');
+      const meta = escapeHtml(item.meta || 'Link');
+      const summary = escapeHtml(item.summary || item.description || 'A short project note with a direct path to the full work.');
+      return '<a class="polish-layer-tile" href="' + href + '" data-project-slug="' + escapeHtml(item.slug) + '" data-polish-layer-tile aria-label="' + title + '">' +
+        '<span class="polish-works-surface"><img class="polish-works-image" src="' + escapeHtml(item.image) + '" alt="" draggable="false"/><span class="polish-works-grid-lines"></span></span>' +
+        '<span class="polish-works-chrome" aria-hidden="true"><span class="polish-works-index">' + number + '</span><span class="polish-works-kind">' + meta + '</span></span>' +
+        '<span class="polish-works-copy"><span class="polish-works-name">' + title + '</span><span class="polish-works-detail"><span><span class="polish-works-summary">' + summary + '</span><span class="polish-works-view">View project</span></span></span></span>' +
+        '</a>';
+    }
+
+    function closeWorksCards(runSpring = true) {
+      worksHoveredCard = null;
+      worksCards.forEach((card) => {
+        if (card.classList.contains('is-visual-open')) {
+          const titleNode = card.querySelector('.polish-works-name');
+          const expandedTitleWidth = titleNode ? titleNode.getBoundingClientRect().width : 0;
+          if (expandedTitleWidth > 0) card.style.setProperty('--polish-title-lock', expandedTitleWidth.toFixed(2) + 'px');
+          card.classList.remove('is-settling');
+          clearTimeout(card._worksSettleTimer);
+          clearTimeout(card._worksTitleTimer);
+          card._worksTitleTimer = setTimeout(() => {
+            if (worksHoveredCard !== card) card.style.removeProperty('--polish-title-lock');
+          }, 190);
+          card._worksNeedsSettle = true;
+        }
+        card.classList.remove('is-visual-open', 'is-opening', 'is-polish-hovered');
+      });
+      if (runSpring) wakeWorksSpring();
+    }
+
+    function openWorksCard(card) {
+      if (!card || worksHoveredCard === card || worksDragging) return;
+      closeWorksCards(false);
+      worksHoveredCard = card;
+      card._worksOpenWeight = worksExpandedWeight(card);
+      clearTimeout(card._worksSettleTimer);
+      clearTimeout(card._worksTitleTimer);
+      card.classList.remove('is-settling');
+      card.style.removeProperty('--polish-title-lock');
+      card.classList.add('is-visual-open', 'is-opening', 'is-polish-hovered');
+      setTimeout(() => card.classList.remove('is-opening'), 880);
+      wakeWorksSpring();
+    }
+
+    function worksExpandedWeight(card) {
+      const pageNode = card && card.closest('.polish-works-page');
+      if (!pageNode) return 1.36;
+      const pageCards = Array.from(pageNode.querySelectorAll('[data-polish-layer-tile]'));
+      if (pageCards.length < 2) return 1;
+      const pageStyle = getComputedStyle(pageNode);
+      const gap = parseFloat(pageStyle.columnGap || pageStyle.gap) || 0;
+      const pageWidth = pageNode.getBoundingClientRect().width;
+      const cardHeight = card.getBoundingClientRect().height;
+      const availableWidth = Math.max(1, pageWidth - gap * (pageCards.length - 1));
+      const maxPortraitWidth = Math.min(cardHeight / 1.26, availableWidth - 1);
+      const denominator = Math.max(1, availableWidth - maxPortraitWidth);
+      const portraitWeight = maxPortraitWidth * (pageCards.length - 1) / denominator;
+      return Math.max(1, Math.min(2.32, portraitWeight));
+    }
+
+    function worksSpringTick(now) {
+      const dt = Math.min(32, now - worksSpringLast) / 16.667;
+      worksSpringLast = now;
+      let moving = false;
+      worksCards.forEach((card) => {
+        const target = card === worksHoveredCard ? (card._worksOpenWeight || worksExpandedWeight(card)) : 1;
+        const delta = target - card._worksWeight;
+        const stiffness = target === 1 ? .17 : .1;
+        const damping = target === 1 ? .61 : .68;
+        card._worksVelocity = (card._worksVelocity + delta * stiffness * dt) * Math.pow(damping, dt);
+        card._worksWeight += card._worksVelocity * dt;
+        if (target === 1 && card._worksWeight < .9) {
+          card._worksWeight = .9;
+          card._worksVelocity = 0;
+        } else if (target > 1 && card._worksWeight > 2.4) {
+          card._worksWeight = 2.4;
+          card._worksVelocity *= .35;
+        }
+        if (Math.abs(delta) > .002 || Math.abs(card._worksVelocity) > .002) moving = true;
+        card.style.setProperty('--polish-card-weight', card._worksWeight.toFixed(4));
+        if (target === 1 && card._worksNeedsSettle && card._worksWeight <= .985) {
+          card._worksNeedsSettle = false;
+          card.classList.remove('is-settling');
+          void card.offsetWidth;
+          card.classList.add('is-settling');
+          clearTimeout(card._worksSettleTimer);
+          card._worksSettleTimer = setTimeout(() => card.classList.remove('is-settling'), 600);
+        }
+      });
+      worksSpringFrame = moving ? requestAnimationFrame(worksSpringTick) : 0;
+    }
+
+    function wakeWorksSpring() {
+      if (!worksSpringFrame) {
+        worksSpringLast = performance.now();
+        worksSpringFrame = requestAnimationFrame(worksSpringTick);
+      }
+    }
+
+    function renderWorksProgress() {
+      const cycle = count.clientWidth;
+      const step = worksPageStep();
+      if (!cycle || !step || !worksGroups.length) return;
+      const phase = worksModulo((-worksRailX / step) * (cycle / worksGroups.length), cycle);
+      count.querySelectorAll('span').forEach((segment) => {
+        const copy = Number(segment.dataset.copy || 0);
+        segment.style.setProperty('--polish-progress-phase', phase + 'px');
+        segment.style.setProperty('--polish-progress-copy', (copy * cycle) + 'px');
+      });
+    }
+
+    function renderWorksRail() {
+      grid.style.transform = 'translate3d(' + worksRailX.toFixed(2) + 'px,0,0)';
+      const depth = Math.max(-18, Math.min(18, -worksRailVelocity * .012));
+      grid.style.setProperty('--polish-rail-depth', depth + 'px');
+      renderWorksProgress();
+    }
+
+    function rebaseWorksRail() {
+      const logicalPage = worksModulo(worksTargetPage, worksGroups.length);
+      const centralPage = worksGroups.length * 2 + logicalPage;
+      worksTargetPage = centralPage;
+      worksRailX = worksRailTargetX = -centralPage * worksPageStep();
+      worksRailVelocity = 0;
+      renderWorksRail();
+    }
+
+    function worksRailTick(now) {
+      const dt = Math.min(.032, Math.max(.001, (now - worksRailLast) / 1000));
+      worksRailLast = now;
+      const acceleration = (worksRailTargetX - worksRailX) * 76 - worksRailVelocity * 13.2;
+      worksRailVelocity += acceleration * dt;
+      worksRailX += worksRailVelocity * dt;
+      renderWorksRail();
+      const width = worksPageStep();
+      const currentFloatPage = width ? -worksRailX / width : worksTargetPage;
+      if (currentFloatPage < worksGroups.length || currentFloatPage > worksGroups.length * 4 - 1) {
+        const pageShift = currentFloatPage < worksGroups.length ? worksGroups.length * 2 : -worksGroups.length * 2;
+        const pixelShift = -pageShift * width;
+        worksRailX += pixelShift;
+        worksRailTargetX += pixelShift;
+        worksTargetPage += pageShift;
+        renderWorksRail();
+      }
+      if (Math.abs(worksRailTargetX - worksRailX) < .45 && Math.abs(worksRailVelocity) < 5) {
+        worksRailX = worksRailTargetX;
+        worksRailFrame = 0;
+        const currentPage = width ? -worksRailX / width : worksTargetPage;
+        if (currentPage < worksGroups.length * 1.5 || currentPage > worksGroups.length * 3.5) rebaseWorksRail();
+        else renderWorksRail();
+        return;
+      }
+      worksRailFrame = requestAnimationFrame(worksRailTick);
+    }
+
+    function wakeWorksRail() {
+      if (!worksRailFrame) {
+        worksRailLast = performance.now();
+        worksRailFrame = requestAnimationFrame(worksRailTick);
+      }
+    }
+
+    function shiftWorks(direction) {
+      if (worksDragging || !worksGroups.length) return;
+      closeWorksCards();
+      const width = worksPageStep();
+      const currentPageFloat = width ? -worksRailX / width : worksTargetPage;
+      if (currentPageFloat < worksGroups.length * .75 || currentPageFloat > worksGroups.length * 4.25) rebaseWorksRail();
+      worksTargetPage += direction;
+      worksGroupIndex = worksModulo(worksTargetPage, worksGroups.length);
+      worksRailTargetX = -worksTargetPage * worksPageStep();
+      worksRailVelocity += -direction * Math.min(180, worksViewportWidth() * .2);
+      wakeWorksRail();
+    }
+
+    function bindWorksCards() {
+      worksCards = Array.from(grid.querySelectorAll('[data-polish-layer-tile]'));
+      worksCards.forEach((card) => {
+        card.draggable = false;
+        card._worksWeight = 1;
+        card._worksVelocity = 0;
+        card._worksSettleTimer = 0;
+        card._worksTitleTimer = 0;
+        card._worksOpenWeight = 1;
+        card.addEventListener('pointerenter', () => {
+          if (!worksDragging && matchMedia('(hover:hover) and (pointer:fine)').matches) openWorksCard(card);
+        });
+        card.addEventListener('pointerleave', () => {
+          if (worksHoveredCard === card && !worksDragging) closeWorksCards();
+        });
+        card.addEventListener('pointermove', (event) => {
+          if (!worksDragging && matchMedia('(hover:hover) and (pointer:fine)').matches) openWorksCard(card);
+          const rect = card.getBoundingClientRect();
+          card.style.setProperty('--polish-card-mx', ((event.clientX - rect.left) / rect.width - .5).toFixed(3));
+          card.style.setProperty('--polish-card-my', ((event.clientY - rect.top) / rect.height - .5).toFixed(3));
+        });
+      });
+    }
+
+    function buildWorksRail() {
+      const nextSize = window.innerWidth <= 760 ? 2 : 3;
+      if (nextSize === worksGroupSize && worksCards.length) return;
+      worksGroupSize = nextSize;
+      worksGroups = [];
+      for (let index = 0; index < items.length; index += worksGroupSize) worksGroups.push(items.slice(index, index + worksGroupSize));
+      const pageData = Array.from({ length: 5 }, () => worksGroups).flat();
+      grid.innerHTML = pageData.map((group, pageIndex) => {
+        const base = (pageIndex % worksGroups.length) * worksGroupSize;
+        return '<div class="polish-works-page">' + group.map((item, offset) => worksCardMarkup(item, base + offset)).join('') + '</div>';
+      }).join('');
+      count.innerHTML = '<span data-copy="-1"></span><span data-copy="0"></span><span data-copy="1"></span>';
+      count.setAttribute('aria-label', 'Works browsing progress');
+      bindWorksCards();
+      worksGroupIndex = Math.min(worksGroupIndex, worksGroups.length - 1);
+      worksTargetPage = worksGroups.length * 2 + worksGroupIndex;
+      worksRailX = worksRailTargetX = -worksTargetPage * worksPageStep();
+      worksRailVelocity = 0;
+      renderWorksRail();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        worksRailX = worksRailTargetX = -worksTargetPage * worksPageStep();
+        renderWorksRail();
+      }));
+      transitioning = false;
+      setGalleryControlsLocked(false);
     }
 
     prev.addEventListener('click', (event) => {
       event.preventDefault();
-      if (transitioning) return;
-      setPage(page - 1);
+      shiftWorks(-1);
     });
     next.addEventListener('click', (event) => {
       event.preventDefault();
-      if (transitioning) return;
-      setPage(page + 1);
+      shiftWorks(1);
     });
+    worksViewport.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      worksDragging = true;
+      worksDragMoved = false;
+      worksSuppressClick = false;
+      worksDragStartX = worksDragLastX = event.clientX;
+      worksDragStartRailX = worksRailX;
+      worksDragLastTime = performance.now();
+      worksDragVelocity = 0;
+    });
+    worksViewport.addEventListener('pointermove', (event) => {
+      if (!worksDragging) return;
+      const now = performance.now();
+      const dx = event.clientX - worksDragStartX;
+      if (!worksDragMoved) {
+        if (Math.abs(dx) <= 5) return;
+        worksDragMoved = true;
+        if (worksRailFrame) cancelAnimationFrame(worksRailFrame);
+        worksRailFrame = 0;
+        worksRailTargetX = worksRailX;
+        worksRailVelocity = 0;
+        worksDragStartRailX = worksRailX;
+        closeWorksCards();
+        worksViewport.classList.add('is-dragging');
+        try {
+          worksViewport.setPointerCapture(event.pointerId);
+        } catch {}
+      }
+      event.preventDefault();
+      const stepTime = Math.max(1, now - worksDragLastTime);
+      worksDragVelocity = worksDragVelocity * .68 + ((event.clientX - worksDragLastX) / stepTime * 1000) * .32;
+      worksDragLastX = event.clientX;
+      worksDragLastTime = now;
+      worksRailX = worksDragStartRailX + dx;
+      worksRailVelocity = worksDragVelocity;
+      renderWorksRail();
+    });
+    function finishWorksDrag(event) {
+      if (!worksDragging) return;
+      const dx = event.clientX - worksDragStartX;
+      worksDragging = false;
+      worksSuppressClick = worksDragMoved;
+      worksViewport.classList.remove('is-dragging');
+      if (worksViewport.hasPointerCapture(event.pointerId)) worksViewport.releasePointerCapture(event.pointerId);
+      if (!worksDragMoved) return;
+      const width = worksPageStep();
+      const threshold = width * .28;
+      worksTargetPage = Math.round(-worksDragStartRailX / width);
+      if (Math.abs(dx) >= threshold) worksTargetPage += dx < 0 ? 1 : -1;
+      worksGroupIndex = worksModulo(worksTargetPage, worksGroups.length);
+      worksRailTargetX = -worksTargetPage * width;
+      worksRailVelocity = Math.max(-280, Math.min(280, worksDragVelocity * .2));
+      wakeWorksRail();
+    }
+    worksViewport.addEventListener('pointerup', finishWorksDrag);
+    worksViewport.addEventListener('pointercancel', finishWorksDrag);
+    worksViewport.addEventListener('dragstart', (event) => event.preventDefault());
+    worksViewport.addEventListener('pointerleave', () => {
+      if (!worksDragging) closeWorksCards();
+    });
+    worksViewport.addEventListener('click', (event) => {
+      if (!worksSuppressClick) return;
+      event.preventDefault();
+      event.stopPropagation();
+      worksSuppressClick = false;
+      worksDragMoved = false;
+    }, true);
     grid.addEventListener('click', (event) => {
       const tile = event.target.closest('[data-polish-layer-tile]');
       if (!tile) return;
@@ -8990,6 +9660,13 @@
     window.addEventListener('resize', () => {
       setDetailSideCloseCursorHot(false);
       scheduleDetailNavMaterialReflection();
+      const nextWorksGroupSize = window.innerWidth <= 760 ? 2 : 3;
+      if (nextWorksGroupSize !== worksGroupSize) buildWorksRail();
+      else if (!worksDragging && !worksRailFrame && worksViewportWidth() > 0) {
+        if (worksHoveredCard) worksHoveredCard._worksOpenWeight = worksExpandedWeight(worksHoveredCard);
+        worksRailX = worksRailTargetX = -worksTargetPage * worksPageStep();
+        renderWorksRail();
+      }
     }, { passive: true });
     window.addEventListener('resize', scheduleDetailChapterMotion, { passive: true });
     window.addEventListener('resize', updateDetailNavGutter, { passive: true });
@@ -8997,7 +9674,7 @@
     window.addEventListener('resize', handleDetailRailResize, { passive: true });
     window.addEventListener('hashchange', syncDetailFromHash);
 
-    render(1, false);
+    buildWorksRail();
     syncDetailFromHash();
   }
 
