@@ -9,7 +9,7 @@
 .polish-hero-title-normalized {
   position: relative !important;
   isolation: isolate;
-  font-family: "Pilowlava", sans-serif !important;
+  font-family: var(--polish-font-hero, "Pilowlava", sans-serif) !important;
   font-size: min(var(--hero-sdf-font-size, 220px), 8.9vw) !important;
   font-style: normal !important;
   font-weight: 400 !important;
@@ -57,6 +57,12 @@ main > section:first-of-type > .sdf-title-canvas {
   mix-blend-mode: screen !important;
   transform: none !important;
   transition: opacity 190ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* During the hero cover transition the WebGL title shares the same stationary
+   viewport plane as the DOM title and the other hero visuals. */
+main > section.polish-hero-scroll-motion:first-of-type > .sdf-title-canvas {
+  position: fixed !important;
 }
 
 .polish-title-stagger.polish-hero-title-normalized[data-sdf-state="ready"] .polish-title-word.sdf-title-source {

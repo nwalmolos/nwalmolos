@@ -1,22 +1,95 @@
 {
+    "schemaVersion":  4,
+    "language":  {
+                     "default":  "zh",
+                     "zh":  {
+                                "label":  "中",
+                                "enabled":  true
+                            },
+                     "en":  {
+                                "label":  "EN",
+                                "enabled":  true
+                            }
+                 },
     "meta":  {
                  "title":  "nwalmolos",
                  "description":  "Personal portfolio",
-                 "author":  "nwalmolos"
+                 "author":  "nwalmolos",
+                 "keywords":  "portfolio, creative developer, visual paths"
              },
     "nav":  {
                 "brand":  "NM.",
-                "about":  "Statement",
-                "projects":  "Trajectory",
                 "contact":  "Works",
+                "projects":  "Trajectory",
+                "about":  "Statement",
                 "cta":  "Contact"
             },
     "hero":  {
                  "status":  "",
                  "line1":  "nwalmolos",
                  "line2":  "",
-                 "subtitle":  "Designing and building digital experiences at the intersection of art and technology."
+                 "subtitle":  "",
+                 "scrollLabel":  "Scroll"
              },
+    "works":  {
+                  "label":  "02 - Works",
+                  "titleLine1":  "Visual",
+                  "titleLine2":  "paths",
+                  "hintHover":  "Hover — expand",
+                  "hintNavigate":  "Drag or arrows — shift works",
+                  "viewProject":  "View project",
+                  "detailView":  "View complete project",
+                  "detailClose":  "Close",
+                  "detailReadMore":  "Read more"
+              },
+    "trajectory":  {
+                       "label":  "03 - Trajectory",
+                       "titleLine1":  "Creative",
+                       "titleLine2":  "trajectory",
+                       "itemType":  "Milestone",
+                       "items":  [
+                                     {
+                                         "year":  "2026",
+                                         "title":  "Portfolio system",
+                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                         "tags":  [
+                                                      "React",
+                                                      "WebSocket",
+                                                      "Canvas API"
+                                                  ]
+                                     },
+                                     {
+                                         "year":  "2025",
+                                         "title":  "Motion studies",
+                                         "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
+                                         "tags":  [
+                                                      "Next.js",
+                                                      "Three.js",
+                                                      "D3.js"
+                                                  ]
+                                     },
+                                     {
+                                         "year":  "2024",
+                                         "title":  "Visual archive",
+                                         "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
+                                         "tags":  [
+                                                      "WebGL",
+                                                      "Web Audio",
+                                                      "GLSL"
+                                                  ]
+                                     },
+                                     {
+                                         "year":  "2026",
+                                         "title":  "Portfolio system",
+                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                         "tags":  [
+                                                      "TypeScript",
+                                                      "Animation",
+                                                      "Open Source"
+                                                  ]
+                                     }
+                                 ]
+                   },
     "about":  {
                   "label":  "04 - Statement",
                   "titleLine1":  "Profile",
@@ -36,7 +109,25 @@
                                     "number":  "10+",
                                     "label":  "Happy Clients"
                                 }
-                            ]
+                            ],
+                  "services":  [
+                                   {
+                                       "title":  "Frontend Development",
+                                       "description":  "React, Next.js, TypeScript, Tailwind CSS"
+                                   },
+                                   {
+                                       "title":  "UI/UX Design",
+                                       "description":  "Figma, Design Systems, Prototyping"
+                                   },
+                                   {
+                                       "title":  "Full Stack",
+                                       "description":  "Node.js, Python, Databases, APIs"
+                                   },
+                                   {
+                                       "title":  "Creative Coding",
+                                       "description":  "WebGL, Shaders, Generative Art"
+                                   }
+                               ]
               },
     "contact":  {
                     "label":  "05 - Contact",
@@ -46,12 +137,384 @@
                     "email":  "lzq909794888@163.com",
                     "discord":  "https://discord.com/users/youruserid",
                     "github":  "https://github.com/yourusername",
-                    "instagram":  "https://www.instagram.com/yourusername/",
-                    "bilibili":  "https://space.bilibili.com/youruid",
-                    "twitter":  "https://twitter.com/yourusername"
+                    "instagram":  "https://www.instagram.com/nwalmolos/",
+                    "bilibili":  "https://space.bilibili.com/2138488341",
+                    "douban":  "https://www.douban.com/people/253205987/",
+                    "twitter":  "https://twitter.com/yourusername",
+                    "socialLabels":  {
+                                         "github":  "GitHub",
+                                         "twitter":  "Twitter",
+                                         "discord":  "Discord",
+                                         "instagram":  "Instagram",
+                                         "bilibili":  "Bilibili",
+                                         "douban":  "Douban"
+                                     }
                 },
     "footer":  {
                    "name":  "nwalmolos",
+                   "rights":  "All rights reserved.",
                    "credit":  "Built with Next.js \u0026 Tailwind CSS"
-               }
+               },
+    "translations":  {
+                         "zh":  {
+                                    "content":  {
+                                                    "meta":  {
+                                                                 "title":  "nwalmolos",
+                                                                 "description":  "Personal portfolio",
+                                                                 "author":  "nwalmolos",
+                                                                 "keywords":  "portfolio, creative developer, visual paths"
+                                                             },
+                                                    "nav":  {
+                                                                "brand":  "NM.",
+                                                                "contact":  "Works",
+                                                                "projects":  "Trajectory",
+                                                                "about":  "Statement",
+                                                                "cta":  "Contact"
+                                                            },
+                                                    "hero":  {
+                                                                 "status":  "",
+                                                                 "line1":  "nwalmolos",
+                                                                 "line2":  "",
+                                                                 "subtitle":  "",
+                                                                 "scrollLabel":  "Scroll"
+                                                             },
+                                                    "works":  {
+                                                                  "label":  "02 - Works",
+                                                                  "titleLine1":  "Visual",
+                                                                  "titleLine2":  "paths",
+                                                                  "hintHover":  "Hover — expand",
+                                                                  "hintNavigate":  "Drag or arrows — shift works",
+                                                                  "viewProject":  "View project",
+                                                                  "detailView":  "View complete project",
+                                                                  "detailClose":  "Close",
+                                                                  "detailReadMore":  "Read more"
+                                                              },
+                                                    "trajectory":  {
+                                                                       "label":  "03 - Trajectory",
+                                                                       "titleLine1":  "Creative",
+                                                                       "titleLine2":  "trajectory",
+                                                                       "itemType":  "Milestone",
+                                                                       "items":  [
+                                                                                     {
+                                                                                         "year":  "2026",
+                                                                                         "title":  "Portfolio system",
+                                                                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                                                                         "tags":  [
+                                                                                                      "React",
+                                                                                                      "WebSocket",
+                                                                                                      "Canvas API"
+                                                                                                  ]
+                                                                                     },
+                                                                                     {
+                                                                                         "year":  "2025",
+                                                                                         "title":  "Motion studies",
+                                                                                         "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
+                                                                                         "tags":  [
+                                                                                                      "Next.js",
+                                                                                                      "Three.js",
+                                                                                                      "D3.js"
+                                                                                                  ]
+                                                                                     },
+                                                                                     {
+                                                                                         "year":  "2024",
+                                                                                         "title":  "Visual archive",
+                                                                                         "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
+                                                                                         "tags":  [
+                                                                                                      "WebGL",
+                                                                                                      "Web Audio",
+                                                                                                      "GLSL"
+                                                                                                  ]
+                                                                                     },
+                                                                                     {
+                                                                                         "year":  "2026",
+                                                                                         "title":  "Portfolio system",
+                                                                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                                                                         "tags":  [
+                                                                                                      "TypeScript",
+                                                                                                      "Animation",
+                                                                                                      "Open Source"
+                                                                                                  ]
+                                                                                     }
+                                                                                 ]
+                                                                   },
+                                                    "about":  {
+                                                                  "label":  "04 - Statement",
+                                                                  "titleLine1":  "Profile",
+                                                                  "titleLine2":  "statement",
+                                                                  "paragraph1":  "I\u0027m a creative developer with a passion for building beautiful, functional, and accessible digital products. I believe great design is invisible — it just works.",
+                                                                  "paragraph2":  "My approach combines technical precision with creative exploration, always pushing the boundaries of what\u0027s possible on the web. Every project is an opportunity to create something meaningful.",
+                                                                  "stats":  [
+                                                                                {
+                                                                                    "number":  "3+",
+                                                                                    "label":  "Years Experience"
+                                                                                },
+                                                                                {
+                                                                                    "number":  "20+",
+                                                                                    "label":  "Projects Completed"
+                                                                                },
+                                                                                {
+                                                                                    "number":  "10+",
+                                                                                    "label":  "Happy Clients"
+                                                                                }
+                                                                            ],
+                                                                  "services":  [
+                                                                                   {
+                                                                                       "title":  "Frontend Development",
+                                                                                       "description":  "React, Next.js, TypeScript, Tailwind CSS"
+                                                                                   },
+                                                                                   {
+                                                                                       "title":  "UI/UX Design",
+                                                                                       "description":  "Figma, Design Systems, Prototyping"
+                                                                                   },
+                                                                                   {
+                                                                                       "title":  "Full Stack",
+                                                                                       "description":  "Node.js, Python, Databases, APIs"
+                                                                                   },
+                                                                                   {
+                                                                                       "title":  "Creative Coding",
+                                                                                       "description":  "WebGL, Shaders, Generative Art"
+                                                                                   }
+                                                                               ]
+                                                              },
+                                                    "contact":  {
+                                                                    "label":  "05 - Contact",
+                                                                    "titleLine1":  "Let\u0027s work",
+                                                                    "titleLine2":  "together",
+                                                                    "paragraph":  "Have a project in mind or just want to chat? I\u0027m always open to discussing new ideas and opportunities.",
+                                                                    "email":  "lzq909794888@163.com",
+                                                                    "discord":  "https://discord.com/users/youruserid",
+                                                                    "github":  "https://github.com/yourusername",
+                                                                    "instagram":  "https://www.instagram.com/nwalmolos/",
+                                                                    "bilibili":  "https://space.bilibili.com/2138488341",
+                                                                    "douban":  "https://www.douban.com/people/253205987/",
+                                                                    "twitter":  "https://twitter.com/yourusername",
+                                                                    "socialLabels":  {
+                                                                                         "github":  "GitHub",
+                                                                                         "twitter":  "Twitter",
+                                                                                         "discord":  "Discord",
+                                                                                         "instagram":  "Instagram",
+                                                                                         "bilibili":  "Bilibili",
+                                                                                         "douban":  "Douban"
+                                                                                     }
+                                                                },
+                                                    "footer":  {
+                                                                   "name":  "nwalmolos",
+                                                                   "rights":  "All rights reserved.",
+                                                                   "credit":  "Built with Next.js \u0026 Tailwind CSS"
+                                                               }
+                                                },
+                                    "visibility":  {
+                                                       "modules":  {
+                                                                       "statement":  false
+                                                                   },
+                                                       "fields":  {
+                                                                      "contact.discord":  false,
+                                                                      "contact.github":  false,
+                                                                      "contact.twitter":  false
+                                                                  }
+                                                   }
+                                },
+                         "en":  {
+                                    "content":  {
+                                                    "meta":  {
+                                                                 "title":  "nwalmolos",
+                                                                 "description":  "Personal portfolio",
+                                                                 "author":  "nwalmolos",
+                                                                 "keywords":  "portfolio, creative developer, visual paths"
+                                                             },
+                                                    "nav":  {
+                                                                "brand":  "NM.",
+                                                                "contact":  "Works",
+                                                                "projects":  "Trajectory",
+                                                                "about":  "Statement",
+                                                                "cta":  "Contact"
+                                                            },
+                                                    "hero":  {
+                                                                 "status":  "",
+                                                                 "line1":  "nwalmolos",
+                                                                 "line2":  "",
+                                                                 "subtitle":  "",
+                                                                 "scrollLabel":  "Scroll"
+                                                             },
+                                                    "works":  {
+                                                                  "label":  "02 - Works",
+                                                                  "titleLine1":  "Visual",
+                                                                  "titleLine2":  "paths",
+                                                                  "hintHover":  "Hover — expand",
+                                                                  "hintNavigate":  "Drag or arrows — shift works",
+                                                                  "viewProject":  "View project",
+                                                                  "detailView":  "View complete project",
+                                                                  "detailClose":  "Close",
+                                                                  "detailReadMore":  "Read more"
+                                                              },
+                                                    "trajectory":  {
+                                                                       "label":  "03 - Trajectory",
+                                                                       "titleLine1":  "Creative",
+                                                                       "titleLine2":  "trajectory",
+                                                                       "itemType":  "Milestone",
+                                                                       "items":  [
+                                                                                     {
+                                                                                         "year":  "2026",
+                                                                                         "title":  "Portfolio system",
+                                                                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                                                                         "tags":  [
+                                                                                                      "React",
+                                                                                                      "WebSocket",
+                                                                                                      "Canvas API"
+                                                                                                  ]
+                                                                                     },
+                                                                                     {
+                                                                                         "year":  "2025",
+                                                                                         "title":  "Motion studies",
+                                                                                         "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
+                                                                                         "tags":  [
+                                                                                                      "Next.js",
+                                                                                                      "Three.js",
+                                                                                                      "D3.js"
+                                                                                                  ]
+                                                                                     },
+                                                                                     {
+                                                                                         "year":  "2024",
+                                                                                         "title":  "Visual archive",
+                                                                                         "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
+                                                                                         "tags":  [
+                                                                                                      "WebGL",
+                                                                                                      "Web Audio",
+                                                                                                      "GLSL"
+                                                                                                  ]
+                                                                                     },
+                                                                                     {
+                                                                                         "year":  "2026",
+                                                                                         "title":  "Portfolio system",
+                                                                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                                                                         "tags":  [
+                                                                                                      "TypeScript",
+                                                                                                      "Animation",
+                                                                                                      "Open Source"
+                                                                                                  ]
+                                                                                     }
+                                                                                 ]
+                                                                   },
+                                                    "about":  {
+                                                                  "label":  "04 - Statement",
+                                                                  "titleLine1":  "Profile",
+                                                                  "titleLine2":  "statement",
+                                                                  "paragraph1":  "I\u0027m a creative developer with a passion for building beautiful, functional, and accessible digital products. I believe great design is invisible — it just works.",
+                                                                  "paragraph2":  "My approach combines technical precision with creative exploration, always pushing the boundaries of what\u0027s possible on the web. Every project is an opportunity to create something meaningful.",
+                                                                  "stats":  [
+                                                                                {
+                                                                                    "number":  "3+",
+                                                                                    "label":  "Years Experience"
+                                                                                },
+                                                                                {
+                                                                                    "number":  "20+",
+                                                                                    "label":  "Projects Completed"
+                                                                                },
+                                                                                {
+                                                                                    "number":  "10+",
+                                                                                    "label":  "Happy Clients"
+                                                                                }
+                                                                            ],
+                                                                  "services":  [
+                                                                                   {
+                                                                                       "title":  "Frontend Development",
+                                                                                       "description":  "React, Next.js, TypeScript, Tailwind CSS"
+                                                                                   },
+                                                                                   {
+                                                                                       "title":  "UI/UX Design",
+                                                                                       "description":  "Figma, Design Systems, Prototyping"
+                                                                                   },
+                                                                                   {
+                                                                                       "title":  "Full Stack",
+                                                                                       "description":  "Node.js, Python, Databases, APIs"
+                                                                                   },
+                                                                                   {
+                                                                                       "title":  "Creative Coding",
+                                                                                       "description":  "WebGL, Shaders, Generative Art"
+                                                                                   }
+                                                                               ]
+                                                              },
+                                                    "contact":  {
+                                                                    "label":  "05 - Contact",
+                                                                    "titleLine1":  "Let\u0027s work",
+                                                                    "titleLine2":  "together",
+                                                                    "paragraph":  "Have a project in mind or just want to chat? I\u0027m always open to discussing new ideas and opportunities.",
+                                                                    "email":  "lzq909794888@163.com",
+                                                                    "discord":  "https://discord.com/users/youruserid",
+                                                                    "github":  "https://github.com/yourusername",
+                                                                    "instagram":  "https://www.instagram.com/nwalmolos/",
+                                                                    "bilibili":  "https://space.bilibili.com/2138488341",
+                                                                    "douban":  "https://www.douban.com/people/253205987/",
+                                                                    "twitter":  "https://twitter.com/yourusername",
+                                                                    "socialLabels":  {
+                                                                                         "github":  "GitHub",
+                                                                                         "twitter":  "Twitter",
+                                                                                         "discord":  "Discord",
+                                                                                         "instagram":  "Instagram",
+                                                                                         "bilibili":  "Bilibili",
+                                                                                         "douban":  "Douban"
+                                                                                     }
+                                                                },
+                                                    "footer":  {
+                                                                   "name":  "nwalmolos",
+                                                                   "rights":  "All rights reserved.",
+                                                                   "credit":  "Built with Next.js \u0026 Tailwind CSS"
+                                                               }
+                                                },
+                                    "visibility":  {
+                                                       "modules":  {
+                                                                       "statement":  false
+                                                                   },
+                                                       "fields":  {
+                                                                      "contact.github":  false,
+                                                                      "contact.twitter":  false,
+                                                                      "contact.discord":  false
+                                                                  }
+                                                   }
+                                }
+                     },
+    "fonts":  {
+                  "body":  {
+                               "family":  "Noto Sans SC Web",
+                               "src":  "",
+                               "weight":  "400",
+                               "style":  "normal"
+                           },
+                  "heading":  {
+                                  "family":  "Smiley Sans Web",
+                                  "src":  "",
+                                  "weight":  "400",
+                                  "style":  "oblique"
+                              },
+                  "accent":  {
+                                 "family":  "Smiley Sans Web",
+                                 "src":  "",
+                                 "weight":  "650",
+                                 "style":  "normal"
+                             },
+                  "labels":  {
+                                 "family":  "Noto Sans SC Web",
+                                 "src":  "",
+                                 "weight":  "400",
+                                 "style":  "normal"
+                             },
+                  "email":  {
+                                "family":  "Fraunces Web",
+                                "src":  "",
+                                "weight":  "500",
+                                "style":  "normal"
+                            },
+                  "stats":  {
+                                "family":  "Big Shoulders Display Web",
+                                "src":  "",
+                                "weight":  "700",
+                                "style":  "normal"
+                            },
+                  "hero":  {
+                               "family":  "Pilowlava",
+                               "src":  "",
+                               "weight":  "400",
+                               "style":  "normal"
+                           }
+              }
 }

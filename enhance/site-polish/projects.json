@@ -4,7 +4,7 @@
                          "title":  "Five Venoms Talisman",
                          "short":  "",
                          "meta":  "AI short film",
-                         "summary":  "follows a young woman who accidentally discards an old charm on a rainy night.",
+                         "summary":  "",
                          "detail":  [
                                         "本片采用“人类创意主导 + 多工具AI辅助生成 + 人工后期整合”的制作流程。前期由创作者完成人物设定、故事结构、分镜脚本、镜头节奏与美术风格设计;视觉制作阶段使用Seedance 2.0视频生成模型、Wan 2.2 视频生成模型、Nano Banana Pro图像生成与风格参考工具，GPT Image 2图像生成与风格参考工具，对钟馗角色、现代少女角色、旧院场景、符纸、五毒意象、雨夜雾气、门槛空间等画面进行生成与迭代。",
                                         "声音制作阶段使用Stable Audio音频生成工具、Suno AI 音乐生成工具辅助完成氛围音乐、民俗暗奇幻声场和部分音效方向探索，并结合人工筛选与后期调整，使声音与画面节奏、情绪变化保持一致。后期制作阶段使用剪映专业版进行素材整理、镜头剪辑、转场控制、字幕、调色、声音混合与最终导出。",
@@ -22,30 +22,67 @@
                                             "type":  "image",
                                             "ratio":  "square",
                                             "fit":  "cover",
-                                            "caption":  ""
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
                                         },
                                         {
                                             "src":  "assets/projects/creative-systems/media-02-五毒符.mp4_20260714_135301.456.png",
                                             "type":  "image",
                                             "ratio":  "square",
                                             "fit":  "cover",
-                                            "caption":  ""
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
                                         },
                                         {
                                             "src":  "assets/projects/creative-systems/media-03-五毒符.mp4_20260714_135411.420.png",
                                             "type":  "image",
                                             "ratio":  "square",
                                             "fit":  "cover",
-                                            "caption":  ""
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
                                         },
                                         {
                                             "src":  "assets/projects/creative-systems/media-04-五毒符.mp4_20260714_135418.030.png",
                                             "type":  "image",
                                             "ratio":  "square",
                                             "fit":  "cover",
-                                            "caption":  ""
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
                                         }
-                                    ]
+                                    ],
+                         "translations":  {
+                                              "zh":  {
+                                                         "visible":  true,
+                                                         "title":  "Five Venoms Talisman",
+                                                         "short":  "",
+                                                         "meta":  "AI short film",
+                                                         "summary":  "",
+                                                         "detail":  [
+                                                                        "本片采用“人类创意主导 + 多工具AI辅助生成 + 人工后期整合”的制作流程。前期由创作者完成人物设定、故事结构、分镜脚本、镜头节奏与美术风格设计;视觉制作阶段使用Seedance 2.0视频生成模型、Wan 2.2 视频生成模型、Nano Banana Pro图像生成与风格参考工具，GPT Image 2图像生成与风格参考工具，对钟馗角色、现代少女角色、旧院场景、符纸、五毒意象、雨夜雾气、门槛空间等画面进行生成与迭代。",
+                                                                        "声音制作阶段使用Stable Audio音频生成工具、Suno AI 音乐生成工具辅助完成氛围音乐、民俗暗奇幻声场和部分音效方向探索，并结合人工筛选与后期调整，使声音与画面节奏、情绪变化保持一致。后期制作阶段使用剪映专业版进行素材整理、镜头剪辑、转场控制、字幕、调色、声音混合与最终导出。",
+                                                                        "AI主要参与视觉生成、风格迁移、氛围试验、声音素材生成和镜头方案探索;创作者负责叙事判断、提示词设计、镜头筛选、节奏控制、版权核查和最终艺术把控。作品并非一键生成，而是在完整人机协作流程中完成的AI影像短片。"
+                                                                    ],
+                                                         "facts":  [
+                                                                       "2026"
+                                                                   ],
+                                                         "externalHref":  "https://www.instagram.com/p/DauYKCKowX5/"
+                                                     },
+                                              "en":  {
+                                                         "visible":  true
+                                                     }
+                                          }
                      },
                      {
                          "title":  "Layered Interfaces",
@@ -62,7 +99,15 @@
                                        "Pointer Response"
                                    ],
                          "externalHref":  "https://tympanus.net/Development/RepeatingImageTransition/",
-                         "slug":  "layered-interfaces"
+                         "slug":  "layered-interfaces",
+                         "translations":  {
+                                              "zh":  {
+                                                         "visible":  true
+                                                     },
+                                              "en":  {
+                                                         "visible":  true
+                                                     }
+                                          }
                      },
                      {
                          "title":  "Local Preview",
@@ -78,7 +123,15 @@
                                        "Static Site",
                                        "Local QA"
                                    ],
-                         "externalHref":  "https://pages.github.com/"
+                         "externalHref":  "https://pages.github.com/",
+                         "translations":  {
+                                              "zh":  {
+                                                         "visible":  true
+                                                     },
+                                              "en":  {
+                                                         "visible":  true
+                                                     }
+                                          }
                      },
                      {
                          "title":  "Visual Studies",
@@ -94,7 +147,15 @@
                                        "Dark UI",
                                        "Gallery"
                                    ],
-                         "externalHref":  "https://www.awwwards.com/inspiration/"
+                         "externalHref":  "https://www.awwwards.com/inspiration/",
+                         "translations":  {
+                                              "zh":  {
+                                                         "visible":  true
+                                                     },
+                                              "en":  {
+                                                         "visible":  true
+                                                     }
+                                          }
                      },
                      {
                          "title":  "Micro Media",
@@ -110,7 +171,15 @@
                                        "Media",
                                        "Static"
                                    ],
-                         "externalHref":  "https://developer.mozilla.org/en-US/docs/Learn/Performance/Multimedia"
+                         "externalHref":  "https://developer.mozilla.org/en-US/docs/Learn/Performance/Multimedia",
+                         "translations":  {
+                                              "zh":  {
+                                                         "visible":  true
+                                                     },
+                                              "en":  {
+                                                         "visible":  true
+                                                     }
+                                          }
                      },
                      {
                          "title":  "Motion Index",
@@ -126,7 +195,15 @@
                                        "Pagination",
                                        "Case Study"
                                    ],
-                         "externalHref":  "https://tympanus.net/codrops/tag/grid/"
+                         "externalHref":  "https://tympanus.net/codrops/tag/grid/",
+                         "translations":  {
+                                              "zh":  {
+                                                         "visible":  true
+                                                     },
+                                              "en":  {
+                                                         "visible":  true
+                                                     }
+                                          }
                      }
                  ]
 }

@@ -1,13 +1,17 @@
 (function () {
   'use strict';
 
-  // Only the icons used by the contact row are vendored here. The SVG path
-  // data comes from Simple Icons 16.24.1 (CC0-1.0): https://simpleicons.org/
-  // Keeping this small registry local avoids a runtime CDN or full-library load.
+  // Only the icons used by the contact row are vendored here. Existing brand
+  // paths come from Simple Icons 16.24.1 (CC0-1.0); Douban uses a compact local
+  // glyph so the contact row stays fully offline without a runtime CDN.
   const ICONS = Object.freeze({
     github: {
       title: 'GitHub',
       path: 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'
+    },
+    twitter: {
+      title: 'Twitter',
+      path: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z'
     },
     discord: {
       title: 'Discord',
@@ -20,13 +24,20 @@
     bilibili: {
       title: 'Bilibili',
       path: 'M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.658.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373Z'
+    },
+    douban: {
+      title: '豆瓣',
+      path: 'M4 2h16v3H4V2Zm2 5h12v9H6V7Zm3 3v3h6v-3H9Zm-5 8h3l1.5 4h-3L4 18Zm5 0h6l-1 4h-4l-1-4Zm8 0h3l-1.5 4h-3l1.5-4Z'
     }
   });
 
   const SOCIALS = Object.freeze([
+    { key: 'github', label: 'GitHub', hrefKey: 'github', fallbackHref: 'https://github.com/yourusername' },
+    { key: 'twitter', label: 'Twitter', hrefKey: 'twitter', fallbackHref: 'https://twitter.com/yourusername' },
     { key: 'discord', label: 'Discord', hrefKey: 'discord', fallbackHref: 'https://discord.com/users/youruserid' },
     { key: 'instagram', label: 'Instagram', hrefKey: 'instagram', fallbackHref: 'https://www.instagram.com/yourusername/' },
-    { key: 'bilibili', label: 'Bilibili', hrefKey: 'bilibili', fallbackHref: 'https://space.bilibili.com/youruid' }
+    { key: 'bilibili', label: 'Bilibili', hrefKey: 'bilibili', fallbackHref: 'https://space.bilibili.com/youruid' },
+    { key: 'douban', label: '豆瓣', hrefKey: 'douban', fallbackHref: '', optional: true }
   ]);
 
   function text(node) {
@@ -68,7 +79,7 @@
     svg.setAttribute('fill', 'currentColor');
     svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('focusable', 'false');
-    svg.setAttribute('data-icon-source', 'simple-icons-16.24.1');
+    svg.setAttribute('data-icon-source', key === 'douban' ? 'local-douban-glyph' : 'simple-icons-16.24.1');
     svg.classList.add('simple-icon', 'simple-icon-' + key);
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', definition.path);
@@ -96,24 +107,33 @@
       : Array.from(fallbackTemplate.content.children).slice(0, 3);
     if (!baseWrappers.length) return false;
 
-    const wrappers = SOCIALS.map((social, index) => {
+    const activeSocials = SOCIALS.filter((social) => {
+      const configuredHref = contactContent && contactContent[social.hrefKey];
+      return !social.optional || (typeof configuredHref === 'string' && configuredHref.trim());
+    });
+    const wrappers = activeSocials.map((social, index) => {
       const wrapper = (baseWrappers[index] || baseWrappers[0]).cloneNode(true);
       const anchor = wrapper.matches('a') ? wrapper : wrapper.querySelector('a');
       if (!anchor) return wrapper;
+      wrapper.dataset.socialItemKey = social.key;
+      wrapper.classList.remove('editable-contact-item-hidden');
+      anchor.classList.remove('editable-field-hidden');
+      const configuredLabel = contactContent && contactContent.socialLabels && contactContent.socialLabels[social.key];
+      const visibleLabel = typeof configuredLabel === 'string' ? configuredLabel : social.label;
       const configuredHref = contactContent && contactContent[social.hrefKey];
       anchor.href = typeof configuredHref === 'string' && configuredHref.trim()
         ? configuredHref.trim()
         : social.fallbackHref;
       anchor.target = '_blank';
       anchor.rel = 'noopener noreferrer';
-      anchor.setAttribute('aria-label', social.key === 'instagram' ? 'Instagram' : social.label);
+      anchor.setAttribute('aria-label', visibleLabel);
       anchor.dataset.socialKey = social.key;
-      anchor.replaceChildren(makeIcon(social.key), makeLabel(social.label));
+      anchor.replaceChildren(makeIcon(social.key), makeLabel(visibleLabel));
       return wrapper;
     });
 
     row.replaceChildren(...wrappers, fallbackTemplate);
-    row.dataset.localSocialIcons = 'simple-icons-16.24.1';
+    row.dataset.localSocialIcons = 'contact-icons-20260821-5';
     return true;
   }
 

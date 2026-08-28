@@ -2,11 +2,15 @@
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
   const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260821-film-grain-reflection-1';
-  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260821-film-grain-reflection-1';
+  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260821-hero-pin-1';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
   const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
   const FRAUNCES_FONT_URL = 'assets/fonts/fraunces/Fraunces-Opsz-500-Latin.woff2?v=20260811-fraunces-1';
   const BIG_SHOULDERS_FONT_URL = 'assets/fonts/big-shoulders-display/BigShouldersDisplay-700-Latin.woff2?v=20260811-big-shoulders-1';
+
+  // The site always boots into Hero, so suppress the standalone fluid trail
+  // before the viewport-aware controller is mounted.
+  document.documentElement.classList.add('polish-fluid-trail-suppressed');
 
   function installFluidFirstMoveGuard() {
     if (window.__polishFluidFirstMoveGuardInstalled) return;
@@ -47,6 +51,88 @@
   }
 
   installFluidFirstMoveGuard();
+
+  function installFluidFramebufferGuard() {
+    if (window.__polishFluidFramebufferGuardInstalled) return;
+    window.__polishFluidFramebufferGuardInstalled = true;
+
+    const guardedCanvases = new WeakSet();
+    const attachGuard = () => {
+      const canvas = document.getElementById('fluid-canvas');
+      if (!canvas || guardedCanvases.has(canvas)) return;
+
+      const contextOptions = {
+        alpha: true,
+        depth: false,
+        stencil: false,
+        antialias: false,
+        preserveDrawingBuffer: false
+      };
+      let gl = null;
+      try {
+        gl = canvas.getContext('webgl2', contextOptions) ||
+          canvas.getContext('webgl', contextOptions) ||
+          canvas.getContext('experimental-webgl', contextOptions);
+      } catch (error) {
+        gl = null;
+      }
+      if (!gl) return;
+
+      guardedCanvases.add(canvas);
+      canvas.dataset.polishFramebufferGuard = 'true';
+
+      let activeFramebuffer = null;
+      try {
+        activeFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+      } catch (error) {
+        activeFramebuffer = null;
+      }
+
+      const bindFramebuffer = gl.bindFramebuffer.bind(gl);
+      const drawElements = gl.drawElements.bind(gl);
+      gl.bindFramebuffer = (target, framebuffer) => {
+        if (target === gl.FRAMEBUFFER) activeFramebuffer = framebuffer;
+        return bindFramebuffer(target, framebuffer);
+      };
+      gl.drawElements = (mode, count, type, offset) => {
+        // The bundled simulation renders many off-screen passes followed by one
+        // default-framebuffer pass. Clear only that final surface so transparent
+        // fluid pixels cannot accumulate into a full-screen grey layer.
+        if (activeFramebuffer === null && !gl.isContextLost()) {
+          gl.colorMask(true, true, true, true);
+          gl.clearColor(0, 0, 0, 0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+        return drawElements(mode, count, type, offset);
+      };
+
+      canvas.addEventListener('webglcontextlost', (event) => {
+        event.preventDefault();
+        canvas.dataset.polishContextLost = 'true';
+        canvas.style.setProperty('opacity', '0', 'important');
+      }, false);
+      canvas.addEventListener('webglcontextrestored', () => {
+        canvas.dataset.polishContextLost = 'false';
+        const reloadWhenVisible = () => {
+          if (document.hidden) return;
+          document.removeEventListener('visibilitychange', reloadWhenVisible);
+          window.location.reload();
+        };
+        if (document.hidden) {
+          document.addEventListener('visibilitychange', reloadWhenVisible);
+        } else {
+          window.setTimeout(reloadWhenVisible, 80);
+        }
+      }, false);
+    };
+
+    attachGuard();
+    window.setTimeout(attachGuard, 120);
+    window.setTimeout(attachGuard, 700);
+    window.setTimeout(attachGuard, 1800);
+  }
+
+  installFluidFramebufferGuard();
 
   function installHeroSdfFirstPaintGuard() {
     if (document.querySelector('style[data-enhance="hero-sdf-first-paint"]')) return;
@@ -148,19 +234,30 @@
         }
 
         context.imageSmoothingEnabled = true;
-        let imageData = null;
-        let pixels = null;
+        const tileCanvas = document.createElement('canvas');
+        const tileContext = tileCanvas.getContext('2d', { alpha: true });
+        if (!tileContext) {
+          canvas.remove();
+          return;
+        }
+
+        // Generate a fresh 512px noise tile, then repeat it with the native
+        // canvas compositor. The grain distribution, alpha and refresh cadence
+        // remain unchanged while JavaScript touches far fewer pixels.
+        const tileSize = window.innerWidth <= 767 ? 384 : 512;
+        tileCanvas.width = tileSize;
+        tileCanvas.height = tileSize;
+        const imageData = tileContext.createImageData(tileSize, tileSize);
+        const pixels = imageData.data;
         let seed = 0x9e3779b9;
         const resizeCanvas = () => {
-          const scale = 1;
-          const width = Math.max(1, Math.round(window.innerWidth * scale));
-          const height = Math.max(1, Math.round(window.innerHeight * scale));
+          const width = Math.max(1, Math.round(window.innerWidth));
+          const height = Math.max(1, Math.round(window.innerHeight));
           if (canvas.width === width && canvas.height === height) return;
           canvas.width = width;
           canvas.height = height;
           context.imageSmoothingEnabled = true;
-          imageData = context.createImageData(width, height);
-          pixels = new Uint32Array(imageData.data.buffer);
+          canvas.dataset.bufferPixels = String(width * height);
         };
 
         const nextRandom = () => {
@@ -172,29 +269,72 @@
 
         let frame = 0;
         let lastRender = 0;
+        let animationFrame = 0;
+        let resizeFrame = 0;
+        let running = false;
         const renderCanvasGrain = (time) => {
-          requestAnimationFrame(renderCanvasGrain);
-          if (document.hidden || time - lastRender < 55) return;
+          if (!running) return;
+          animationFrame = requestAnimationFrame(renderCanvasGrain);
+          if (time - lastRender < 55) return;
           lastRender = time;
           resizeCanvas();
           seed = (seed + 0x6d2b79f5 + frame * 97) >>> 0;
-          for (let index = 0; index < pixels.length; index += 1) {
+          for (let index = 0; index < pixels.length; index += 4) {
             const random = nextRandom();
             const low = random & 255;
             const high = (random >>> 16) & 255;
             const shade = (low + high) >> 1;
             const alpha = 16 + ((random >>> 24) & 3);
-            pixels[index] = (alpha << 24) | (shade << 16) | (shade << 8) | shade;
+            pixels[index] = shade;
+            pixels[index + 1] = shade;
+            pixels[index + 2] = shade;
+            pixels[index + 3] = alpha;
           }
-          context.putImageData(imageData, 0, 0);
+          tileContext.putImageData(imageData, 0, 0);
+          const pattern = context.createPattern(tileCanvas, 'repeat');
+          if (pattern) {
+            context.save();
+            context.globalCompositeOperation = 'copy';
+            context.fillStyle = pattern;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.restore();
+          }
           frame += 1;
           canvas.dataset.frame = String(frame);
         };
 
+        const startRendering = () => {
+          if (running || document.hidden) return;
+          running = true;
+          lastRender = 0;
+          animationFrame = requestAnimationFrame(renderCanvasGrain);
+        };
+        const stopRendering = () => {
+          running = false;
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          animationFrame = 0;
+        };
+        const handleVisibility = () => {
+          if (document.hidden) stopRendering();
+          else startRendering();
+        };
+        const scheduleResize = () => {
+          if (resizeFrame) return;
+          resizeFrame = requestAnimationFrame(() => {
+            resizeFrame = 0;
+            resizeCanvas();
+          });
+        };
+
         document.documentElement.classList.add('polish-live-grain-ready');
-        window.addEventListener('resize', resizeCanvas, { passive: true });
+        canvas.dataset.renderer = 'tiled-2d';
+        canvas.dataset.tilePixels = String(tileSize * tileSize);
+        window.addEventListener('resize', scheduleResize, { passive: true });
+        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('pagehide', stopRendering);
+        window.addEventListener('pageshow', startRendering);
         resizeCanvas();
-        requestAnimationFrame(renderCanvasGrain);
+        startRendering();
       };
 
       startCanvasGrain();
@@ -492,7 +632,7 @@
     if (!document.querySelector('#polish-first-paint-guard, style[data-enhance="site-polish-early"]')) {
       const style = document.createElement('style');
       style.dataset.enhance = 'site-polish-early';
-      style.textContent = '#projects + section:not([id]):not(.polish-gallery-section){display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}main>section:first-of-type>div.relative.text-center>.mb-8{display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}html:not(.polish-first-paint-ready) main>section:first-of-type{opacity:0!important;visibility:hidden!important;}main>section:first-of-type{transition:opacity .36s cubic-bezier(.16,1,.3,1);}html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.20) rgba(0,0,0,.34);}html::-webkit-scrollbar,body::-webkit-scrollbar{width:10px;height:10px;}html::-webkit-scrollbar-track,body::-webkit-scrollbar-track{background:rgba(0,0,0,.34);border-radius:999px;}html::-webkit-scrollbar-thumb,body::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.13));border:2px solid rgba(0,0,0,.48);border-radius:999px;}';
+      style.textContent = '#projects + section:not([id]):not(.polish-gallery-section){display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}html:not(.polish-first-paint-ready) main>section:first-of-type{opacity:0!important;visibility:hidden!important;}main>section:first-of-type{transition:opacity .36s cubic-bezier(.16,1,.3,1);}html{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.20) rgba(0,0,0,.34);}html::-webkit-scrollbar,body::-webkit-scrollbar{width:10px;height:10px;}html::-webkit-scrollbar-track,body::-webkit-scrollbar-track{background:rgba(0,0,0,.34);border-radius:999px;}html::-webkit-scrollbar-thumb,body::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.13));border:2px solid rgba(0,0,0,.48);border-radius:999px;}';
       (document.head || document.documentElement).appendChild(style);
     }
 
@@ -530,6 +670,14 @@
   function getEditableContentValue(path, fallback) {
     const value = getEditableContentRaw(path);
     return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  }
+
+  function getEditableMediaValue(path, fallback) {
+    let value = window.__EDITABLE_SITE_MEDIA__;
+    String(path || '').split('.').forEach((key) => {
+      value = value == null ? undefined : value[key];
+    });
+    return value === undefined || value === null || value === '' ? fallback : value;
   }
 
   function isMobileLikeViewport() {
@@ -889,6 +1037,13 @@
         mix-blend-mode: screen !important;
         pointer-events: none !important;
       }
+      /* Suppress only the standalone colored fluid mouse trail while Hero or
+         Works is being browsed. The SDF title canvas remains interactive. */
+      html.polish-fluid-trail-suppressed #fluid-canvas {
+        display: block !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+      }
       .polish-hero-scroll-motion {
         --polish-hero-content-y: 0px;
         --polish-hero-content-scale: 1;
@@ -916,10 +1071,13 @@
         contain: paint;
         will-change: transform, opacity;
       }
+      .polish-hero-scroll-motion > .polish-hero-decor {
+        position: fixed !important;
+      }
       .polish-hero-scroll-motion.is-polish-hero-video-hidden > .polish-hero-video-layer {
         opacity: 0;
         visibility: hidden;
-        transition: opacity .16s ease, visibility 0s linear .16s;
+        transition: none;
       }
       .polish-hero-scroll-content {
         position: fixed;
@@ -1028,8 +1186,12 @@
         z-index: 4;
         background-color: #020203;
       }
+      .polish-hero-cover-section:not(.polish-hero-cover-first-section) {
+        opacity: 1 !important;
+        transform: none !important;
+        translate: none !important;
+      }
       .polish-hero-cover-first-section {
-        --polish-hero-cover-y: 0px;
         background-color: #020203;
         background-image:
           linear-gradient(
@@ -1046,9 +1208,8 @@
           0 -1px 0 rgba(255,255,255,.10),
           0 -34px 90px rgba(0,0,0,.42);
         overflow: clip;
-        transform: translate3d(0, var(--polish-hero-cover-y, 0px), 0);
-        transform-origin: 50% 0;
-        will-change: transform;
+        transform: none;
+        will-change: auto;
       }
       .polish-hero-cover-main > footer {
         position: relative;
@@ -1133,7 +1294,14 @@
       }
       @media (max-width: 640px) {
         .polish-scroll-indicator {
-          display: none !important;
+          display: block !important;
+          bottom: max(30px, calc(env(safe-area-inset-bottom) + 20px)) !important;
+          max-width: calc(100vw - 48px);
+        }
+        .polish-scroll-indicator a {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 6px !important;
         }
       }
       [data-polish-parallax] {
@@ -1742,6 +1910,7 @@
         width: 40px;
         min-width: 40px;
         height: 40px;
+        margin-right: -10.5px;
         padding: 0;
         border: 0;
         border-radius: 0;
@@ -1778,14 +1947,14 @@
       }
       html.polish-compact-nav .polish-mobile-menu-fallback.is-open span:nth-child(1) {
         top: 20px;
-        transform: translateX(-50%) rotate(42deg);
+        transform: translateX(calc(-50% + 1.94px)) rotate(42deg);
       }
       html.polish-compact-nav .polish-mobile-menu-fallback.is-open span:nth-child(2) {
         opacity: 0;
       }
       html.polish-compact-nav .polish-mobile-menu-fallback.is-open span:nth-child(3) {
         top: 20px;
-        transform: translateX(-50%) rotate(-42deg);
+        transform: translateX(calc(-50% + 1.94px)) rotate(-42deg);
       }
       html.polish-compact-nav .polish-mobile-menu-panel {
         z-index: 2147479000;
@@ -3294,6 +3463,12 @@
         width: 100%;
         margin-top: clamp(28px, 3vw, 42px);
       }
+      .polish-project-detail__featured-shell.is-summary-empty .polish-project-detail__featured-eyebrow {
+        margin-bottom: 0;
+      }
+      .polish-project-detail__featured-shell.is-summary-empty .polish-project-detail__featured-story {
+        margin-top: clamp(12px, 1.4vw, 20px);
+      }
       .polish-project-detail__featured-reflection {
         position: absolute;
         left: 8%;
@@ -3529,16 +3704,22 @@
       .polish-project-detail__body-link {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
-        padding: 0 0 5px;
-        border-bottom: 1px solid rgba(255,255,255,.22);
-        color: rgba(255,255,255,.78);
-        font: 11px/1.3 var(--polish-font-mono);
-        letter-spacing: .09em;
+        justify-content: center;
+        gap: 12px;
+        min-height: 40px;
+        box-sizing: border-box;
+        padding: 0 20px;
+        border: 1px solid rgba(255,255,255,.82);
+        border-radius: 999px;
+        background: rgba(255,255,255,.96);
+        color: #08090b;
+        font: 10px/1 var(--polish-font-mono);
+        letter-spacing: .17em;
         text-transform: uppercase;
         text-decoration: none;
-        transform: translate3d(var(--polish-magnetic-x, 0px), var(--polish-magnetic-y, 0px), 0);
-        transition: color .26s ease, border-color .26s ease, transform .18s ease-out;
+        box-shadow: 0 1px 0 rgba(255,255,255,.12), 0 10px 28px rgba(0,0,0,.14);
+        transform: translate3d(var(--polish-magnetic-x, 0px), var(--polish-magnetic-y, 0px), 0) scale(var(--polish-action-scale, 1));
+        transition: color .18s ease, border-color .18s ease, background-color .18s ease, transform .18s ease-out;
         will-change: transform;
       }
       .polish-project-detail__body-link span {
@@ -3547,12 +3728,20 @@
       }
       .polish-project-detail__body-link:hover,
       .polish-project-detail__body-link.is-polish-hot {
-        border-color: rgba(255,255,255,.58);
-        color: rgba(255,255,255,.96);
+        border-color: rgba(255,255,255,.72);
+        background: rgba(255,255,255,.84);
+        color: #08090b;
       }
       .polish-project-detail__body-link:hover span,
       .polish-project-detail__body-link.is-polish-hot span {
         transform: translate3d(3px, -3px, 0);
+      }
+      .polish-project-detail__body-link:active {
+        --polish-action-scale: .975;
+      }
+      .polish-project-detail__body-link:focus-visible {
+        outline: 2px solid rgba(255,255,255,.76);
+        outline-offset: 4px;
       }
       .polish-project-detail__actions {
         margin-top: 34px;
@@ -3661,6 +3850,9 @@
         grid-row: span 2;
       }
       .polish-project-detail__desktop-media-viewport {
+        display: none;
+      }
+      .polish-project-detail__desktop-next {
         display: none;
       }
       @media (min-width: 901px) {
@@ -3817,7 +4009,10 @@
         }
         .polish-project-detail__featured-eyebrow {
           width: 100%;
-          margin-bottom: clamp(12px, 1.4vw, 18px);
+          margin-bottom: clamp(22px, 2vw, 30px);
+        }
+        .polish-project-detail__featured-shell.is-summary-empty .polish-project-detail__featured-eyebrow {
+          margin-bottom: clamp(22px, 2vw, 30px);
         }
         .polish-project-detail__featured-title,
         .polish-project-detail__featured-summary {
@@ -3841,13 +4036,18 @@
         }
         .polish-project-detail__featured-story {
           display: flex;
-          flex: 1 1 auto;
+          flex: 0 1 clamp(230px, 34vh, 340px);
           flex-direction: column;
+          height: clamp(230px, 34vh, 340px);
+          max-height: clamp(230px, 34vh, 340px);
           min-height: 0;
           width: min(100%, 52ch);
           max-width: 52ch;
-          margin-top: clamp(26px, 2.8vw, 40px);
+          margin: clamp(32px, 4.6vh, 42px) 0 0;
           overflow: hidden;
+        }
+        .polish-project-detail__featured-shell.is-summary-empty .polish-project-detail__featured-story {
+          margin: clamp(32px, 4.6vh, 42px) 0 0;
         }
         .polish-project-detail__featured-story .polish-project-detail__body-wrap {
           display: flex;
@@ -3870,6 +4070,10 @@
           -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%) !important;
           mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%) !important;
         }
+        .polish-project-detail__featured-story .polish-project-detail__body-wrap.has-more.is-at-start .polish-project-detail__body {
+          -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%) !important;
+          mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%) !important;
+        }
         .polish-project-detail__featured-story .polish-project-detail__body-wrap.has-more:not(.is-at-start):not(.is-at-end) .polish-project-detail__body {
           -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 28px, #000 calc(100% - 34px), transparent 100%) !important;
           mask-image: linear-gradient(180deg, transparent 0%, #000 28px, #000 calc(100% - 34px), transparent 100%) !important;
@@ -3881,15 +4085,70 @@
         .polish-project-detail__featured-content > .polish-project-detail__body-action {
           flex: 0 0 auto;
           width: min(100%, 52ch);
-          margin: auto 0 0 !important;
-          padding-top: clamp(20px, 2vw, 30px);
+          margin: clamp(20px, 3.2vh, 28px) 0 0 !important;
+          padding-top: 0;
         }
         .polish-project-detail__featured-content .polish-project-detail__body-link {
-          padding-bottom: 0;
-          border-bottom: 0;
+          flex: 0 0 auto;
+        }
+        .polish-project-detail__desktop-next {
+          display: grid;
+          flex: 0 0 auto;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: baseline;
+          gap: 6px 14px;
+          box-sizing: border-box;
+          width: min(100%, 240px);
+          min-width: 0;
+          margin-top: clamp(14px, 2.2vh, 20px);
+          padding: 0;
+          color: rgba(255,255,255,.54);
+          text-decoration: none;
+          cursor: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .polish-project-detail__desktop-next-label,
+        .polish-project-detail__desktop-next-count {
+          display: block;
+          color: rgba(255,255,255,.34);
+          font: 8px/1.3 var(--polish-font-mono);
+          letter-spacing: .15em;
+          text-transform: uppercase;
+          transition: color .22s ease;
+        }
+        .polish-project-detail__desktop-next-count {
+          text-align: right;
+        }
+        .polish-project-detail__desktop-next-title {
+          display: block;
+          grid-column: 1 / -1;
+          overflow: hidden;
+          margin: 0;
+          color: rgba(255,255,255,.72);
+          font: 500 13px/1.2 var(--polish-font-sans);
+          letter-spacing: -.01em;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          transition: color .22s ease;
+        }
+        .polish-project-detail__desktop-next:hover .polish-project-detail__desktop-next-label,
+        .polish-project-detail__desktop-next:hover .polish-project-detail__desktop-next-count,
+        .polish-project-detail__desktop-next.is-polish-hot .polish-project-detail__desktop-next-label,
+        .polish-project-detail__desktop-next.is-polish-hot .polish-project-detail__desktop-next-count {
+          color: rgba(255,255,255,.56);
+        }
+        .polish-project-detail__desktop-next:hover .polish-project-detail__desktop-next-title,
+        .polish-project-detail__desktop-next.is-polish-hot .polish-project-detail__desktop-next-title {
+          color: rgba(255,255,255,.96);
+        }
+        .polish-project-detail__desktop-next:focus-visible {
+          outline: 1px solid rgba(255,255,255,.52);
+          outline-offset: 6px;
         }
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__featured-story {
           flex: 0 0 auto;
+          height: auto;
+          max-height: none;
           overflow: visible;
         }
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__body-wrap,
@@ -3901,12 +4160,9 @@
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__body-wrap {
           padding-right: 0;
         }
-        .polish-project-detail__featured-story .polish-project-detail__body-wrap.has-more .polish-project-detail__body-scrollbar {
-          display: block !important;
-        }
-        .polish-project-detail__featured-story .polish-project-detail__body-scrollbar,
-        .polish-project-detail__featured-story .polish-project-detail__body-scrollbar span {
-          cursor: none !important;
+        .polish-project-detail__featured-story .polish-project-detail__body-scrollbar {
+          display: none !important;
+          pointer-events: none !important;
         }
         .polish-project-detail__featured-shade {
           display: none;
@@ -4166,12 +4422,16 @@
         letter-spacing: .08em;
         color: rgba(255,255,255,.38);
       }
+      .polish-project-detail__next {
+        display: none;
+      }
       .polish-lightbox {
         position: fixed;
         inset: 0;
         z-index: 1005;
         display: grid;
         place-items: center;
+        box-sizing: border-box;
         padding: clamp(18px, 4vw, 54px);
         background: rgba(0,0,0,.82);
         -webkit-backdrop-filter: blur(18px);
@@ -4206,8 +4466,18 @@
       .polish-lightbox.is-open img {
         visibility: visible;
       }
+      .polish-lightbox > div {
+        display: grid;
+        justify-items: center;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1360px;
+        min-width: 0;
+      }
       .polish-lightbox img {
-        max-width: min(94vw, 1360px);
+        display: block;
+        width: auto;
+        max-width: 100%;
         max-height: 82vh;
         object-fit: contain;
         border-radius: 8px;
@@ -4311,6 +4581,7 @@
             width: 40px;
             min-width: 40px;
             height: 40px;
+            margin-right: -10.5px;
             padding: 0;
             border: 0;
             border-radius: 0;
@@ -4328,8 +4599,8 @@
           .polish-mobile-menu-fallback span {
             position: absolute;
             left: 50%;
-            width: 18px;
-            height: 1px;
+            width: 19px;
+            height: 1.5px;
             border-radius: 999px;
             background: currentColor;
             transform: translateX(-50%);
@@ -4346,14 +4617,14 @@
           }
           .polish-mobile-menu-fallback.is-open span:nth-child(1) {
             top: 20px;
-            transform: translateX(-50%) rotate(42deg);
+            transform: translateX(calc(-50% + 1.94px)) rotate(42deg);
           }
           .polish-mobile-menu-fallback.is-open span:nth-child(2) {
             opacity: 0;
           }
           .polish-mobile-menu-fallback.is-open span:nth-child(3) {
             top: 20px;
-            transform: translateX(-50%) rotate(-42deg);
+            transform: translateX(calc(-50% + 1.94px)) rotate(-42deg);
           }
           nav button[class*="md:hidden"]:not(.polish-mobile-menu-fallback) {
             display: none !important;
@@ -4516,60 +4787,48 @@
           transform: translateX(-50%) rotate(-42deg);
         }
         .polish-project-detail__featured-shell {
-          min-height: clamp(560px, 145vw, 720px);
-          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          overflow: visible;
           aspect-ratio: auto;
-          border-radius: 10px;
-          background: #080b13;
-          box-shadow: 0 18px 48px rgba(0,0,0,.20);
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
           clip-path: none;
         }
         .polish-project-detail__featured-shell::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: 6;
-          box-sizing: border-box;
-          border: 1px solid rgba(255,255,255,.075);
-          border-radius: inherit;
-          pointer-events: none;
+          display: none;
         }
         .polish-project-detail__featured-media {
-          position: absolute;
-          inset: 0;
+          position: relative;
+          inset: auto;
+          order: 2;
           width: 100%;
-          height: 100%;
+          height: auto;
+          margin-top: clamp(44px, 12vw, 56px);
           overflow: hidden;
-          border-radius: 10px;
+          aspect-ratio: 16 / 9;
+          border-radius: 9px;
           clip-path: none;
           transition: none;
         }
         .polish-project-detail__featured-alt {
           display: none;
         }
-        .polish-project-detail__featured-media,
         .polish-project-detail__featured-media .polish-project-detail__image,
         .polish-project-detail__featured-media .polish-project-detail__image-frame {
           height: 100%;
         }
         .polish-project-detail__featured-media .polish-project-detail__image-frame {
           aspect-ratio: auto;
-          border-radius: 10px;
+          border-radius: 9px;
         }
         .polish-project-detail__featured-media .polish-project-detail__image-frame img {
           object-position: 64% 50%;
         }
         .polish-project-detail__featured-shade {
-          display: block;
-          inset: 0;
-          z-index: 3;
-          border-radius: 10px;
-          background:
-            radial-gradient(circle at 22% 16%, rgba(92,106,170,.16), transparent 40%),
-            linear-gradient(180deg, rgba(11,14,24,.70) 0%, rgba(10,13,22,.58) 34%, rgba(9,12,21,.76) 72%, rgba(8,11,19,.91) 100%),
-            linear-gradient(90deg, rgba(10,13,22,.74), rgba(8,11,20,.36) 72%, rgba(7,9,17,.18));
-          clip-path: none;
-          transition: none;
+          display: none;
         }
         .polish-project-detail__featured-reflection {
           display: none;
@@ -4577,6 +4836,7 @@
         .polish-project-detail__featured-content {
           position: relative;
           inset: auto;
+          order: 1;
           z-index: 4;
           display: flex;
           flex-direction: column;
@@ -4584,9 +4844,9 @@
           box-sizing: border-box;
           width: 100%;
           height: auto;
-          min-height: clamp(560px, 145vw, 720px);
+          min-height: 0;
           overflow: visible;
-          padding: clamp(28px, 7.5vw, 38px) clamp(34px, 9vw, 44px) clamp(30px, 8vw, 40px) clamp(28px, 7.5vw, 38px);
+          padding: clamp(24px, 6.4vw, 30px) 0 0;
           color: rgba(255,255,255,.94);
           opacity: 1;
           transform: none;
@@ -4609,6 +4869,12 @@
         .polish-project-detail__featured-title {
           box-sizing: border-box;
           padding-right: 0;
+        }
+        .polish-project-detail__featured-summary,
+        .polish-project-detail__featured-story,
+        .polish-project-detail__featured-content > .polish-project-detail__body-action {
+          width: 86%;
+          max-width: 328px;
         }
         .polish-project-detail__featured-title .polish-project-detail__title,
         .polish-project-detail__featured-summary .polish-project-detail__lead,
@@ -4639,16 +4905,17 @@
           letter-spacing: .14em;
         }
         .polish-project-detail__featured-summary {
-          margin-top: 20px;
+          align-self: flex-start;
+          margin-top: 24px;
         }
         .polish-project-detail__featured-story {
           display: flex;
           flex: 0 0 auto;
           flex-direction: column;
           min-height: 0;
-          width: 100%;
-          max-width: 100%;
-          margin-top: 26px;
+          width: 86%;
+          max-width: 328px;
+          margin-top: 24px;
           overflow: visible;
         }
         .polish-project-detail__featured-story .polish-project-detail__body-wrap {
@@ -4666,13 +4933,13 @@
           width: 100%;
           min-width: 0;
           min-height: 0;
-          max-height: clamp(154px, 40vw, 190px);
+          max-height: clamp(190px, 52vw, 218px);
           overflow: hidden;
           padding-right: 0;
           overflow-wrap: anywhere;
           color: rgba(255,255,255,.66);
-          -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%);
-          mask-image: linear-gradient(180deg, #000 0%, #000 calc(100% - 34px), transparent 100%);
+          -webkit-mask-image: none;
+          mask-image: none;
           transition: max-height .38s cubic-bezier(.16, 1, .3, 1);
         }
         .polish-project-detail__featured-story .polish-project-detail__body p,
@@ -4687,14 +4954,13 @@
         }
         .polish-project-detail__copy-toggle {
           align-items: center;
-          justify-content: space-between;
-          gap: 18px;
+          justify-content: flex-start;
+          gap: 0;
           box-sizing: border-box;
           width: 100%;
-          margin-top: 14px;
-          padding: 12px 0 4px;
+          margin-top: 12px;
+          padding: 0;
           border: 0;
-          border-top: 1px solid rgba(255,255,255,.11);
           border-radius: 0;
           background: transparent;
           color: rgba(255,255,255,.72);
@@ -4708,18 +4974,11 @@
         .polish-project-detail__body-wrap.has-more + .polish-project-detail__copy-toggle:not([hidden]) {
           display: flex;
         }
-        .polish-project-detail__copy-toggle-mark {
-          flex: 0 0 auto;
-          font-size: 16px;
-          line-height: 1;
-          transition: transform .34s cubic-bezier(.16, 1, .3, 1);
-        }
         .polish-project-detail__copy-toggle:focus {
           outline: none;
         }
         .polish-project-detail__copy-toggle:focus-visible {
           color: rgba(255,255,255,.92);
-          border-top-color: rgba(255,255,255,.24);
         }
         .polish-project-detail__featured-shell.is-copy-expanded .polish-project-detail__featured-story .polish-project-detail__body {
           max-height: none;
@@ -4727,13 +4986,10 @@
           -webkit-mask-image: none !important;
           mask-image: none !important;
         }
-        .polish-project-detail__featured-shell.is-copy-expanded .polish-project-detail__copy-toggle-mark {
-          transform: rotate(45deg);
-        }
         .polish-project-detail__featured-content > .polish-project-detail__body-action {
           flex: 0 0 auto;
           margin: auto 0 0 !important;
-          padding-top: 20px;
+          padding-top: 24px;
         }
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__featured-story,
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__body-wrap,
@@ -4753,10 +5009,10 @@
         }
         .polish-project-detail__title {
           width: 100%;
-          max-width: 100%;
-          font-size: clamp(32px, 8.9vw, 42px);
-          line-height: 1.04;
-          letter-spacing: -.028em;
+          max-width: 10.5ch;
+          font-size: clamp(40px, 12vw, 50px);
+          line-height: .94;
+          letter-spacing: -.036em;
           overflow-wrap: anywhere;
           text-wrap: balance;
         }
@@ -4764,7 +5020,7 @@
           margin-top: 0;
           width: 100%;
           max-width: 100%;
-          font-size: clamp(15px, 4.1vw, 18px);
+          font-size: clamp(15px, 4vw, 17px);
           line-height: 1.55;
           overflow-wrap: anywhere;
         }
@@ -4799,8 +5055,8 @@
           max-height: none;
           margin-top: 0;
           overflow: auto;
-          font-size: 15px;
-          line-height: 1.78;
+          font-size: clamp(14px, 3.7vw, 15px);
+          line-height: 1.7;
           padding: 0;
           scrollbar-width: none;
           -ms-overflow-style: none;
@@ -4822,7 +5078,7 @@
           filter: none;
         }
         .polish-project-detail__chapter-visual .polish-project-detail__image-frame {
-          aspect-ratio: 16 / 10;
+          aspect-ratio: 16 / 9;
           border-radius: 9px;
         }
         .polish-project-detail__hero {
@@ -4846,6 +5102,85 @@
         }
         .polish-project-detail__image--portrait .polish-project-detail__image-frame {
           aspect-ratio: 3 / 4;
+        }
+        .polish-project-detail__chapter--media {
+          margin-top: 26px;
+        }
+        .polish-project-detail__chapter--media .polish-project-detail__image,
+        .polish-project-detail__chapter--media .polish-project-detail__image-frame {
+          width: 100%;
+          aspect-ratio: 16 / 9;
+        }
+        .polish-project-detail__chapter--media .polish-project-detail__image-frame {
+          border-radius: 9px;
+        }
+        .polish-project-detail__chapter--media figcaption {
+          display: none !important;
+        }
+        .polish-project-detail__next {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: flex-start;
+          box-sizing: border-box;
+          width: 100vw;
+          min-height: clamp(232px, 62vw, 276px);
+          margin-top: clamp(48px, 13vw, 62px);
+          margin-right: 0;
+          margin-bottom: calc(-86px - env(safe-area-inset-bottom, 0px));
+          margin-left: calc(50% - 50vw);
+          padding: 0 16px calc(116px + env(safe-area-inset-bottom, 0px));
+          overflow: visible;
+          background: transparent;
+          color: rgba(255,255,255,.94);
+          text-decoration: none;
+          cursor: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .polish-project-detail__next-head {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          width: 100%;
+        }
+        .polish-project-detail__next-label,
+        .polish-project-detail__next-count {
+          font: 9px/1.4 var(--polish-font-mono);
+          letter-spacing: .12em;
+          text-transform: uppercase;
+        }
+        .polish-project-detail__next-label {
+          color: rgba(255,255,255,.58);
+        }
+        .polish-project-detail__next-count {
+          color: rgba(255,255,255,.28);
+        }
+        .polish-project-detail__next-title {
+          display: block;
+          max-width: min(90vw, 11ch);
+          margin-top: 20px;
+          font-family: var(--polish-font-display);
+          font-size: clamp(36px, 10.2vw, 44px);
+          font-weight: 500;
+          line-height: 1.02;
+          letter-spacing: -.034em;
+          overflow-wrap: anywhere;
+          text-wrap: balance;
+          text-shadow: 0 16px 44px rgba(0,0,0,.22);
+          transition: color .24s ease, transform .32s cubic-bezier(.16, 1, .3, 1);
+        }
+        .polish-project-detail__next:active .polish-project-detail__next-title {
+          color: rgba(255,255,255,.72);
+          transform: translate3d(5px, 0, 0);
+        }
+        .polish-project-detail__next:focus-visible {
+          outline: none;
+        }
+        .polish-project-detail__next:focus-visible .polish-project-detail__next-title {
+          text-decoration: underline;
+          text-decoration-thickness: 1px;
+          text-underline-offset: .14em;
         }
       }
       @media (max-width: 900px) {
@@ -4897,8 +5232,8 @@
       }
       @media (max-width: 560px) {
         .polish-gallery-section {
-          padding-left: 16px;
-          padding-right: 16px;
+          padding-left: 24px;
+          padding-right: 24px;
         }
         .polish-gallery-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6214,21 +6549,12 @@
   }
 
   function disableStatsMotion() {
-    const labels = ['Years Experience', 'Projects Completed', 'Happy Clients'];
-    const nodes = Array.from(document.querySelectorAll('main section div, main section span'));
-    const matched = labels.map((label) => nodes.find((node) => {
-      const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
-      return text === label;
-    })).filter(Boolean);
-    if (!matched.length) return;
-
-    matched.forEach((labelNode) => {
-      const statItem = labelNode.parentElement;
-      const statsGrid = labelNode.closest('.grid');
-      if (statsGrid) {
-        statsGrid.classList.add('polish-static-stats');
-        statsGrid.dataset.polishNoElastic = 'true';
-      }
+    const statsGrid = document.querySelector('#about .grid.grid-cols-3');
+    if (!statsGrid) return;
+    statsGrid.classList.add('polish-static-stats');
+    statsGrid.dataset.polishNoElastic = 'true';
+    Array.from(statsGrid.children).forEach((wrap) => {
+      const statItem = wrap.querySelector('.text-center') || wrap;
       [statItem, statItem && statItem.parentElement].filter(Boolean).forEach((node) => {
         node.classList.add('polish-static-stat');
         node.dataset.polishNoElastic = 'true';
@@ -6336,14 +6662,15 @@
     const hero = document.querySelector('main > section');
     if (!hero) return;
     let layer = hero.querySelector(':scope > .polish-hero-video-layer');
-    if (!config.heroVideo) {
+    const editableHeroEnabled = getEditableMediaValue('heroEnabled', config.heroVideo);
+    if (!editableHeroEnabled) {
       if (layer) layer.remove();
       document.documentElement.classList.remove('polish-hero-video-active');
       return;
     }
 
-    const src = String(config.heroVideoSrc || '').trim();
-    const poster = String(config.heroVideoPoster || '').trim();
+    const src = String(getEditableMediaValue('heroVideo', config.heroVideoSrc) || '').trim();
+    const poster = String(getEditableMediaValue('heroPoster', config.heroVideoPoster) || '').trim();
     const allowMobile = config.heroVideoMobile !== false;
     if (!src && !poster) return;
     const lazyVideo = config.heroVideoLazy !== false;
@@ -6427,6 +6754,58 @@
     document.documentElement.classList.toggle('polish-hero-video-active', Boolean(src || poster));
   }
 
+  let fluidTrailVisibilityState = null;
+  function setupFluidTrailVisibility() {
+    if (fluidTrailVisibilityState) {
+      fluidTrailVisibilityState.refresh();
+      return;
+    }
+
+    const root = document.documentElement;
+    let hero = null;
+    let works = null;
+    let raf = 0;
+
+    function refresh() {
+      hero = document.querySelector('main > section:first-of-type');
+      works = document.querySelector('#gallery, [data-polish-section-role="works"]');
+      requestUpdate();
+    }
+
+    function heroWorksOwnViewport(viewport) {
+      if (!hero || !hero.isConnected) return false;
+      const heroRect = hero.getBoundingClientRect();
+      const worksRect = works && works.isConnected ? works.getBoundingClientRect() : null;
+      const focusY = viewport * 0.5;
+      const rangeTop = Math.min(heroRect.top, worksRect ? worksRect.top : heroRect.top);
+      const rangeBottom = worksRect ? worksRect.bottom : heroRect.bottom;
+      return rangeTop <= focusY && rangeBottom > focusY;
+    }
+
+    function update() {
+      raf = 0;
+      const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+      const detailOpen = Boolean(document.querySelector(
+        '.polish-project-detail.is-open, .polish-project-detail[data-state="open"]'
+      ));
+      const suppress = heroWorksOwnViewport(viewport) || detailOpen;
+      root.classList.toggle('polish-fluid-trail-suppressed', suppress);
+    }
+
+    function requestUpdate() {
+      if (!raf) raf = requestAnimationFrame(update);
+    }
+
+    const observer = new MutationObserver(refresh);
+    const main = document.querySelector('main');
+    if (main) observer.observe(main, { childList: true, subtree: true });
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate, { passive: true });
+    document.addEventListener('polish:detail-nav-state', requestUpdate);
+    fluidTrailVisibilityState = { refresh };
+    refresh();
+  }
+
   let heroScrollMotionState = null;
   function setupHeroScrollMotion(config) {
     const hero = document.querySelector('main > section');
@@ -6491,41 +6870,22 @@
         return;
       }
       const rect = hero.getBoundingClientRect();
-      const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
-      const heroProgress = clamp(-rect.top / Math.max(1, Math.min(rect.height || viewport, viewport)), 0, 1);
       const firstCover = state.sections[0] || null;
-      let rawCoverTop = rect.bottom;
-      let coverProgress = heroProgress;
+      const coverTop = firstCover && document.body.contains(firstCover)
+        ? firstCover.getBoundingClientRect().top
+        : rect.bottom;
 
-      if (firstCover && document.body.contains(firstCover)) {
-        const appliedCoverY = Number.parseFloat(firstCover.style.getPropertyValue('--polish-hero-cover-y')) || 0;
-        rawCoverTop = firstCover.getBoundingClientRect().top - appliedCoverY;
-        const coverStart = viewport * 1.02;
-        const coverEnd = Math.max(56, Math.min(104, viewport * .10));
-        coverProgress = clamp((coverStart - rawCoverTop) / Math.max(1, coverStart - coverEnd), 0, 1);
-        const easedCover = coverProgress * coverProgress * (3 - 2 * coverProgress);
-        const maxCoverLift = window.innerWidth <= 700 ? 44 : 88;
-        const coverY = (1 - easedCover) * maxCoverLift;
-        firstCover.style.setProperty('--polish-hero-cover-y', coverY.toFixed(1) + 'px');
-      }
-
-      const easedCover = coverProgress * coverProgress * (3 - 2 * coverProgress);
-      const contentFade = clamp((coverProgress - .18) / .72, 0, 1);
-      const contentY = easedCover * -24;
-      const contentScale = 1 - easedCover * .085;
-      const contentOpacity = 1 - contentFade * .94;
-      const indicatorFade = 1 - clamp((coverProgress - .02) / .36, 0, 1);
-      const videoY = clamp(heroProgress * -10 + easedCover * -18, -28, 0);
-      const videoScale = 1 + heroProgress * .010 + easedCover * .022;
-
-      hero.style.setProperty('--polish-hero-content-y', contentY.toFixed(1) + 'px');
-      hero.style.setProperty('--polish-hero-content-scale', contentScale.toFixed(4));
-      hero.style.setProperty('--polish-hero-content-opacity', contentOpacity.toFixed(4));
-      hero.style.setProperty('--polish-hero-indicator-y', (easedCover * -14).toFixed(1) + 'px');
-      hero.style.setProperty('--polish-hero-indicator-opacity', (.86 * indicatorFade).toFixed(4));
-      hero.style.setProperty('--polish-hero-video-y', videoY.toFixed(1) + 'px');
-      hero.style.setProperty('--polish-hero-video-scale', videoScale.toFixed(4));
-      const hideVideo = firstCover ? rawCoverTop <= 2 : (rect.bottom <= 2 || heroProgress >= .995);
+      // The hero is the stationary visual plane. Every following module keeps
+      // its native document flow and travels upward over this plane.
+      hero.style.setProperty('--polish-hero-content-y', '0px');
+      hero.style.setProperty('--polish-hero-content-scale', '1');
+      hero.style.setProperty('--polish-hero-content-opacity', '1');
+      hero.style.setProperty('--polish-hero-indicator-y', '0px');
+      hero.style.setProperty('--polish-hero-indicator-opacity', '.86');
+      hero.style.setProperty('--polish-hero-video-y', '0px');
+      hero.style.setProperty('--polish-hero-video-scale', '1');
+      if (firstCover) firstCover.style.removeProperty('--polish-hero-cover-y');
+      const hideVideo = coverTop <= 2;
       hero.classList.toggle('is-polish-hero-video-hidden', hideVideo);
     }
 
@@ -6595,8 +6955,8 @@
   }
 
   function setPlainText(node, text) {
-    if (!node || !text) return;
-    node.textContent = text;
+    if (!node || typeof text !== 'string') return;
+    if (node.textContent !== text) node.textContent = text;
   }
 
   function setTitleEntranceMarkup(title, html, key) {
@@ -6619,10 +6979,7 @@
 
   function markProfileStatementCards(statement) {
     if (!statement) return;
-    const labels = ['Frontend Development', 'UI/UX Design', 'Full Stack', 'Creative Coding'];
-    Array.from(statement.querySelectorAll('.group')).forEach((card) => {
-      const text = (card.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!labels.some((label) => text.indexOf(label) !== -1)) return;
+    Array.from(statement.querySelectorAll('.group')).slice(0, 4).forEach((card) => {
       card.dataset.polishProfileCard = 'true';
       card.removeAttribute('data-cursor');
       const motionWrap = card.parentElement;
@@ -6640,10 +6997,12 @@
 
     if (gallery) {
       gallery.dataset.polishSectionRole = 'works';
-      setPlainText(gallery.querySelector('.polish-gallery-kicker'), '02 - Works');
+      setPlainText(gallery.querySelector('.polish-gallery-kicker'), getEditableContentValue('works.label', '02 - Works'));
       const title = gallery.querySelector('.polish-gallery-title');
       if (title) {
-        setTitleEntranceMarkup(title, 'Visual<br/><span class="polish-gallery-title-muted">paths</span>', 'gallery|Visual|paths');
+        const worksLine1 = getEditableContentValue('works.titleLine1', 'Visual');
+        const worksLine2 = getEditableContentValue('works.titleLine2', 'paths');
+        setTitleEntranceMarkup(title, escapeHtml(worksLine1) + '<br/><span class="polish-gallery-title-muted">' + escapeHtml(worksLine2) + '</span>', 'gallery|' + worksLine1 + '|' + worksLine2);
         if (title.dataset.polishArchitectureMotion !== 'true') {
           if (galleryTitleMotionCleanup) galleryTitleMotionCleanup();
           title.dataset.polishArchitectureMotion = 'true';
@@ -6655,26 +7014,32 @@
 
     if (trajectory) {
       trajectory.dataset.polishSectionRole = 'trajectory';
-      setPlainText(trajectory.querySelector('.text-xs.font-mono'), '03 - Trajectory');
-      replaceTitleMarkup(trajectory, 'Creative', 'trajectory');
+      setPlainText(trajectory.querySelector('.text-xs.font-mono'), getEditableContentValue('trajectory.label', '03 - Trajectory'));
+      replaceTitleMarkup(trajectory, getEditableContentValue('trajectory.titleLine1', 'Creative'), getEditableContentValue('trajectory.titleLine2', 'trajectory'));
       const titleWrap = trajectory.querySelector('h2') && trajectory.querySelector('h2').closest('.mb-16');
       if (titleWrap) titleWrap.removeAttribute('data-polish-no-elastic');
       const rows = Array.from(trajectory.querySelectorAll('[data-cursor="pointer"]'));
-      const milestones = [
+      const fallbackMilestones = [
         ['2026', 'Portfolio system', 'Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.'],
         ['2025', 'Motion studies', 'Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.'],
         ['2024', 'Visual archive', 'Collected image-led studies, small media tests, and selected references for future project pages.']
       ];
+      const editableMilestones = getEditableContentRaw('trajectory.items');
+      const itemType = getEditableContentValue('trajectory.itemType', 'Milestone');
       rows.forEach((row, index) => {
-        const data = milestones[index % milestones.length];
+        const editable = Array.isArray(editableMilestones) ? editableMilestones[index] : null;
+        const data = editable ? [editable.year || '', editable.title || '', editable.description || ''] : fallbackMilestones[index % fallbackMilestones.length];
         const title = row.querySelector('h3');
         const category = row.querySelector('.text-xs.font-mono.text-foreground\\/30');
         const desc = row.querySelector('p');
         const year = Array.from(row.querySelectorAll('.text-xs.font-mono')).find((node) => /^\d{4}$/.test((node.textContent || '').trim()));
         setPlainText(title, data[1]);
-        setPlainText(category, 'Milestone');
+        setPlainText(category, itemType);
         setPlainText(desc, data[2]);
         setPlainText(year, data[0]);
+        if (editable && Array.isArray(editable.tags)) {
+          Array.from(row.querySelectorAll('.flex.flex-wrap span')).forEach((tag, tagIndex) => setPlainText(tag, String(editable.tags[tagIndex] || '')));
+        }
       });
     }
 
@@ -6682,6 +7047,13 @@
       statement.dataset.polishSectionRole = 'statement';
       setPlainText(statement.querySelector('.text-xs.font-mono'), getEditableContentValue('about.label', '04 - Statement'));
       replaceTitleMarkup(statement, getEditableContentValue('about.titleLine1', 'Profile'), getEditableContentValue('about.titleLine2', 'statement'));
+      const services = getEditableContentRaw('about.services');
+      if (Array.isArray(services)) {
+        Array.from(statement.querySelectorAll('.group')).slice(0, services.length).forEach((card, index) => {
+          setPlainText(card.querySelector('h3, h4'), String(services[index].title || ''));
+          setPlainText(card.querySelector('p'), String(services[index].description || ''));
+        });
+      }
       markProfileStatementCards(statement);
       disableStatementBodyMotion();
     }
@@ -7827,6 +8199,26 @@
     };
   }
 
+  function resolveLocalizedProjectItem(item) {
+    const base = Object.assign({}, item || {});
+    const language = window.__EDITABLE_SITE_LANGUAGE__ || 'en';
+    const translations = base.translations && typeof base.translations === 'object' ? base.translations : {};
+    const localized = translations[language] && typeof translations[language] === 'object' ? translations[language] : {};
+    if (localized.visible === false) return null;
+    Object.keys(localized).forEach((key) => {
+      if (key !== 'visible' && localized[key] !== undefined) base[key] = localized[key];
+    });
+    if (Array.isArray(base.images)) {
+      base.images = base.images.map((image) => {
+        if (!image || typeof image !== 'object') return image;
+        const next = Object.assign({}, image);
+        if (next.captions && typeof next.captions[language] === 'string') next.caption = next.captions[language];
+        return next;
+      });
+    }
+    return base;
+  }
+
   function hexToHue(value, fallback) {
     const match = String(value || '').trim().match(/^#?([0-9a-f]{6})$/i);
     if (!match) return fallback;
@@ -7861,7 +8253,8 @@
   function normalizeGalleryItems(config, projectItems) {
     const source = Array.isArray(projectItems) && projectItems.length ? projectItems : getGalleryItems(config);
     return source.map((item, index) => {
-      const base = Object.assign({}, item);
+      const base = resolveLocalizedProjectItem(item);
+      if (!base) return null;
       base.slug = slugify(base.slug || base.title, 'project-' + (index + 1));
       base.polishIndex = index;
       if (!Array.isArray(base.palette)) base.palette = getGalleryAccentPalette(index);
@@ -7883,7 +8276,7 @@
         return normalized;
       });
       return base;
-    });
+    }).filter(Boolean);
   }
 
   function ensureGalleryPaginationItems(items, pageSize, config) {
@@ -8015,6 +8408,10 @@
     const section = findPhilosophySection();
     if (!section || section.dataset.polishGalleryReady === 'true') return;
     let items = normalizeGalleryItems(config, projectItems);
+    if (!items.length) {
+      section.classList.add('editable-module-hidden');
+      return;
+    }
     let pageSize = window.innerWidth <= 900 ? 2 : 3;
     const itemsBySlug = new Map(items.map((item) => [item.slug, item]));
     const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
@@ -8026,13 +8423,13 @@
     section.removeAttribute('style');
     section.innerHTML = '<div class="polish-gallery-shell">' +
       '<div class="polish-gallery-head">' +
-      '<div><span class="polish-gallery-kicker">03 — Gallery</span><div class="polish-gallery-title-lock"><h2 class="polish-gallery-title">Selected<br/><span class="polish-gallery-title-muted">visual paths</span></h2></div></div>' +
+      '<div><span class="polish-gallery-kicker">' + escapeHtml(getEditableContentValue('works.label', '02 - Works')) + '</span><div class="polish-gallery-title-lock"><h2 class="polish-gallery-title">' + escapeHtml(getEditableContentValue('works.titleLine1', 'Visual')) + '<br/><span class="polish-gallery-title-muted">' + escapeHtml(getEditableContentValue('works.titleLine2', 'paths')) + '</span></h2></div></div>' +
       '<div class="polish-gallery-controls">' +
       '<button class="polish-gallery-button" type="button" data-polish-gallery-prev data-cursor="pointer" aria-label="Previous page"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
       '<span class="polish-gallery-count" data-polish-gallery-count role="status" aria-live="polite"></span>' +
       '<button class="polish-gallery-button" type="button" data-polish-gallery-next data-cursor="pointer" aria-label="Next page"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
       '</div></div><div class="polish-works-viewport" data-polish-works-viewport><div class="polish-gallery-grid" data-polish-gallery-grid></div></div>' +
-      '<div class="polish-works-hint"><span>Hover — expand</span><span>Drag or arrows — shift works</span></div></div>';
+      '<div class="polish-works-hint"><span>' + escapeHtml(getEditableContentValue('works.hintHover', 'Hover — expand')) + '</span><span>' + escapeHtml(getEditableContentValue('works.hintNavigate', 'Drag or arrows — shift works')) + '</span></div></div>';
 
     const grid = section.querySelector('[data-polish-gallery-grid]');
     const worksViewport = section.querySelector('[data-polish-works-viewport]');
@@ -8050,7 +8447,7 @@
     detail.setAttribute('aria-hidden', 'true');
     detail.innerHTML = '<div class="polish-project-detail__scroll" tabindex="-1"><div class="polish-project-detail__shell">' +
       '<div class="polish-project-detail__top"><div class="polish-project-detail__nav-material-reflection" data-polish-nav-material-reflection aria-hidden="true"></div><div class="polish-project-detail__nav-links">' +
-      '<button class="polish-project-detail__back" type="button" data-polish-detail-close data-cursor="pointer" aria-label="Close project detail"><span class="polish-project-detail__back-label">Close</span><span class="polish-project-detail__back-icon" aria-hidden="true"><span class="polish-project-detail__back-line is-top"></span><span class="polish-project-detail__back-line is-mid"></span><span class="polish-project-detail__back-line is-bottom"></span></span></button></div></div>' +
+      '<button class="polish-project-detail__back" type="button" data-polish-detail-close data-cursor="pointer" aria-label="Close project detail"><span class="polish-project-detail__back-label">' + escapeHtml(getEditableContentValue('works.detailClose', 'Close')) + '</span><span class="polish-project-detail__back-icon" aria-hidden="true"><span class="polish-project-detail__back-line is-top"></span><span class="polish-project-detail__back-line is-mid"></span><span class="polish-project-detail__back-line is-bottom"></span></span></button></div></div>' +
       '<div data-polish-detail-content></div></div></div>';
     document.body.appendChild(detail);
     const lightbox = document.createElement('div');
@@ -8343,6 +8740,16 @@
       rail.setAttribute('aria-valuenow', String(Math.round(nextProgress * 100)));
     }
 
+    function updateCopyToggleLabel(toggle, expanded) {
+      if (!toggle) return;
+      const moreLabel = toggle.getAttribute('data-polish-copy-label-more') || 'Read more';
+      const lessLabel = toggle.getAttribute('data-polish-copy-label-less') || 'Show less';
+      const nextLabel = expanded ? lessLabel : moreLabel;
+      const label = toggle.querySelector('[data-polish-copy-toggle-label]');
+      if (label) label.textContent = nextLabel;
+      toggle.setAttribute('aria-label', nextLabel);
+    }
+
     function updateTextScrollCue() {
       const body = detail.querySelector('.polish-project-detail__body');
       const wrap = detail.querySelector('.polish-project-detail__body-wrap');
@@ -8365,8 +8772,7 @@
       if (toggle) {
         toggle.hidden = !mobileCopyMode || !hasMore;
         toggle.setAttribute('aria-expanded', copyExpanded ? 'true' : 'false');
-        const label = toggle.querySelector('[data-polish-copy-toggle-label]');
-        if (label) label.textContent = copyExpanded ? 'Show less' : 'Read more';
+        updateCopyToggleLabel(toggle, copyExpanded);
       }
       if (!rail) return;
       if (mobileCopyMode) {
@@ -8974,8 +9380,13 @@
       if (active instanceof HTMLElement && active !== document.body) active.blur();
     }
 
+    function clearDetailProjectSwitchState() {
+      detail.classList.remove('is-project-switching');
+    }
+
     function finishCloseDetail(pushState) {
       setDetailSideCloseCursorHot(false);
+      clearDetailProjectSwitchState();
       if (detailCloseTimer) {
         clearTimeout(detailCloseTimer);
         detailCloseTimer = 0;
@@ -9014,6 +9425,7 @@
       }
       if (detailCloseTimer) return;
       setDetailSideCloseCursorHot(false);
+      clearDetailProjectSwitchState();
       clearDetailInteractionState();
       clearDetailSharedTransition();
       if (detailOpenTimer) {
@@ -9050,21 +9462,42 @@
         captureDetailReturnPosition();
       }
       const title = escapeHtml(item.title || 'Untitled');
-      const meta = escapeHtml(item.meta || 'Project');
-      const summary = escapeHtml(item.summary || '');
+      const metaText = String(item.meta || '').trim();
+      const summaryText = String(item.summary || '').trim();
+      const meta = escapeHtml(metaText);
+      const summary = escapeHtml(summaryText);
       const paragraphs = Array.isArray(item.detail) ? item.detail : String(item.detail || item.summary || '').split(/\n{2,}/);
       const copyLength = paragraphs.filter(Boolean).join('').replace(/\s/g, '').length;
       const copyLayoutClass = copyLength <= 360 ? ' is-compact-copy' : '';
-      const facts = Array.isArray(item.facts) && item.facts.length ? '<span class="polish-project-detail__meta">' + escapeHtml(item.facts[0]) + '</span>' : '';
+      const factValues = Array.isArray(item.facts) ? item.facts.map((value) => String(value || '').trim()).filter(Boolean) : [];
+      const facts = factValues.length ? '<span class="polish-project-detail__meta">' + escapeHtml(factValues[0]) + '</span>' : '';
+      const eyebrowContent = (meta ? '<span class="polish-project-detail__meta">' + meta + '</span>' : '') + facts;
+      const eyebrowMarkup = eyebrowContent ? '<div class="polish-project-detail__featured-eyebrow">' + eyebrowContent + '</div>' : '';
+      const summaryMarkup = summary ? '<div class="polish-project-detail__featured-summary"><p class="polish-project-detail__lead">' + summary + '</p></div>' : '';
+      const optionalLayoutClass = (summary ? '' : ' is-summary-empty') + (eyebrowContent ? '' : ' is-eyebrow-empty');
       const externalHref = escapeHtml(item.externalHref || '#projects');
       const externalAttrs = /^https?:/i.test(item.externalHref || '') ? 'target="_blank" rel="noopener noreferrer"' : '';
       const bodyCopy = paragraphs.filter(Boolean).map((paragraph) => '<p>' + escapeHtml(paragraph).replace(/\n/g, '<br/>') + '</p>').join('');
-      const copyToggle = '<button type="button" class="polish-project-detail__copy-toggle" data-polish-copy-toggle data-cursor="pointer" aria-expanded="false" hidden><span data-polish-copy-toggle-label>Read more</span><span class="polish-project-detail__copy-toggle-mark" aria-hidden="true">+</span></button>';
-      const bodyAction = '<p class="polish-project-detail__body-action"><a class="polish-project-detail__body-link" href="' + externalHref + '" ' + externalAttrs + ' data-cursor="pointer">View complete project <span aria-hidden="true">↗</span></a></p>';
+      const copyMoreLabel = String(getEditableContentValue('works.detailReadMore', 'Read more') || 'Read more');
+      const copyLessFallback = /[\u3400-\u9fff]/.test(copyMoreLabel) ? '收起内容' : 'Show less';
+      const copyLessLabel = String(getEditableContentValue('works.detailShowLess', copyLessFallback) || copyLessFallback);
+      const copyToggle = '<button type="button" class="polish-project-detail__copy-toggle" data-polish-copy-toggle data-polish-copy-label-more="' + escapeHtml(copyMoreLabel) + '" data-polish-copy-label-less="' + escapeHtml(copyLessLabel) + '" data-cursor="pointer" aria-label="' + escapeHtml(copyMoreLabel) + '" aria-expanded="false" hidden><span data-polish-copy-toggle-label>' + escapeHtml(copyMoreLabel) + '</span></button>';
+      const bodyAction = '<p class="polish-project-detail__body-action"><a class="polish-project-detail__body-link" href="' + externalHref + '" ' + externalAttrs + ' data-cursor="pointer">' + escapeHtml(getEditableContentValue('works.detailView', 'View complete project')) + ' <span aria-hidden="true">↗</span></a></p>';
       const images = Array.isArray(item.images) && item.images.length
         ? item.images
         : [normalizeProjectImage(item.image, item.image, item.title)];
-      const renderDetailMedia = (image, imgIndex, featured) => {
+      const currentItemIndex = Math.max(0, items.findIndex((project) => project.slug === item.slug));
+      const nextItemIndex = items.length > 1 ? (currentItemIndex + 1) % items.length : -1;
+      const nextItem = nextItemIndex >= 0 ? items[nextItemIndex] : null;
+      const nextProjectLabel = escapeHtml(getEditableContentValue('works.detailNextLabel', 'Next project'));
+      const nextProjectView = escapeHtml(getEditableContentValue('works.detailNextView', 'View next project'));
+      const desktopNextMarkup = nextItem
+        ? '<a class="polish-project-detail__desktop-next" href="#work-' + escapeHtml(nextItem.slug) + '" data-polish-next-project="' + escapeHtml(nextItem.slug) + '" data-cursor="pointer" aria-label="' + nextProjectView + ': ' + escapeHtml(nextItem.title || 'Untitled') + '"><span class="polish-project-detail__desktop-next-label">' + nextProjectLabel + '</span><strong class="polish-project-detail__desktop-next-title">' + escapeHtml(nextItem.title || 'Untitled') + '</strong></a>'
+        : '';
+      const nextProjectMarkup = nextItem
+        ? '<a class="polish-project-detail__next" href="#work-' + escapeHtml(nextItem.slug) + '" data-polish-next-project="' + escapeHtml(nextItem.slug) + '" data-cursor="pointer" aria-label="' + nextProjectView + ': ' + escapeHtml(nextItem.title || 'Untitled') + '"><span class="polish-project-detail__next-head"><span class="polish-project-detail__next-label">' + nextProjectLabel + '</span></span><strong class="polish-project-detail__next-title">' + escapeHtml(nextItem.title || 'Untitled') + '</strong></a>'
+        : '';
+      const renderDetailMedia = (image, imgIndex, featured, interactiveFeatured) => {
         const ratio = escapeHtml(image.ratio || 'square');
         const containClass = image.fit === 'contain' ? ' polish-project-detail__image--contain' : '';
         const caption = !featured && image.caption ? '<figcaption>' + escapeHtml(image.caption) + '</figcaption>' : '';
@@ -9073,13 +9506,14 @@
           const poster = image.poster ? ' poster="' + escapeHtml(image.poster) + '"' : '';
           return '<figure class="' + figureClass + '"><div class="polish-project-detail__image-frame polish-project-detail__image-frame--video"><video src="' + escapeHtml(image.src) + '"' + poster + ' controls preload="metadata" playsinline aria-label="' + title + ' related video ' + (imgIndex + 1) + '"></video></div>' + caption + '</figure>';
         }
+        const interactive = !featured || Boolean(interactiveFeatured);
         const loading = featured ? 'eager' : 'lazy';
         const priority = featured ? ' fetchpriority="high"' : '';
-        const frameClass = featured ? 'polish-project-detail__image-frame polish-project-detail__image-frame--static-cover' : 'polish-project-detail__image-frame';
-        const interactionAttrs = featured
-          ? ' aria-hidden="true"'
-          : ' data-cursor="pointer" data-polish-lightbox-src="' + escapeHtml(image.src) + '" data-polish-lightbox-caption="' + escapeHtml(image.caption || item.title || 'Untitled') + '"';
-        const alt = featured ? '' : title + ' related image ' + (imgIndex + 1);
+        const frameClass = featured && !interactive ? 'polish-project-detail__image-frame polish-project-detail__image-frame--static-cover' : 'polish-project-detail__image-frame';
+        const interactionAttrs = interactive
+          ? ' data-cursor="pointer" data-polish-lightbox-src="' + escapeHtml(image.src) + '" data-polish-lightbox-caption="' + escapeHtml(image.caption || item.title || 'Untitled') + '"'
+          : ' aria-hidden="true"';
+        const alt = interactive ? title + ' related image ' + (imgIndex + 1) : '';
         return '<figure class="' + figureClass + '"><div class="' + frameClass + '"' + interactionAttrs + '><img src="' + escapeHtml(image.src) + '" alt="' + alt + '" loading="' + loading + '"' + priority + ' decoding="async"/></div>' + caption + '</figure>';
       };
       const firstImage = images[0];
@@ -9109,24 +9543,26 @@
       detail.classList.add('is-stage-entering');
       setDetailCloseIconState(false);
       detailContent.innerHTML = '<section class="polish-project-detail__chapter polish-project-detail__chapter--featured is-active" data-polish-detail-chapter>' +
-        '<div class="polish-project-detail__featured-shell' + copyLayoutClass + '" data-polish-featured-shell>' +
-        '<div class="polish-project-detail__featured-media">' + renderDetailMedia(firstImage, 0, true) + alternateMedia + '</div>' +
+        '<div class="polish-project-detail__featured-shell' + copyLayoutClass + optionalLayoutClass + '" data-polish-featured-shell>' +
+        '<div class="polish-project-detail__featured-media">' + renderDetailMedia(firstImage, 0, true, true) + alternateMedia + '</div>' +
         '<div class="polish-project-detail__featured-shade" aria-hidden="true"></div>' +
         '<div class="polish-project-detail__featured-content">' +
-        '<div class="polish-project-detail__featured-eyebrow"><span class="polish-project-detail__meta">' + meta + '</span>' + facts + '</div>' +
+        eyebrowMarkup +
         '<div class="polish-project-detail__featured-title"><h2 class="polish-project-detail__title">' + title + '</h2></div>' +
-        '<div class="polish-project-detail__featured-summary"><p class="polish-project-detail__lead">' + summary + '</p></div>' +
-        '<div class="polish-project-detail__featured-story"><div class="polish-project-detail__body-wrap"><div class="polish-project-detail__body">' + bodyCopy + '</div><div class="polish-project-detail__body-scrollbar" role="scrollbar" aria-label="Project text scroll position" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-hidden="true"><span></span></div></div>' + copyToggle + '</div>' + bodyAction +
+        summaryMarkup +
+        '<div class="polish-project-detail__featured-story"><div class="polish-project-detail__body-wrap is-at-start"><div class="polish-project-detail__body">' + bodyCopy + '</div></div>' + copyToggle + '</div>' + bodyAction + desktopNextMarkup +
         '</div>' + desktopRail + '</div></section>' +
-        mediaChapters;
+        mediaChapters + nextProjectMarkup;
       const detailBody = detailContent.querySelector('.polish-project-detail__body');
       setupTextScrollControl(detailBody);
+      if (detailBody) detailBody.addEventListener('scroll', updateTextScrollCue, { passive: true });
       updateDetailNavGutter();
       detailScroll.scrollTop = 0;
       document.documentElement.classList.add('polish-detail-open');
       detail.classList.add('is-open');
       detail.setAttribute('aria-hidden', 'false');
       detail.classList.add('is-scroll-ready');
+      updateTextScrollCue();
       requestAnimationFrame(updateDetailNavGutter);
       requestAnimationFrame(startDetailRailMotion);
       requestAnimationFrame(() => startDetailSharedTransition(sourceTile, firstImage));
@@ -9158,6 +9594,22 @@
       setTimeout(updateTextScrollCue, 260);
       if (pushState && location.hash !== '#work-' + slug) history.pushState(null, '', '#work-' + slug);
       return true;
+    }
+
+    function switchDetailProject(slug) {
+      if (!slug || !itemsBySlug.has(slug) || detail.classList.contains('is-closing')) return false;
+      if (window.innerWidth >= 901) return openDetail(slug, true);
+      const opened = openDetail(slug, true);
+      if (opened && detailContent.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        detailContent.animate([
+          { opacity: .2, transform: 'translate3d(0, 12px, 0)', filter: 'blur(3px)' },
+          { opacity: 1, transform: 'translate3d(0, 0, 0)', filter: 'blur(0)' }
+        ], {
+          duration: 320,
+          easing: 'cubic-bezier(.16, 1, .3, 1)'
+        });
+      }
+      return opened;
     }
 
     function syncDetailFromHash() {
@@ -9364,12 +9816,14 @@
       const number = String(index + 1).padStart(2, '0');
       const href = '#work-' + escapeHtml(item.slug);
       const title = escapeHtml(item.title || 'Untitled');
-      const meta = escapeHtml(item.meta || 'Link');
-      const summary = escapeHtml(item.summary || item.description || 'A short project note with a direct path to the full work.');
+      const meta = escapeHtml(String(item.meta || '').trim());
+      const summary = escapeHtml(String(item.summary || item.description || '').trim());
+      const metaMarkup = meta ? '<span class="polish-works-kind">' + meta + '</span>' : '';
+      const summaryMarkup = summary ? '<span class="polish-works-summary">' + summary + '</span>' : '';
       return '<a class="polish-layer-tile" href="' + href + '" data-project-slug="' + escapeHtml(item.slug) + '" data-polish-layer-tile aria-label="' + title + '">' +
         '<span class="polish-works-surface"><img class="polish-works-image" src="' + escapeHtml(item.image) + '" alt="" draggable="false"/><span class="polish-works-grid-lines"></span></span>' +
-        '<span class="polish-works-chrome" aria-hidden="true"><span class="polish-works-index">' + number + '</span><span class="polish-works-kind">' + meta + '</span></span>' +
-        '<span class="polish-works-copy"><span class="polish-works-name">' + title + '</span><span class="polish-works-detail"><span><span class="polish-works-summary">' + summary + '</span><span class="polish-works-view">View project</span></span></span></span>' +
+        '<span class="polish-works-chrome" aria-hidden="true"><span class="polish-works-index">' + number + '</span>' + metaMarkup + '</span>' +
+        '<span class="polish-works-copy"><span class="polish-works-name">' + title + '</span><span class="polish-works-detail"><span>' + summaryMarkup + '<span class="polish-works-view">' + escapeHtml(getEditableContentValue('works.viewProject', 'View project')) + '</span></span></span></span>' +
         '</a>';
     }
 
@@ -9685,11 +10139,18 @@
         const expanded = !shell.classList.contains('is-copy-expanded');
         shell.classList.toggle('is-copy-expanded', expanded);
         copyToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        updateCopyToggleLabel(copyToggle, expanded);
         if (!expanded) body.scrollTop = 0;
         requestAnimationFrame(() => {
           updateTextScrollCue();
           scheduleDetailChapterMotion();
         });
+        return;
+      }
+      const nextProject = event.target.closest('[data-polish-next-project]');
+      if (nextProject) {
+        event.preventDefault();
+        switchDetailProject(nextProject.getAttribute('data-polish-next-project'));
         return;
       }
       if (event.target.closest('[data-polish-detail-close]')) {
@@ -9975,6 +10436,7 @@
     setupInnerImageParallax(config);
     watchGalleryReplacement(config, projectItems);
     applySiteArchitecture();
+    setupFluidTrailVisibility();
     setupHeroScrollMotion(config);
     disableStatementBodyMotion();
     disableContactBodyMotion();
@@ -10013,6 +10475,7 @@
     destroyHeroSdfTitle();
     normalizeHeroTitle();
     applySiteArchitecture();
+    setupHeroVideo(activeHeroSdfConfig || DEFAULTS);
     setupTitleEntrance(document, false);
     setupHeroSdfTitle(activeHeroSdfConfig || DEFAULTS);
   });

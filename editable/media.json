@@ -1,6 +1,11 @@
-﻿{
-  "favicon": "favicon.png",
-  "logo": "logo.svg",
-  "demoVideo": "media/demo.mp4",
-  "demoPoster": "favicon.png"
+{
+    "favicon":  "favicon.png",
+    "logo":  "logo.svg",
+    "useLogo":  false,
+    "heroEnabled":  true,
+    "heroVideo":  "media/hero-abstract-loop.mp4",
+    "heroPoster":  "media/hero-abstract-poster.jpg",
+    "showDemoPanel":  false,
+    "demoVideo":  "media/demo.mp4",
+    "demoPoster":  "favicon.png"
 }
