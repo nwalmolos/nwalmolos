@@ -344,7 +344,7 @@
             scrolling = false;
             document.documentElement.classList.remove('polish-scroll-performance');
             if (running && !animationFrame) animationFrame = requestAnimationFrame(renderCanvasGrain);
-          }, 180);
+          }, 320);
         };
         const handleVisibility = () => {
           if (document.hidden) stopRendering();
@@ -7667,6 +7667,7 @@
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => {
         scrollTimer = 0;
+        document.documentElement.classList.remove('polish-hover-sync-scrolling');
         requestSync();
       }, 220);
     }
