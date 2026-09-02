@@ -976,6 +976,8 @@
       this.energy = 0;
       this.aspect = 1;
       this.dirty = true;
+      this.lastUploadTime = -Infinity;
+      this.uploadInterval = 33;
 
       gl.bindTexture(gl.TEXTURE_2D, this.texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -1077,10 +1079,11 @@
       this.fade(deltaMs);
       if (active) this.addPoint(pointer);
       else this.resetPoint();
-      if (!this.dirty) return;
+      if (!this.dirty || time - this.lastUploadTime < this.uploadInterval) return;
       const gl = this.gl;
       gl.bindTexture(gl.TEXTURE_2D, this.texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.canvas);
+      this.lastUploadTime = time;
       this.dirty = false;
     }
 
@@ -1215,11 +1218,16 @@
       this.pointerInitialized = false;
       this.trailPointerActive = false;
       this.running = false;
+      this.frame = 0;
+      this.suspended = false;
       this.lastFrameTime = 0;
+      this.lastRenderTime = 0;
       this.destroyed = false;
       this.rebuildTimer = 0;
       this.coarseReleaseTimer = 0;
       this.previewTimer = 0;
+      this.canvasRect = null;
+      this.canvas.dataset.sdfSuspended = 'false';
       this.isCoarsePointer = matchMedia('(hover: none), (pointer: coarse)').matches;
 
       if (this.options.respectReducedMotion && matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -1345,6 +1353,7 @@
 
     scheduleRebuild() {
       if (this.destroyed || !this.gl) return;
+      this.canvasRect = null;
       clearTimeout(this.rebuildTimer);
       this.rebuildTimer = window.setTimeout(() => this.rebuild(), 120);
     }
@@ -1362,6 +1371,12 @@
 
       this.canvas.width = width;
       this.canvas.height = height;
+      this.canvasRect = {
+        left: canvasRect.left,
+        top: canvasRect.top,
+        width: canvasRect.width,
+        height: canvasRect.height
+      };
       if (this.trail) this.trail.setAspect(width / Math.max(1, height));
 
       const maskCanvas = document.createElement('canvas');
@@ -1438,7 +1453,16 @@
     }
 
     pointerFromEvent(event) {
-      const rect = this.canvas.getBoundingClientRect();
+      if (!this.canvasRect || !this.canvasRect.width || !this.canvasRect.height) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvasRect = {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height
+        };
+      }
+      const rect = this.canvasRect;
       return [
         clamp((event.clientX - rect.left) / Math.max(1, rect.width), 0, 1),
         // The fragment shader samples the uploaded canvas texture in
@@ -1519,13 +1543,37 @@
     }
 
     start() {
-      if (this.running || this.destroyed || !this.gl) return;
+      if (this.running || this.suspended || this.destroyed || !this.gl) return;
       this.running = true;
       this.lastFrameTime = 0;
-      requestAnimationFrame((time) => this.tick(time));
+      this.lastRenderTime = 0;
+      this.frame = requestAnimationFrame((time) => this.tick(time));
+    }
+
+    setSuspended(suspended) {
+      this.suspended = Boolean(suspended);
+      this.canvas.dataset.sdfSuspended = this.suspended ? 'true' : 'false';
+      if (this.suspended) {
+        if (this.frame) cancelAnimationFrame(this.frame);
+        this.frame = 0;
+        this.running = false;
+        this.lastFrameTime = 0;
+        this.lastRenderTime = 0;
+        this.pointerVelocity[0] = 0;
+        this.pointerVelocity[1] = 0;
+        if (this.trail) this.trail.resetPoint();
+      } else if (this.trailPointerActive || this.currentRadius > 0.001 || (this.trail && this.trail.isAlive())) {
+        this.start();
+      }
+      return this;
     }
 
     tick(time) {
+      this.frame = 0;
+      if (this.suspended) {
+        this.running = false;
+        return;
+      }
       if (this.destroyed || !this.gl) {
         this.running = false;
         return;
@@ -1597,11 +1645,23 @@
       this.previousPointer[0] = this.currentPointer[0];
       this.previousPointer[1] = this.currentPointer[1];
 
-      if (this.trail) {
-        this.trail.update(this.currentPointer, time, this.trailPointerActive);
+      /* A playing Hero video and this full-screen fragment shader compete for
+         the same compositor budget.  Keep the spring simulation at the native
+         refresh rate, but draw the SDF at ~42fps while video is playing.  The
+         visual response remains smooth while avoiding video presentation
+         stalls on mid-range GPUs. */
+      const video = document.querySelector('.polish-hero-video');
+      const videoPlaying = Boolean(video && !video.paused && !video.ended);
+      const renderInterval = videoPlaying ? 24 : 0;
+      const shouldRender = !renderInterval || !this.lastRenderTime ||
+        time - this.lastRenderTime >= renderInterval;
+      if (shouldRender) {
+        if (this.trail) {
+          this.trail.update(this.currentPointer, time, this.trailPointerActive);
+        }
+        this.render(time);
+        this.lastRenderTime = time;
       }
-
-      this.render(time);
 
       const pointerDelta = Math.abs(this.targetPointer[0] - this.currentPointer[0]) +
         Math.abs(this.targetPointer[1] - this.currentPointer[1]);
@@ -1613,7 +1673,7 @@
         this.currentRadius > 0.001 || (this.trail && this.trail.isAlive());
 
       if (needsNextFrame) {
-        requestAnimationFrame((nextTime) => this.tick(nextTime));
+        this.frame = requestAnimationFrame((nextTime) => this.tick(nextTime));
       } else {
         this.running = false;
       }
@@ -1748,6 +1808,8 @@
     destroy() {
       if (this.destroyed) return;
       this.destroyed = true;
+      if (this.frame) cancelAnimationFrame(this.frame);
+      this.frame = 0;
       clearTimeout(this.rebuildTimer);
       clearTimeout(this.coarseReleaseTimer);
       clearTimeout(this.previewTimer);

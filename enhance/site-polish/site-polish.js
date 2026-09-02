@@ -1,7 +1,7 @@
 (function () {
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
-  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260821-film-grain-reflection-1';
+  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260901-hero-performance-2';
   const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260821-hero-pin-1';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
   const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
@@ -201,6 +201,13 @@
           opacity: 1;
           image-rendering: auto;
           contain: strict;
+          transition: none;
+        }
+        /* Keep the grain surface at a stable opacity while scrolling.  The
+           renderer already skips bitmap updates during scroll, so fading the
+           full-screen canvas here only adds a visible brightness pulse. */
+        html.polish-scroll-performance .polish-live-grain {
+          opacity: 1 !important;
         }
         html.polish-live-grain-ready .grain-overlay {
           opacity: 0 !important;
@@ -271,11 +278,24 @@
         let lastRender = 0;
         let animationFrame = 0;
         let resizeFrame = 0;
+        let scrollResumeTimer = 0;
+        let scrolling = false;
         let running = false;
         const renderCanvasGrain = (time) => {
-          if (!running) return;
+          if (!running) {
+            animationFrame = 0;
+            return;
+          }
           animationFrame = requestAnimationFrame(renderCanvasGrain);
-          if (time - lastRender < 55) return;
+          // Keep a subtle low-frequency grain motion during scroll. Freezing
+          // the loop entirely makes the texture look like it stalls, while
+          // rendering every frame competes with the scroll compositor.
+          const renderInterval = scrolling ? 100 : 55;
+          if (time - lastRender < renderInterval) return;
+          /* The Hero SDF already owns a full-screen fragment pass while the
+             pointer is over the title.  Keep the last grain frame in place
+             during that interaction instead of competing for the CPU/GPU. */
+          if (document.querySelector('[data-sdf-active="true"]')) return;
           lastRender = time;
           resizeCanvas();
           seed = (seed + 0x6d2b79f5 + frame * 97) >>> 0;
@@ -314,6 +334,18 @@
           if (animationFrame) cancelAnimationFrame(animationFrame);
           animationFrame = 0;
         };
+        const markScrolling = () => {
+          scrolling = true;
+          document.documentElement.classList.add('polish-scroll-performance');
+          if (running && !animationFrame) animationFrame = requestAnimationFrame(renderCanvasGrain);
+          clearTimeout(scrollResumeTimer);
+          scrollResumeTimer = window.setTimeout(() => {
+            scrollResumeTimer = 0;
+            scrolling = false;
+            document.documentElement.classList.remove('polish-scroll-performance');
+            if (running && !animationFrame) animationFrame = requestAnimationFrame(renderCanvasGrain);
+          }, 180);
+        };
         const handleVisibility = () => {
           if (document.hidden) stopRendering();
           else startRendering();
@@ -330,8 +362,14 @@
         canvas.dataset.renderer = 'tiled-2d';
         canvas.dataset.tilePixels = String(tileSize * tileSize);
         window.addEventListener('resize', scheduleResize, { passive: true });
+        window.addEventListener('wheel', markScrolling, { passive: true });
+        window.addEventListener('scroll', markScrolling, { passive: true });
         document.addEventListener('visibilitychange', handleVisibility);
-        window.addEventListener('pagehide', stopRendering);
+        window.addEventListener('pagehide', () => {
+          clearTimeout(scrollResumeTimer);
+          document.documentElement.classList.remove('polish-scroll-performance');
+          stopRendering();
+        });
         window.addEventListener('pageshow', startRendering);
         resizeCanvas();
         startRendering();
@@ -482,9 +520,9 @@
     heroVideoSrc: 'media/hero-abstract-loop.mp4',
     heroVideoPoster: 'media/hero-abstract-poster.jpg',
     heroVideoMobile: true,
-    heroVideoLazy: true,
-    heroVideoLazyDelay: 650,
-    heroVideoPreload: 'none',
+    heroVideoLazy: false,
+    heroVideoLazyDelay: 0,
+    heroVideoPreload: 'auto',
     heroScrollMotion: true,
     heroDecorMotion: false,
     heroSdfTitle: true,
@@ -501,7 +539,7 @@
     heroSdfDispersion: 3.75,
     heroSdfChromaIntensity: 1,
     heroSdfGrainStrength: 2,
-    heroSdfTrailTextureSize: 1024,
+    heroSdfTrailTextureSize: 384,
     heroSdfTrailMaxAge: 210,
     heroSdfTrailBlend: 'difference',
     heroSdfTrailRadius: 0.113,
@@ -535,8 +573,8 @@
     heroSdfRecoveryRadiusFollow: 8.6,
     heroSdfRecoveryVelocityDamping: 7.2,
     heroSdfCoarsePointerHoldMs: 640,
-    heroSdfTexturePixelRatio: 1.5,
-    heroSdfMaxTextureWidth: 3840,
+    heroSdfTexturePixelRatio: 0.9,
+    heroSdfMaxTextureWidth: 1440,
     heroSdfRespectReducedMotion: false,
     innerImageParallax: true,
     innerImageParallaxStrength: 0.009,
@@ -1034,8 +1072,10 @@
         inset: 0 !important;
         z-index: 6 !important;
         opacity: .18 !important;
+        visibility: visible !important;
         mix-blend-mode: screen !important;
         pointer-events: none !important;
+        transition: opacity .2s ease, visibility 0s linear 0s !important;
       }
       /* Suppress only the standalone colored fluid mouse trail while Hero or
          Works is being browsed. The SDF title canvas remains interactive. */
@@ -1043,6 +1083,7 @@
         display: block !important;
         opacity: 0 !important;
         visibility: hidden !important;
+        transition: opacity .2s ease, visibility 0s linear .2s !important;
       }
       .polish-hero-scroll-motion {
         --polish-hero-content-y: 0px;
@@ -1074,10 +1115,14 @@
       .polish-hero-scroll-motion > .polish-hero-decor {
         position: fixed !important;
       }
+      /* Keep the video layer composited while the Works rail passes over it.
+         Toggling visibility here forces a layer rebuild and can flash the
+         underlying page for one frame.  Opacity alone is enough because the
+         cover sections are opaque and sit above the layer. */
       .polish-hero-scroll-motion.is-polish-hero-video-hidden > .polish-hero-video-layer {
         opacity: 0;
-        visibility: hidden;
-        transition: none;
+        visibility: visible;
+        transition: opacity .12s linear;
       }
       .polish-hero-scroll-content {
         position: fixed;
@@ -1311,6 +1356,10 @@
       .polish-hide-system-cursor * {
         cursor: none !important;
       }
+      html.polish-native-dot-cursor,
+      html.polish-native-dot-cursor * {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3.2' fill='white' stroke='black' stroke-opacity='.58' stroke-width='1.15'/%3E%3C/svg%3E") 8 8, auto !important;
+      }
       html:not(.polish-custom-cursor-ready) main.cursor-none,
       html:not(.polish-custom-cursor-ready) main.cursor-none * {
         cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='3.2' fill='white' stroke='black' stroke-opacity='.58' stroke-width='1.15'/%3E%3C/svg%3E") 8 8, auto !important;
@@ -1318,6 +1367,8 @@
       @media (hover: none), (pointer: coarse) {
         .polish-hide-system-cursor,
         .polish-hide-system-cursor *,
+        .polish-native-dot-cursor,
+        .polish-native-dot-cursor *,
         html:not(.polish-custom-cursor-ready) main.cursor-none,
         html:not(.polish-custom-cursor-ready) main.cursor-none * {
           cursor: auto !important;
@@ -1399,6 +1450,9 @@
         transition: opacity .16s ease, background-color .16s ease, box-shadow .16s ease;
         mix-blend-mode: difference;
         will-change: transform, opacity;
+      }
+      html.polish-native-dot-cursor .polish-click-cursor {
+        display: none !important;
       }
       .polish-click-cursor::before,
       .polish-click-cursor::after {
@@ -1990,6 +2044,8 @@
       @media (hover: none), (pointer: coarse) {
         html.polish-hide-system-cursor,
         html.polish-hide-system-cursor *,
+        html.polish-native-dot-cursor,
+        html.polish-native-dot-cursor *,
         main.cursor-none,
         main.cursor-none * {
           cursor: auto !important;
@@ -2419,6 +2475,7 @@
         min-width: 0;
         display: flex;
         gap: var(--polish-works-gap);
+        contain: layout paint style;
       }
       .polish-gallery-section.is-polish-works-rail .polish-layer-tile {
         --polish-card-weight: 1;
@@ -2431,8 +2488,15 @@
         aspect-ratio: auto;
         contain: none;
         cursor: inherit;
-        will-change: flex-grow, filter, opacity;
+        /* Do not promote every duplicated rail card.  Only the active card
+           rules below need a compositor layer while their spring is moving. */
+        will-change: auto;
         -webkit-user-drag: none;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-visual-open,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-polish-hovered,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-settling {
+        will-change: flex-grow, filter, opacity;
       }
       .polish-gallery-section.is-polish-works-rail .polish-layer-tile img {
         -webkit-user-drag: none;
@@ -2467,7 +2531,7 @@
         inset: 0;
         z-index: 1;
         overflow: hidden;
-        transform: translateZ(0);
+        transform: none;
         backface-visibility: hidden;
       }
       .polish-works-image {
@@ -2481,7 +2545,11 @@
         filter: saturate(.88) contrast(1.07) brightness(.86);
         transform: translate3d(calc(var(--polish-card-mx) * -9px + var(--polish-rail-depth)), calc(var(--polish-card-my) * -7px), 0) scale(1.05);
         transition: filter .45s ease;
-        will-change: transform;
+        will-change: auto;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-visual-open .polish-works-image,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-polish-hovered .polish-works-image {
+        will-change: transform, filter;
       }
       .polish-layer-tile.is-visual-open .polish-works-image {
         filter: saturate(.98) contrast(1.08) brightness(.86);
@@ -2823,6 +2891,25 @@
         inset: 0;
         pointer-events: none;
         will-change: transform, opacity;
+      }
+      /* The rail duplicates five pages of cards.  Keep hidden/inactive
+         descendants in the normal paint flow and promote only the card being
+         interacted with.  Transitions still retain the same appearance. */
+      .polish-gallery-section.is-polish-works-rail .polish-layer-media,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-sheen,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-lines,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-caption {
+        will-change: auto;
+      }
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-visual-open .polish-layer-media,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-polish-hovered .polish-layer-media,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-visual-open .polish-layer-sheen,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-polish-hovered .polish-layer-sheen,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-visual-open .polish-layer-lines,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-polish-hovered .polish-layer-lines,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-visual-open .polish-layer-caption,
+      .polish-gallery-section.is-polish-works-rail .polish-layer-tile.is-polish-hovered .polish-layer-caption {
+        will-change: transform, opacity, filter;
       }
       .polish-gallery-grid.is-page-entering .polish-layer-tile {
         animation: none !important;
@@ -6166,7 +6253,7 @@
   function setupMobilePointerPolicy() {
     function apply() {
       if (!isCoarsePointerInput()) return;
-      document.documentElement.classList.remove('polish-hide-system-cursor', 'polish-custom-cursor-ready');
+      document.documentElement.classList.remove('polish-hide-system-cursor', 'polish-native-dot-cursor', 'polish-custom-cursor-ready');
       document.querySelectorAll('.polish-click-cursor, .polish-click-ring, .polish-click-burst').forEach((node) => node.remove());
       document.querySelectorAll('.polish-native-cursor-hidden').forEach((node) => node.classList.remove('polish-native-cursor-hidden'));
     }
@@ -6704,13 +6791,17 @@
       if (!canUseVideo || !document.body.contains(layer) || layer.querySelector('video')) return;
       const video = document.createElement('video');
       video.className = 'polish-hero-video';
-      video.autoplay = true;
+      /* If the user reaches Works before the lazy mount fires, do not start
+         decoding a hidden video.  The scroll controller will resume it when
+         Hero becomes visible again. */
+      const heroHidden = hero.classList.contains('is-polish-hero-video-hidden');
+      video.autoplay = !heroHidden;
       video.muted = true;
       video.loop = true;
       video.playsInline = true;
       video.preload = preloadMode;
       video.setAttribute('muted', '');
-      video.setAttribute('autoplay', '');
+      if (!heroHidden) video.setAttribute('autoplay', '');
       video.setAttribute('loop', '');
       video.setAttribute('playsinline', '');
       if (poster) video.poster = poster;
@@ -6728,8 +6819,13 @@
         document.documentElement.classList.remove('polish-hero-video-active');
       }, { once: true });
       layer.insertBefore(video, fallback);
-      const playAttempt = video.play();
-      if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
+      if (heroHidden) {
+        video.dataset.polishHeroOffscreenPaused = 'true';
+        video.pause();
+      } else {
+        const playAttempt = video.play();
+        if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
+      }
     };
 
     if (canUseVideo) {
@@ -6861,7 +6957,7 @@
 
     let raf = 0;
     let watchTimer = 0;
-    const state = { hero, main, content, sections, requestUpdate, destroy };
+    const state = { hero, main, content, sections, requestUpdate, destroy, lastHideVideo: null };
 
     function update() {
       raf = 0;
@@ -6877,31 +6973,35 @@
 
       // The hero is the stationary visual plane. Every following module keeps
       // its native document flow and travels upward over this plane.
-      hero.style.setProperty('--polish-hero-content-y', '0px');
-      hero.style.setProperty('--polish-hero-content-scale', '1');
-      hero.style.setProperty('--polish-hero-content-opacity', '1');
-      hero.style.setProperty('--polish-hero-indicator-y', '0px');
-      hero.style.setProperty('--polish-hero-indicator-opacity', '.86');
-      hero.style.setProperty('--polish-hero-video-y', '0px');
-      hero.style.setProperty('--polish-hero-video-scale', '1');
-      if (firstCover) firstCover.style.removeProperty('--polish-hero-cover-y');
       const hideVideo = coverTop <= 2;
-      hero.classList.toggle('is-polish-hero-video-hidden', hideVideo);
+      if (state.lastHideVideo !== hideVideo) {
+        state.lastHideVideo = hideVideo;
+        hero.classList.toggle('is-polish-hero-video-hidden', hideVideo);
+        const video = hero.querySelector('.polish-hero-video');
+        if (video) {
+          if (hideVideo) {
+            video.pause();
+            video.dataset.polishHeroOffscreenPaused = 'true';
+          } else if (video.dataset.polishHeroOffscreenPaused === 'true') {
+            delete video.dataset.polishHeroOffscreenPaused;
+            const playAttempt = video.play();
+            if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
+          }
+        }
+      }
     }
 
     function requestUpdate() {
-      update();
       if (!raf) raf = requestAnimationFrame(update);
+      scheduleHeroSdfScrollPause();
       startWatch();
     }
 
     function startWatch() {
-      watchHeroEdge();
-      if (!watchTimer) watchTimer = window.setInterval(watchHeroEdge, 80);
+      if (!watchTimer) watchTimer = window.setInterval(watchHeroEdge, 240);
     }
 
     function watchHeroEdge() {
-      update();
       if (!document.body.contains(hero) || heroScrollMotionState !== state) return;
       const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
       const rect = hero.getBoundingClientRect();
@@ -6912,6 +7012,8 @@
       if (!heroNear && !bridgeNear && watchTimer) {
         window.clearInterval(watchTimer);
         watchTimer = 0;
+      } else if (heroNear || bridgeNear) {
+        if (!raf) raf = requestAnimationFrame(update);
       }
     }
 
@@ -6941,6 +7043,13 @@
     window.addEventListener('scroll', requestUpdate, { passive: true });
     window.addEventListener('resize', requestUpdate, { passive: true });
     heroScrollMotionState = state;
+    hero.style.setProperty('--polish-hero-content-y', '0px');
+    hero.style.setProperty('--polish-hero-content-scale', '1');
+    hero.style.setProperty('--polish-hero-content-opacity', '1');
+    hero.style.setProperty('--polish-hero-indicator-y', '0px');
+    hero.style.setProperty('--polish-hero-indicator-opacity', '.86');
+    hero.style.setProperty('--polish-hero-video-y', '0px');
+    hero.style.setProperty('--polish-hero-video-scale', '1');
     update();
     startWatch();
   }
@@ -7166,7 +7275,8 @@
       ringState.x = pointer.x;
       ringState.y = pointer.y;
       ringState.ready = true;
-      document.documentElement.classList.add('polish-custom-cursor-ready', 'polish-hide-system-cursor');
+      document.documentElement.classList.remove('polish-hide-system-cursor');
+      document.documentElement.classList.add('polish-custom-cursor-ready', 'polish-native-dot-cursor');
       updateFromElement(source || document.elementFromPoint(pointer.x, pointer.y));
       requestAnimationFrame(() => {
         cursor.classList.remove('is-priming');
@@ -7211,6 +7321,16 @@
       if (!ringState.ready) {
         ringState.x = pointer.x;
         ringState.y = pointer.y;
+      }
+      /* During an active scroll the target under the pointer is unstable.
+         Skip proximity/layout checks and card activation until the scroll
+         settles; the delayed hover sync below will restore the target. */
+      if (document.documentElement.classList.contains('polish-scroll-performance') ||
+          document.documentElement.classList.contains('polish-hover-sync-scrolling')) {
+        pointer.active = false;
+        setTarget(null);
+        paintCursor();
+        return;
       }
       updateFromElement(event.target);
     }
@@ -7411,7 +7531,16 @@
     }
 
     document.addEventListener('pointermove', (event) => {
-      let target = event.target && event.target.closest && event.target.closest(selector);
+      const source = event.target;
+      /* Works cards deliberately do not use magnetic buttons.  Exit before
+         scanning nav controls and measuring their proximity on every pointer
+         sample while the rail is moving. */
+      if (source && source.closest && source.closest('.polish-gallery-grid, .polish-gallery-controls, #projects')) {
+        if (active) release(active);
+        active = null;
+        return;
+      }
+      let target = source && source.closest && source.closest(selector);
       let navMagneticInfluence = 0;
       const navMatch = getNavMagneticMatch(event.clientX, event.clientY);
       if (navMatch) {
@@ -7491,6 +7620,8 @@
     let y = -1;
     let raf = 0;
     let scrollTimer = 0;
+    let scrollSyncBlockedUntil = 0;
+    let lastActiveItem = null;
     const selector = '#projects [data-cursor="pointer"], .polish-layer-tile, .polish-project-detail__image-frame, #about [data-polish-profile-card]';
 
     function resetProfileCardMotion(card) {
@@ -7520,8 +7651,10 @@
       }
       const source = document.elementFromPoint(x, y);
       const activeItem = source && source.closest ? source.closest(selector) : null;
+      if (activeItem === lastActiveItem && (!activeItem || activeItem.classList.contains('is-polish-hovered'))) return;
       clearStale(activeItem);
       if (activeItem) activeItem.classList.add('is-polish-hovered');
+      lastActiveItem = activeItem;
     }
 
     function requestSync() {
@@ -7530,9 +7663,10 @@
 
     function requestScrollSync() {
       document.documentElement.classList.add('polish-hover-sync-scrolling');
-      requestSync();
+      scrollSyncBlockedUntil = performance.now() + 220;
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => {
+        scrollTimer = 0;
         requestSync();
       }, 220);
     }
@@ -7540,12 +7674,37 @@
     window.addEventListener('pointermove', (event) => {
       x = event.clientX;
       y = event.clientY;
+      const remaining = scrollSyncBlockedUntil - performance.now();
+      if (remaining > 0) {
+        // Keep the transition gate active for the full debounce window. The
+        // Works card handlers run before this listener; removing the class
+        // here would let rapid follow-up pointer moves start card springs.
+        document.documentElement.classList.add('polish-hover-sync-scrolling');
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          scrollTimer = 0;
+          document.documentElement.classList.remove('polish-hover-sync-scrolling');
+          requestSync();
+        }, remaining);
+        return;
+      }
       document.documentElement.classList.remove('polish-hover-sync-scrolling');
       requestSync();
     }, { passive: true });
     window.addEventListener('mousemove', (event) => {
       x = event.clientX;
       y = event.clientY;
+      const remaining = scrollSyncBlockedUntil - performance.now();
+      if (remaining > 0) {
+        document.documentElement.classList.add('polish-hover-sync-scrolling');
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          scrollTimer = 0;
+          document.documentElement.classList.remove('polish-hover-sync-scrolling');
+          requestSync();
+        }, remaining);
+        return;
+      }
       document.documentElement.classList.remove('polish-hover-sync-scrolling');
       requestSync();
     }, { passive: true });
@@ -7561,6 +7720,24 @@
   let heroSdfInstance = null;
   let heroSdfMountGeneration = 0;
   let activeHeroSdfConfig = null;
+  let heroSdfScrollResumeTimer = 0;
+  let heroSdfScrollSuspended = false;
+
+  function setHeroSdfScrollSuspended(suspended) {
+    heroSdfScrollSuspended = Boolean(suspended);
+    if (heroSdfInstance && typeof heroSdfInstance.setSuspended === 'function') {
+      heroSdfInstance.setSuspended(heroSdfScrollSuspended);
+    }
+  }
+
+  function scheduleHeroSdfScrollPause() {
+    setHeroSdfScrollSuspended(true);
+    clearTimeout(heroSdfScrollResumeTimer);
+    heroSdfScrollResumeTimer = window.setTimeout(() => {
+      heroSdfScrollResumeTimer = 0;
+      setHeroSdfScrollSuspended(false);
+    }, 180);
+  }
 
   function heroSdfNumber(config, key, fallback) {
     const value = Number(config && config[key]);
@@ -7650,7 +7827,7 @@
           dispersion: heroSdfNumber(activeHeroSdfConfig, 'heroSdfDispersion', 3.75),
           chromaIntensity: heroSdfNumber(activeHeroSdfConfig, 'heroSdfChromaIntensity', 1),
           grainStrength: heroSdfNumber(activeHeroSdfConfig, 'heroSdfGrainStrength', 2),
-          trailTextureSize: heroSdfNumber(activeHeroSdfConfig, 'heroSdfTrailTextureSize', 1024),
+          trailTextureSize: heroSdfNumber(activeHeroSdfConfig, 'heroSdfTrailTextureSize', 512),
           trailMaxAge: heroSdfNumber(activeHeroSdfConfig, 'heroSdfTrailMaxAge', 210),
           trailBlend: String(activeHeroSdfConfig.heroSdfTrailBlend || 'difference'),
           trailRadius: heroSdfNumber(activeHeroSdfConfig, 'heroSdfTrailRadius', 0.113),
@@ -7684,10 +7861,13 @@
           recoveryRadiusFollow: heroSdfNumber(activeHeroSdfConfig, 'heroSdfRecoveryRadiusFollow', 8.6),
           recoveryVelocityDamping: heroSdfNumber(activeHeroSdfConfig, 'heroSdfRecoveryVelocityDamping', 7.2),
           coarsePointerHoldMs: heroSdfNumber(activeHeroSdfConfig, 'heroSdfCoarsePointerHoldMs', 640),
-          maxTextureWidth: heroSdfNumber(activeHeroSdfConfig, 'heroSdfMaxTextureWidth', 5120),
-          texturePixelRatio: heroSdfNumber(activeHeroSdfConfig, 'heroSdfTexturePixelRatio', 3),
+          maxTextureWidth: heroSdfNumber(activeHeroSdfConfig, 'heroSdfMaxTextureWidth', 1920),
+          texturePixelRatio: heroSdfNumber(activeHeroSdfConfig, 'heroSdfTexturePixelRatio', 1.15),
           respectReducedMotion: activeHeroSdfConfig.heroSdfRespectReducedMotion !== false
         });
+        if (heroSdfInstance && typeof heroSdfInstance.setSuspended === 'function') {
+          heroSdfInstance.setSuspended(heroSdfScrollSuspended);
+        }
         window.heroSdfTitleEffect = heroSdfInstance;
       })
       .catch((error) => {
@@ -9788,7 +9968,20 @@
     let worksRailLast = performance.now();
     let worksSpringFrame = 0;
     let worksSpringLast = performance.now();
+    const worksSpringCards = new Set();
     let worksHoveredCard = null;
+    let worksViewportWidthValue = 0;
+    let worksGridHeightValue = 0;
+    let worksGapValue = 0;
+    let worksPageStepValue = 0;
+    let worksProgressCycleValue = 0;
+    let worksProgressSegments = [];
+    let worksPointerFrame = 0;
+    let worksPointerCard = null;
+    let worksPointerX = 0;
+    let worksPointerY = 0;
+    let worksResizeFrame = 0;
+    const worksFinePointerQuery = window.matchMedia('(hover:hover) and (pointer:fine)');
     let worksDragging = false;
     let worksDragMoved = false;
     let worksDragStartX = 0;
@@ -9802,14 +9995,28 @@
       return ((value % length) + length) % length;
     }
 
+    function measureWorksRailMetrics() {
+      if (!worksViewport || !grid) return 0;
+      const viewportRect = worksViewport.getBoundingClientRect();
+      const gridRect = grid.getBoundingClientRect();
+      const gridStyle = getComputedStyle(grid);
+      worksViewportWidthValue = viewportRect.width;
+      worksGridHeightValue = gridRect.height;
+      worksGapValue = parseFloat(gridStyle.columnGap || gridStyle.gap) || 0;
+      worksPageStepValue = worksViewportWidthValue + worksGapValue;
+      worksProgressCycleValue = count.clientWidth;
+      worksProgressSegments = Array.from(count.querySelectorAll('span'));
+      return worksPageStepValue;
+    }
+
     function worksViewportWidth() {
-      return worksViewport ? worksViewport.getBoundingClientRect().width : 0;
+      if (!worksViewportWidthValue) measureWorksRailMetrics();
+      return worksViewportWidthValue;
     }
 
     function worksPageStep() {
-      if (!worksViewport || !grid) return worksViewportWidth();
-      const gap = parseFloat(getComputedStyle(grid).columnGap || getComputedStyle(grid).gap) || 0;
-      return worksViewportWidth() + gap;
+      if (!worksPageStepValue) measureWorksRailMetrics();
+      return worksPageStepValue;
     }
 
     function worksCardMarkup(item, index) {
@@ -9821,42 +10028,60 @@
       const metaMarkup = meta ? '<span class="polish-works-kind">' + meta + '</span>' : '';
       const summaryMarkup = summary ? '<span class="polish-works-summary">' + summary + '</span>' : '';
       return '<a class="polish-layer-tile" href="' + href + '" data-project-slug="' + escapeHtml(item.slug) + '" data-polish-layer-tile aria-label="' + title + '">' +
-        '<span class="polish-works-surface"><img class="polish-works-image" src="' + escapeHtml(item.image) + '" alt="" draggable="false"/><span class="polish-works-grid-lines"></span></span>' +
+          '<span class="polish-works-surface"><img class="polish-works-image" src="' + escapeHtml(item.image) + '" alt="" loading="lazy" decoding="async" draggable="false"/><span class="polish-works-grid-lines"></span></span>' +
         '<span class="polish-works-chrome" aria-hidden="true"><span class="polish-works-index">' + number + '</span>' + metaMarkup + '</span>' +
         '<span class="polish-works-copy"><span class="polish-works-name">' + title + '</span><span class="polish-works-detail"><span>' + summaryMarkup + '<span class="polish-works-view">' + escapeHtml(getEditableContentValue('works.viewProject', 'View project')) + '</span></span></span></span>' +
         '</a>';
     }
 
+    function closeWorksCard(card) {
+      if (!card) return false;
+      if (card.classList.contains('is-visual-open')) {
+        const titleNode = card.querySelector('.polish-works-name');
+        const expandedTitleWidth = titleNode ? titleNode.getBoundingClientRect().width : 0;
+        if (expandedTitleWidth > 0) card.style.setProperty('--polish-title-lock', expandedTitleWidth.toFixed(2) + 'px');
+        card.classList.remove('is-settling');
+        clearTimeout(card._worksSettleTimer);
+        clearTimeout(card._worksTitleTimer);
+        card._worksTitleTimer = setTimeout(() => {
+          if (worksHoveredCard !== card) card.style.removeProperty('--polish-title-lock');
+        }, 190);
+        card._worksNeedsSettle = true;
+      }
+      card._worksPointerRect = null;
+      card.classList.remove('is-visual-open', 'is-opening', 'is-polish-hovered');
+      worksSpringCards.add(card);
+      return true;
+    }
+
     function closeWorksCards(runSpring = true) {
+      const activeCard = worksHoveredCard;
       worksHoveredCard = null;
-      worksCards.forEach((card) => {
-        if (card.classList.contains('is-visual-open')) {
-          const titleNode = card.querySelector('.polish-works-name');
-          const expandedTitleWidth = titleNode ? titleNode.getBoundingClientRect().width : 0;
-          if (expandedTitleWidth > 0) card.style.setProperty('--polish-title-lock', expandedTitleWidth.toFixed(2) + 'px');
-          card.classList.remove('is-settling');
-          clearTimeout(card._worksSettleTimer);
-          clearTimeout(card._worksTitleTimer);
-          card._worksTitleTimer = setTimeout(() => {
-            if (worksHoveredCard !== card) card.style.removeProperty('--polish-title-lock');
-          }, 190);
-          card._worksNeedsSettle = true;
-        }
-        card.classList.remove('is-visual-open', 'is-opening', 'is-polish-hovered');
-      });
-      if (runSpring) wakeWorksSpring();
+      let closed = closeWorksCard(activeCard);
+      const staleCard = grid.querySelector('.is-visual-open');
+      if (staleCard && staleCard !== activeCard) closed = closeWorksCard(staleCard) || closed;
+      if (runSpring && (closed || worksSpringCards.size)) wakeWorksSpring();
     }
 
     function openWorksCard(card) {
-      if (!card || worksHoveredCard === card || worksDragging) return;
+      const root = document.documentElement;
+      if (
+        !card ||
+        worksHoveredCard === card ||
+        worksDragging ||
+        root.classList.contains('polish-hover-sync-scrolling') ||
+        root.classList.contains('polish-scroll-performance')
+      ) return;
       closeWorksCards(false);
       worksHoveredCard = card;
       card._worksOpenWeight = worksExpandedWeight(card);
       clearTimeout(card._worksSettleTimer);
       clearTimeout(card._worksTitleTimer);
+      cancelAnimationFrame(card._worksSettleRestartFrame);
       card.classList.remove('is-settling');
       card.style.removeProperty('--polish-title-lock');
       card.classList.add('is-visual-open', 'is-opening', 'is-polish-hovered');
+      worksSpringCards.add(card);
       setTimeout(() => card.classList.remove('is-opening'), 880);
       wakeWorksSpring();
     }
@@ -9864,24 +10089,24 @@
     function worksExpandedWeight(card) {
       const pageNode = card && card.closest('.polish-works-page');
       if (!pageNode) return 1.36;
-      const pageCards = Array.from(pageNode.querySelectorAll('[data-polish-layer-tile]'));
-      if (pageCards.length < 2) return 1;
-      const pageStyle = getComputedStyle(pageNode);
-      const gap = parseFloat(pageStyle.columnGap || pageStyle.gap) || 0;
-      const pageWidth = pageNode.getBoundingClientRect().width;
-      const cardHeight = card.getBoundingClientRect().height;
-      const availableWidth = Math.max(1, pageWidth - gap * (pageCards.length - 1));
-      const maxPortraitWidth = Math.min(cardHeight / 1.26, availableWidth - 1);
+      const cardCount = pageNode.childElementCount;
+      if (cardCount < 2) return 1;
+      if (!worksViewportWidthValue || !worksGridHeightValue) measureWorksRailMetrics();
+      const availableWidth = Math.max(1, worksViewportWidthValue - worksGapValue * (cardCount - 1));
+      const maxPortraitWidth = Math.min(worksGridHeightValue / 1.26, availableWidth - 1);
       const denominator = Math.max(1, availableWidth - maxPortraitWidth);
-      const portraitWeight = maxPortraitWidth * (pageCards.length - 1) / denominator;
+      const portraitWeight = maxPortraitWidth * (cardCount - 1) / denominator;
       return Math.max(1, Math.min(2.32, portraitWeight));
     }
 
     function worksSpringTick(now) {
       const dt = Math.min(32, now - worksSpringLast) / 16.667;
       worksSpringLast = now;
-      let moving = false;
-      worksCards.forEach((card) => {
+      Array.from(worksSpringCards).forEach((card) => {
+        if (!card.isConnected) {
+          worksSpringCards.delete(card);
+          return;
+        }
         const target = card === worksHoveredCard ? (card._worksOpenWeight || worksExpandedWeight(card)) : 1;
         const delta = target - card._worksWeight;
         const stiffness = target === 1 ? .17 : .1;
@@ -9895,18 +10120,27 @@
           card._worksWeight = 2.4;
           card._worksVelocity *= .35;
         }
-        if (Math.abs(delta) > .002 || Math.abs(card._worksVelocity) > .002) moving = true;
+        const moving = Math.abs(target - card._worksWeight) > .002 || Math.abs(card._worksVelocity) > .002;
+        if (!moving) {
+          card._worksWeight = target;
+          card._worksVelocity = 0;
+          worksSpringCards.delete(card);
+        }
         card.style.setProperty('--polish-card-weight', card._worksWeight.toFixed(4));
         if (target === 1 && card._worksNeedsSettle && card._worksWeight <= .985) {
           card._worksNeedsSettle = false;
           card.classList.remove('is-settling');
-          void card.offsetWidth;
-          card.classList.add('is-settling');
-          clearTimeout(card._worksSettleTimer);
-          card._worksSettleTimer = setTimeout(() => card.classList.remove('is-settling'), 600);
+          cancelAnimationFrame(card._worksSettleRestartFrame);
+          card._worksSettleRestartFrame = requestAnimationFrame(() => {
+            card._worksSettleRestartFrame = 0;
+            if (card === worksHoveredCard || !card.isConnected) return;
+            card.classList.add('is-settling');
+            clearTimeout(card._worksSettleTimer);
+            card._worksSettleTimer = setTimeout(() => card.classList.remove('is-settling'), 600);
+          });
         }
       });
-      worksSpringFrame = moving ? requestAnimationFrame(worksSpringTick) : 0;
+      worksSpringFrame = worksSpringCards.size ? requestAnimationFrame(worksSpringTick) : 0;
     }
 
     function wakeWorksSpring() {
@@ -9917,11 +10151,11 @@
     }
 
     function renderWorksProgress() {
-      const cycle = count.clientWidth;
+      const cycle = worksProgressCycleValue;
       const step = worksPageStep();
       if (!cycle || !step || !worksGroups.length) return;
       const phase = worksModulo((-worksRailX / step) * (cycle / worksGroups.length), cycle);
-      count.querySelectorAll('span').forEach((segment) => {
+      worksProgressSegments.forEach((segment) => {
         const copy = Number(segment.dataset.copy || 0);
         segment.style.setProperty('--polish-progress-phase', phase + 'px');
         segment.style.setProperty('--polish-progress-copy', (copy * cycle) + 'px');
@@ -9992,6 +10226,23 @@
       wakeWorksRail();
     }
 
+    function scheduleWorksPointer(card, event) {
+      worksPointerCard = card;
+      worksPointerX = event.clientX;
+      worksPointerY = event.clientY;
+      if (worksPointerFrame) return;
+      worksPointerFrame = requestAnimationFrame(() => {
+        worksPointerFrame = 0;
+        const activeCard = worksPointerCard;
+        const rect = activeCard && activeCard._worksPointerRect;
+        if (!activeCard || activeCard !== worksHoveredCard || worksDragging || !rect || !rect.width || !rect.height || !activeCard.isConnected) return;
+        const mx = Math.max(-.5, Math.min(.5, (worksPointerX - rect.left) / rect.width - .5));
+        const my = Math.max(-.5, Math.min(.5, (worksPointerY - rect.top) / rect.height - .5));
+        activeCard.style.setProperty('--polish-card-mx', mx.toFixed(3));
+        activeCard.style.setProperty('--polish-card-my', my.toFixed(3));
+      });
+    }
+
     function bindWorksCards() {
       worksCards = Array.from(grid.querySelectorAll('[data-polish-layer-tile]'));
       worksCards.forEach((card) => {
@@ -10000,25 +10251,55 @@
         card._worksVelocity = 0;
         card._worksSettleTimer = 0;
         card._worksTitleTimer = 0;
+        card._worksSettleRestartFrame = 0;
         card._worksOpenWeight = 1;
-        card.addEventListener('pointerenter', () => {
-          if (!worksDragging && matchMedia('(hover:hover) and (pointer:fine)').matches) openWorksCard(card);
+        card._worksPointerRect = null;
+        card.addEventListener('pointerenter', (event) => {
+          const root = document.documentElement;
+          if (
+            worksDragging ||
+            !worksFinePointerQuery.matches ||
+            root.classList.contains('polish-hover-sync-scrolling') ||
+            root.classList.contains('polish-scroll-performance')
+          ) return;
+          card._worksPointerRect = card.getBoundingClientRect();
+          openWorksCard(card);
+          scheduleWorksPointer(card, event);
         });
         card.addEventListener('pointerleave', () => {
+          card._worksPointerRect = null;
           if (worksHoveredCard === card && !worksDragging) closeWorksCards();
         });
         card.addEventListener('pointermove', (event) => {
-          if (!worksDragging && matchMedia('(hover:hover) and (pointer:fine)').matches) openWorksCard(card);
-          const rect = card.getBoundingClientRect();
-          card.style.setProperty('--polish-card-mx', ((event.clientX - rect.left) / rect.width - .5).toFixed(3));
-          card.style.setProperty('--polish-card-my', ((event.clientY - rect.top) / rect.height - .5).toFixed(3));
-        });
+          const root = document.documentElement;
+          if (
+            worksDragging ||
+            !worksFinePointerQuery.matches ||
+            root.classList.contains('polish-hover-sync-scrolling') ||
+            root.classList.contains('polish-scroll-performance')
+          ) return;
+          if (!card._worksPointerRect) card._worksPointerRect = card.getBoundingClientRect();
+          openWorksCard(card);
+          scheduleWorksPointer(card, event);
+        }, { passive: true });
       });
     }
 
     function buildWorksRail() {
       const nextSize = window.innerWidth <= 760 ? 2 : 3;
       if (nextSize === worksGroupSize && worksCards.length) return;
+      if (worksSpringFrame) cancelAnimationFrame(worksSpringFrame);
+      if (worksPointerFrame) cancelAnimationFrame(worksPointerFrame);
+      worksSpringFrame = 0;
+      worksPointerFrame = 0;
+      worksPointerCard = null;
+      worksHoveredCard = null;
+      worksSpringCards.clear();
+      worksCards.forEach((card) => {
+        clearTimeout(card._worksSettleTimer);
+        clearTimeout(card._worksTitleTimer);
+        cancelAnimationFrame(card._worksSettleRestartFrame);
+      });
       worksGroupSize = nextSize;
       worksGroups = [];
       for (let index = 0; index < items.length; index += worksGroupSize) worksGroups.push(items.slice(index, index + worksGroupSize));
@@ -10030,12 +10311,14 @@
       count.innerHTML = '<span data-copy="-1"></span><span data-copy="0"></span><span data-copy="1"></span>';
       count.setAttribute('aria-label', 'Works browsing progress');
       bindWorksCards();
+      measureWorksRailMetrics();
       worksGroupIndex = Math.min(worksGroupIndex, worksGroups.length - 1);
       worksTargetPage = worksGroups.length * 2 + worksGroupIndex;
       worksRailX = worksRailTargetX = -worksTargetPage * worksPageStep();
       worksRailVelocity = 0;
       renderWorksRail();
       requestAnimationFrame(() => requestAnimationFrame(() => {
+        measureWorksRailMetrics();
         worksRailX = worksRailTargetX = -worksTargetPage * worksPageStep();
         renderWorksRail();
       }));
@@ -10185,10 +10468,19 @@
       scheduleDetailNavMaterialReflection();
       const nextWorksGroupSize = window.innerWidth <= 760 ? 2 : 3;
       if (nextWorksGroupSize !== worksGroupSize) buildWorksRail();
-      else if (!worksDragging && !worksRailFrame && worksViewportWidth() > 0) {
-        if (worksHoveredCard) worksHoveredCard._worksOpenWeight = worksExpandedWeight(worksHoveredCard);
-        worksRailX = worksRailTargetX = -worksTargetPage * worksPageStep();
-        renderWorksRail();
+      else if (!worksDragging) {
+        if (worksResizeFrame) cancelAnimationFrame(worksResizeFrame);
+        worksResizeFrame = requestAnimationFrame(() => {
+          worksResizeFrame = 0;
+          if (worksDragging) return;
+          const previousStep = worksPageStepValue;
+          measureWorksRailMetrics();
+          if (worksHoveredCard) worksHoveredCard._worksOpenWeight = worksExpandedWeight(worksHoveredCard);
+          worksRailTargetX = -worksTargetPage * worksPageStepValue;
+          if (worksRailFrame && previousStep > 0) worksRailX *= worksPageStepValue / previousStep;
+          else worksRailX = worksRailTargetX;
+          renderWorksRail();
+        });
       }
     }, { passive: true });
     window.addEventListener('resize', scheduleDetailChapterMotion, { passive: true });
