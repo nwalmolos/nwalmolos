@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  const HERO_FRAME_RATE = 24;
+  const HERO_FRAME_INTERVAL = 1000 / HERO_FRAME_RATE;
+
   const DEFAULTS = {
     lineSelector: '[data-sdf-line], .polish-title-word',
     pointerTarget: null,
@@ -52,6 +55,13 @@
     recoveryVelocityDamping: 7.2,
     maxTextureWidth: 5120,
     texturePixelRatio: 3,
+    // Render the interactive pass below the idle SDF resolution. The canvas
+    // still covers the Hero, so its soft optical field upscales cleanly while
+    // the video keeps compositor time.
+    // Keep one stable drawing-buffer size across hover and scroll. Resizing a
+    // WebGL canvas clears its buffer; if that happens while scroll rendering
+    // is suspended, the title stays blank until the resume timer fires.
+    interactionPixelRatio: 1,
     coarsePointerHoldMs: 640,
     respectReducedMotion: true
   };
@@ -75,6 +85,11 @@
 
     #define PI 3.14159265358979323846
     #define TWO_PI 6.28318530717958647692
+    // Keep the volumetric projection affordable while preserving its three
+    // interleaved colour lanes. Nine samples keep three balanced colour lanes
+    // while offsetting the cost of restoring the full, uncropped projection.
+    #define RAY_SAMPLE_COUNT 9
+    #define RAY_LANE_NORMALIZER 3.0
 
     uniform sampler2D uSdf;
     uniform sampler2D uTrail;
@@ -399,7 +414,9 @@
         pow(mouseField, 1.1) + pow(trailField, 1.18) * 0.2 + morphField * 0.48
       ) * uSdfBias * uStrength;
       float sdf = readSdf(warpedUv) + sdfBias;
-      float aa = max(fwidth(sdf) * 1.2, 0.0021);
+      // Slightly wider derivative coverage smooths the curved Pilowlava
+      // outline without reintroducing the broad blur used by the VFX field.
+      float aa = max(fwidth(sdf) * 1.45, 0.0021);
       vec2 texel = 1.0 / max(uResolution, vec2(1.0));
 
       // Continuous analytic SDF blur: no sparse tap copies or layer boundary.
@@ -598,7 +615,8 @@
       float distanceToMouse = length(p - mousePoint);
       float projectionRadius = max(0.001, 2.35 * projectionLength);
       float normalizedLightDistance = clamp(distanceToMouse / projectionRadius, 0.0, 1.0);
-      vec2 rayStep = (mousePoint - p) * projectionLength / 36.0;
+      vec2 rayStep = (mousePoint - p) * projectionLength /
+                     float(RAY_SAMPLE_COUNT);
       vec2 rayPoint = p;
       vec2 rayDirection = normalize(mousePoint - p + vec2(0.0001));
       vec2 rayNormal = vec2(-rayDirection.y, rayDirection.x);
@@ -613,13 +631,13 @@
       float coolAccumulation = 0.0;
       float middleAccumulation = 0.0;
       float warmAccumulation = 0.0;
-      for (int raySample = 0; raySample < 36; raySample += 1) {
+      for (int raySample = 0; raySample < RAY_SAMPLE_COUNT; raySample += 1) {
         rayPoint += rayStep;
         vec2 rayNoise = vec2(
           hash12(gl_FragCoord.xy + vec2(float(raySample) * 17.31, 4.7)),
           hash12(gl_FragCoord.yx + vec2(float(raySample) * 9.13, 21.4))
         ) - 0.5;
-        vec2 samplePoint = rayPoint + rayNoise * (0.025 + float(raySample) * 0.00042);
+        vec2 samplePoint = rayPoint + rayNoise * (0.020 + float(raySample) * 0.00034);
         vec2 sampleUv = samplePoint;
         sampleUv.x /= aspectRatio;
         sampleUv = sampleUv * 0.5 + 0.5;
@@ -633,16 +651,18 @@
           centerProximity,
           centerModulation
         );
+        // Keep the projected grain optically soft without letting every ray
+        // inherit a wide low-frequency blur from the glyph reconstruction.
         float sourceMask = fillAlpha(
           readSdf(raySourceUv),
-          max(aa * 2.6, 0.014)
+          max(aa * 2.2, 0.009)
         );
         if (spectralLane == 0) {
-          coolAccumulation += sourceMask / 12.0;
+          coolAccumulation += sourceMask / RAY_LANE_NORMALIZER;
         } else if (spectralLane == 1) {
-          middleAccumulation += sourceMask / 12.0;
+          middleAccumulation += sourceMask / RAY_LANE_NORMALIZER;
         } else {
-          warmAccumulation += sourceMask / 12.0;
+          warmAccumulation += sourceMask / RAY_LANE_NORMALIZER;
         }
       }
 
@@ -1225,8 +1245,19 @@
       this.destroyed = false;
       this.rebuildTimer = 0;
       this.coarseReleaseTimer = 0;
+      this.pointerLeaveTimer = 0;
       this.previewTimer = 0;
+      this.lastScrollInputAt = 0;
       this.canvasRect = null;
+      this.baseCanvasWidth = 0;
+      this.baseCanvasHeight = 0;
+      this.renderScale = 1;
+      this.interactionPixelRatio = clamp(
+        numberOption(this.options.interactionPixelRatio, 1),
+        0.5,
+        1
+      );
+      this.restoreRenderTimer = 0;
       this.canvas.dataset.sdfSuspended = 'false';
       this.isCoarsePointer = matchMedia('(hover: none), (pointer: coarse)').matches;
 
@@ -1267,6 +1298,9 @@
       this.boundPointerLeave = (event) => this.onPointerLeave(event);
       this.boundPointerDown = (event) => this.onPointerDown(event);
       this.boundResize = () => this.scheduleRebuild();
+      this.boundScrollActivity = () => {
+        this.lastScrollInputAt = performance.now();
+      };
       this.boundContextLost = (event) => {
         event.preventDefault();
         this.canvas.dataset.sdfCanvasState = 'fallback';
@@ -1277,6 +1311,11 @@
       this.pointerTarget.addEventListener('pointermove', this.boundPointerMove, { passive: true });
       this.pointerTarget.addEventListener('pointerleave', this.boundPointerLeave, { passive: true });
       this.pointerTarget.addEventListener('pointerdown', this.boundPointerDown, { passive: true });
+      // Capture wheel/scroll before the browser re-hit-tests a stationary
+      // pointer. That re-hit-test can emit pointerleave one event before the
+      // site's bubble-phase scroll listener adds its debounce class.
+      window.addEventListener('wheel', this.boundScrollActivity, { passive: true, capture: true });
+      window.addEventListener('scroll', this.boundScrollActivity, { passive: true, capture: true });
       this.canvas.addEventListener('webglcontextlost', this.boundContextLost, false);
       window.addEventListener('resize', this.boundResize, { passive: true });
 
@@ -1358,6 +1397,40 @@
       this.rebuildTimer = window.setTimeout(() => this.rebuild(), 120);
     }
 
+    applyRenderScale() {
+      if (this.destroyed || !this.gl || !this.baseCanvasWidth || !this.baseCanvasHeight) return;
+      const scale = clamp(numberOption(this.renderScale, 1), 0.5, 1);
+      const width = Math.max(2, Math.round(this.baseCanvasWidth * scale));
+      const height = Math.max(2, Math.round(this.baseCanvasHeight * scale));
+      if (this.canvas.width !== width || this.canvas.height !== height) {
+        this.canvas.width = width;
+        this.canvas.height = height;
+      }
+      this.gl.viewport(0, 0, width, height);
+      this.canvas.dataset.sdfRenderScale = String(Number(scale.toFixed(2)));
+      this.lastRenderTime = 0;
+    }
+
+    setInteractionQuality(active) {
+      if (this.destroyed || !this.gl) return;
+      clearTimeout(this.restoreRenderTimer);
+      if (active) {
+        const nextScale = this.interactionPixelRatio;
+        if (Math.abs(this.renderScale - nextScale) > 0.001) {
+          this.renderScale = nextScale;
+          this.applyRenderScale();
+        }
+      } else {
+        if (this.renderScale >= 0.999) return;
+        this.restoreRenderTimer = window.setTimeout(() => {
+          this.restoreRenderTimer = 0;
+          if (this.destroyed) return;
+          this.renderScale = 1;
+          this.applyRenderScale();
+        }, 180);
+      }
+    }
+
     rebuild() {
       if (this.destroyed || !this.gl) return;
       const canvasRect = this.canvas.getBoundingClientRect();
@@ -1369,6 +1442,8 @@
       const width = Math.max(2, Math.round(canvasRect.width * scale));
       const height = Math.max(2, Math.round(canvasRect.height * scale));
 
+      this.baseCanvasWidth = width;
+      this.baseCanvasHeight = height;
       this.canvas.width = width;
       this.canvas.height = height;
       this.canvasRect = {
@@ -1389,8 +1464,9 @@
       context.textBaseline = 'middle';
       this.textColor = parseCssColor(getComputedStyle(this.lines[0]).color, this.textColor);
 
-      this.lines.forEach((line) => {
-        const lineRect = line.getBoundingClientRect();
+      const lineRects = this.lines.map((line) => line.getBoundingClientRect());
+      this.lines.forEach((line, lineIndex) => {
+        const lineRect = lineRects[lineIndex];
         const style = getComputedStyle(line);
         const fontSize = parseFloat(style.fontSize) || 120;
         const fontStyle = style.fontStyle && style.fontStyle !== 'normal' ? style.fontStyle + ' ' : '';
@@ -1444,6 +1520,7 @@
       }
       this.title.dataset.sdfPrecision = this.useFloatSdf ? 'float16' : 'unorm8';
       gl.viewport(0, 0, width, height);
+      this.applyRenderScale();
       this.canvas.dataset.sdfCanvasState = 'ready';
       this.title.dataset.sdfState = 'ready';
       this.render(performance.now());
@@ -1492,9 +1569,12 @@
 
     onPointerEnter(event) {
       if (this.isTouchEvent(event)) return;
+      clearTimeout(this.pointerLeaveTimer);
+      this.pointerLeaveTimer = 0;
       clearTimeout(this.previewTimer);
       this.targetPointer = this.pointerFromEvent(event);
       this.targetRadius = clamp(numberOption(this.options.lensRadius, 0.25), 0, 1);
+      this.setInteractionQuality(true);
       this.trailPointerActive = true;
       if (this.initializePointerAtTarget()) {
         this.currentRadius = this.targetRadius * 0.55;
@@ -1505,9 +1585,12 @@
 
     onPointerMove(event) {
       if (this.isTouchEvent(event)) return;
+      clearTimeout(this.pointerLeaveTimer);
+      this.pointerLeaveTimer = 0;
       clearTimeout(this.previewTimer);
       this.targetPointer = this.pointerFromEvent(event);
       this.targetRadius = clamp(numberOption(this.options.lensRadius, 0.25), 0, 1);
+      this.setInteractionQuality(true);
       this.trailPointerActive = true;
       this.updateSourceMask(event);
       this.start();
@@ -1515,16 +1598,45 @@
 
     onPointerLeave(event) {
       if (this.isTouchEvent(event)) return;
-      this.targetRadius = 0;
-      this.trailPointerActive = false;
-      this.clearSourceMask();
-      this.start();
+      clearTimeout(this.pointerLeaveTimer);
+      this.pointerLeaveTimer = 0;
+      const release = () => {
+        if (this.destroyed) return;
+        this.targetRadius = 0;
+        this.setInteractionQuality(false);
+        this.trailPointerActive = false;
+        this.clearSourceMask();
+        this.start();
+      };
+      // Scrolling moves the Hero out from under a stationary pointer and
+      // briefly emits pointerleave before the Hero returns on the way back.
+      // Keep the lens/trail alive through that compositor hand-off so the
+      // title never blanks for one or two frames during the reverse scroll.
+      const root = document.documentElement;
+      const recentScroll = performance.now() - this.lastScrollInputAt < 320;
+      if (recentScroll || root && root.classList.contains('polish-hover-sync-scrolling')) {
+        const releaseWhenIdle = () => {
+          if (this.destroyed) return;
+          if (document.documentElement.classList.contains('polish-hover-sync-scrolling')) {
+            this.pointerLeaveTimer = window.setTimeout(releaseWhenIdle, 80);
+            return;
+          }
+          this.pointerLeaveTimer = 0;
+          release();
+        };
+        this.pointerLeaveTimer = window.setTimeout(releaseWhenIdle, 240);
+        return;
+      }
+      release();
     }
 
     onPointerDown(event) {
+      clearTimeout(this.pointerLeaveTimer);
+      this.pointerLeaveTimer = 0;
       clearTimeout(this.previewTimer);
       this.targetPointer = this.pointerFromEvent(event);
       this.targetRadius = clamp(numberOption(this.options.lensRadius, 0.25), 0, 1);
+      this.setInteractionQuality(true);
       this.trailPointerActive = true;
       if (this.initializePointerAtTarget()) {
         this.currentRadius = this.targetRadius * 0.55;
@@ -1534,6 +1646,7 @@
       if (this.isTouchEvent(event)) {
         this.coarseReleaseTimer = window.setTimeout(() => {
           this.targetRadius = 0;
+          this.setInteractionQuality(false);
           this.trailPointerActive = false;
           this.clearSourceMask();
           this.start();
@@ -1645,22 +1758,23 @@
       this.previousPointer[0] = this.currentPointer[0];
       this.previousPointer[1] = this.currentPointer[1];
 
-      /* A playing Hero video and this full-screen fragment shader compete for
-         the same compositor budget.  Keep the spring simulation at the native
-         refresh rate, but draw the SDF at ~42fps while video is playing.  The
-         visual response remains smooth while avoiding video presentation
-         stalls on mid-range GPUs. */
-      const video = document.querySelector('.polish-hero-video');
-      const videoPlaying = Boolean(video && !video.paused && !video.ended);
-      const renderInterval = videoPlaying ? 24 : 0;
-      const shouldRender = !renderInterval || !this.lastRenderTime ||
-        time - this.lastRenderTime >= renderInterval;
+      /* Pace the expensive full-screen pass to the Hero's shared 24fps
+         cadence.  Pointer physics can continue sampling at display refresh
+         rate, while visible SDF frames land on predictable compositor slots. */
+      const shouldRender = !this.lastRenderTime ||
+        time - this.lastRenderTime >= HERO_FRAME_INTERVAL;
       if (shouldRender) {
+        const previousRenderTime = this.lastRenderTime;
         if (this.trail) {
           this.trail.update(this.currentPointer, time, this.trailPointerActive);
         }
         this.render(time);
-        this.lastRenderTime = time;
+        /* Preserve the fractional remainder instead of resetting the clock to
+           the current rAF. This alternates two- and three-vsync gaps on 60Hz
+           displays and averages to 24fps instead of collapsing to 20fps. */
+        this.lastRenderTime = previousRenderTime
+          ? time - ((time - previousRenderTime) % HERO_FRAME_INTERVAL)
+          : time;
       }
 
       const pointerDelta = Math.abs(this.targetPointer[0] - this.currentPointer[0]) +
@@ -1812,12 +1926,16 @@
       this.frame = 0;
       clearTimeout(this.rebuildTimer);
       clearTimeout(this.coarseReleaseTimer);
+      clearTimeout(this.pointerLeaveTimer);
       clearTimeout(this.previewTimer);
+      clearTimeout(this.restoreRenderTimer);
       if (this.boundPointerEnter) {
         this.pointerTarget.removeEventListener('pointerenter', this.boundPointerEnter);
         this.pointerTarget.removeEventListener('pointermove', this.boundPointerMove);
         this.pointerTarget.removeEventListener('pointerleave', this.boundPointerLeave);
         this.pointerTarget.removeEventListener('pointerdown', this.boundPointerDown);
+        window.removeEventListener('wheel', this.boundScrollActivity, true);
+        window.removeEventListener('scroll', this.boundScrollActivity, true);
         this.canvas.removeEventListener('webglcontextlost', this.boundContextLost);
         window.removeEventListener('resize', this.boundResize);
       }

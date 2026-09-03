@@ -56,6 +56,9 @@ main > section:first-of-type > .sdf-title-canvas {
   pointer-events: none !important;
   mix-blend-mode: screen !important;
   transform: none !important;
+  will-change: opacity;
+  backface-visibility: hidden;
+  contain: paint;
   transition: opacity 190ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 

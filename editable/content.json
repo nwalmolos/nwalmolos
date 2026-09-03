@@ -1,5 +1,5 @@
 {
-    "schemaVersion":  4,
+    "schemaVersion":  5,
     "language":  {
                      "default":  "zh",
                      "zh":  {
@@ -8,7 +8,7 @@
                             },
                      "en":  {
                                 "label":  "EN",
-                                "enabled":  true
+                                "enabled":  false
                             }
                  },
     "meta":  {
@@ -38,7 +38,8 @@
                   "hintHover":  "Hover — expand",
                   "hintNavigate":  "Drag or arrows — shift works",
                   "viewProject":  "View project",
-                  "detailView":  "View complete project",
+                  "detailView":  "View this project",
+                  "detailNextView":  "View next project",
                   "detailClose":  "Close",
                   "detailReadMore":  "Read more"
               },
@@ -49,6 +50,7 @@
                        "itemType":  "Milestone",
                        "items":  [
                                      {
+                                         "id":  "trajectory-01",
                                          "year":  "2026",
                                          "title":  "Portfolio system",
                                          "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
@@ -56,9 +58,11 @@
                                                       "React",
                                                       "WebSocket",
                                                       "Canvas API"
-                                                  ]
+                                                  ],
+                                         "href":  ""
                                      },
                                      {
+                                         "id":  "trajectory-02",
                                          "year":  "2025",
                                          "title":  "Motion studies",
                                          "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
@@ -66,9 +70,11 @@
                                                       "Next.js",
                                                       "Three.js",
                                                       "D3.js"
-                                                  ]
+                                                  ],
+                                         "href":  ""
                                      },
                                      {
+                                         "id":  "trajectory-03",
                                          "year":  "2024",
                                          "title":  "Visual archive",
                                          "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
@@ -76,9 +82,11 @@
                                                       "WebGL",
                                                       "Web Audio",
                                                       "GLSL"
-                                                  ]
+                                                  ],
+                                         "href":  ""
                                      },
                                      {
+                                         "id":  "trajectory-04",
                                          "year":  "2026",
                                          "title":  "Portfolio system",
                                          "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
@@ -86,7 +94,8 @@
                                                       "TypeScript",
                                                       "Animation",
                                                       "Open Source"
-                                                  ]
+                                                  ],
+                                         "href":  ""
                                      }
                                  ]
                    },
@@ -185,7 +194,8 @@
                                                                   "hintHover":  "Hover — expand",
                                                                   "hintNavigate":  "Drag or arrows — shift works",
                                                                   "viewProject":  "View project",
-                                                                  "detailView":  "View complete project",
+                                                                   "detailView":  "View this project",
+                                                                   "detailNextView":  "View next project",
                                                                   "detailClose":  "Close",
                                                                   "detailReadMore":  "Read more"
                                                               },
@@ -196,6 +206,7 @@
                                                                        "itemType":  "Milestone",
                                                                        "items":  [
                                                                                      {
+                                                                                         "id":  "trajectory-01",
                                                                                          "year":  "2026",
                                                                                          "title":  "Portfolio system",
                                                                                          "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
@@ -203,9 +214,11 @@
                                                                                                       "React",
                                                                                                       "WebSocket",
                                                                                                       "Canvas API"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      },
                                                                                      {
+                                                                                         "id":  "trajectory-02",
                                                                                          "year":  "2025",
                                                                                          "title":  "Motion studies",
                                                                                          "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
@@ -213,9 +226,11 @@
                                                                                                       "Next.js",
                                                                                                       "Three.js",
                                                                                                       "D3.js"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      },
                                                                                      {
+                                                                                         "id":  "trajectory-03",
                                                                                          "year":  "2024",
                                                                                          "title":  "Visual archive",
                                                                                          "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
@@ -223,9 +238,11 @@
                                                                                                       "WebGL",
                                                                                                       "Web Audio",
                                                                                                       "GLSL"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      },
                                                                                      {
+                                                                                         "id":  "trajectory-04",
                                                                                          "year":  "2026",
                                                                                          "title":  "Portfolio system",
                                                                                          "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
@@ -233,7 +250,8 @@
                                                                                                       "TypeScript",
                                                                                                       "Animation",
                                                                                                       "Open Source"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      }
                                                                                  ]
                                                                    },
@@ -343,7 +361,8 @@
                                                                   "hintHover":  "Hover — expand",
                                                                   "hintNavigate":  "Drag or arrows — shift works",
                                                                   "viewProject":  "View project",
-                                                                  "detailView":  "View complete project",
+                                                                   "detailView":  "View this project",
+                                                                   "detailNextView":  "View next project",
                                                                   "detailClose":  "Close",
                                                                   "detailReadMore":  "Read more"
                                                               },
@@ -354,6 +373,7 @@
                                                                        "itemType":  "Milestone",
                                                                        "items":  [
                                                                                      {
+                                                                                         "id":  "trajectory-01",
                                                                                          "year":  "2026",
                                                                                          "title":  "Portfolio system",
                                                                                          "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
@@ -361,9 +381,11 @@
                                                                                                       "React",
                                                                                                       "WebSocket",
                                                                                                       "Canvas API"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      },
                                                                                      {
+                                                                                         "id":  "trajectory-02",
                                                                                          "year":  "2025",
                                                                                          "title":  "Motion studies",
                                                                                          "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
@@ -371,9 +393,11 @@
                                                                                                       "Next.js",
                                                                                                       "Three.js",
                                                                                                       "D3.js"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      },
                                                                                      {
+                                                                                         "id":  "trajectory-03",
                                                                                          "year":  "2024",
                                                                                          "title":  "Visual archive",
                                                                                          "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
@@ -381,9 +405,11 @@
                                                                                                       "WebGL",
                                                                                                       "Web Audio",
                                                                                                       "GLSL"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      },
                                                                                      {
+                                                                                         "id":  "trajectory-04",
                                                                                          "year":  "2026",
                                                                                          "title":  "Portfolio system",
                                                                                          "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
@@ -391,7 +417,8 @@
                                                                                                       "TypeScript",
                                                                                                       "Animation",
                                                                                                       "Open Source"
-                                                                                                  ]
+                                                                                                  ],
+                                                                                         "href":  ""
                                                                                      }
                                                                                  ]
                                                                    },

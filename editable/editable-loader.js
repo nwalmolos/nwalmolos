@@ -427,7 +427,30 @@
 
   function applyMedia(media) {
     if (!media) return;
-    if (media.favicon) document.querySelectorAll('link[rel="icon"],link[rel="shortcut icon"],link[rel="apple-touch-icon"]').forEach((link) => { link.href = media.favicon; });
+    if (media.favicon) {
+      const iconPath = media.favicon;
+      const extension = (iconPath.match(/\.([a-z0-9]+)(?:[?#]|$)/i) || [])[1]?.toLowerCase() || '';
+      const iconType = extension === 'svg' ? 'image/svg+xml' : extension === 'ico' ? 'image/x-icon' : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension === 'webp' ? 'image/webp' : extension === 'avif' ? 'image/avif' : 'image/png';
+      const definitions = [
+        { rel: 'icon', type: iconType },
+        { rel: 'shortcut icon', type: iconType },
+        { rel: 'apple-touch-icon', type: '' }
+      ];
+      definitions.forEach((definition) => {
+        let links = Array.from(document.querySelectorAll('link[rel="' + definition.rel + '"]'));
+        if (!links.length) {
+          const link = document.createElement('link');
+          link.rel = definition.rel;
+          (document.head || document.documentElement).appendChild(link);
+          links = [link];
+        }
+        links.forEach((link) => {
+          link.href = iconPath;
+          if (definition.type) link.type = definition.type;
+          else link.removeAttribute('type');
+        });
+      });
+    }
 
     const brandNodes = document.querySelectorAll('[data-polish-nav-role="brand"], .polish-mobile-nav-brand');
     if (media.useLogo && media.logo) {
