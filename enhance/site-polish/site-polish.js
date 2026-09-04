@@ -1,6 +1,7 @@
 (function () {
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
+  const HERO_VIDEO_PLAYBACK_RATE = 24 / 25;
   const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260821-film-grain-reflection-1';
   const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260821-hero-pin-1';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
@@ -1408,6 +1409,23 @@
       }
       html.polish-native-dot-cursor .polish-click-cursor {
         display: none !important;
+      }
+      /* The native dot is the normal pointer treatment. While the detail
+         curtain exposes its side-close affordance, replace that dot with the
+         larger X cursor so the state is visible before the click. */
+      html.polish-native-dot-cursor.polish-detail-side-close-hot,
+      html.polish-native-dot-cursor.polish-detail-side-close-hot * {
+        cursor: none !important;
+      }
+      html.polish-native-dot-cursor.polish-detail-side-close-hot .polish-click-cursor {
+        display: block !important;
+      }
+      html.polish-native-dot-cursor.polish-cursor-interactive-hot,
+      html.polish-native-dot-cursor.polish-cursor-interactive-hot * {
+        cursor: none !important;
+      }
+      html.polish-native-dot-cursor.polish-cursor-interactive-hot .polish-click-cursor {
+        display: block !important;
       }
       .polish-click-cursor::before,
       .polish-click-cursor::after {
@@ -4127,11 +4145,13 @@
           text-decoration: none;
           cursor: none;
           -webkit-tap-highlight-color: transparent;
+          -webkit-appearance: none;
+          appearance: none;
           box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
           -webkit-backdrop-filter: blur(10px);
           backdrop-filter: blur(10px);
           transform: none;
-          transition: border-color .22s ease, background-color .22s ease, color .22s ease, transform .22s ease;
+          transition: border-color .22s ease, background-color .22s ease, color .22s ease, opacity .22s ease, transform .22s ease;
         }
         .polish-project-detail__desktop-next::before,
         .polish-project-detail__desktop-next::after {
@@ -4475,6 +4495,9 @@
       }
       .polish-project-detail__next {
         display: none;
+      }
+      .polish-project-detail.is-project-switching [data-polish-next-project] {
+        opacity: .5;
       }
       .polish-lightbox {
         position: fixed;
@@ -5206,11 +5229,13 @@
           text-decoration: none;
           cursor: none;
           -webkit-tap-highlight-color: transparent;
+          -webkit-appearance: none;
+          appearance: none;
           box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
           -webkit-backdrop-filter: blur(10px);
           backdrop-filter: blur(10px);
           transform: none;
-          transition: border-color .22s ease, background-color .22s ease, color .22s ease, transform .22s ease;
+          transition: border-color .22s ease, background-color .22s ease, color .22s ease, opacity .22s ease, transform .22s ease;
         }
         .polish-project-detail__next::before,
         .polish-project-detail__next::after {
@@ -5628,23 +5653,35 @@
         isolation: auto !important;
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-nav-home-item {
-        opacity: 1 !important;
-        filter: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        filter: blur(7px) !important;
         pointer-events: none !important;
-        transform: none !important;
+        transform: translate3d(0, -10px, 0) scale(.982) !important;
       }
-      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-nav-home-item,
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="closing"] nav .polish-shared-nav-home-item {
         opacity: 1 !important;
         filter: none !important;
         pointer-events: none !important;
         transform: none !important;
       }
+      html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-nav-home-item {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        filter: blur(7px) !important;
+        pointer-events: none !important;
+        transform: translate3d(0, -10px, 0) scale(.982) !important;
+      }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="entering"] nav .polish-shared-nav-home-item > * {
-        animation: polish-shared-nav-home-out .30s cubic-bezier(.55, 0, .2, 1) var(--polish-shared-nav-exit-delay, 0ms) both;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        filter: blur(7px) !important;
+        transform: translate3d(0, -10px, 0) scale(.982) !important;
+        animation: none !important;
       }
       html[data-polish-detail-nav-mode="shared"][data-polish-detail-nav-state="open"] nav .polish-shared-nav-home-item > * {
         opacity: 0 !important;
+        visibility: hidden !important;
         filter: blur(7px) !important;
         transform: translate3d(0, -10px, 0) scale(.982) !important;
       }
@@ -6753,7 +6790,10 @@
     let layer = hero.querySelector(':scope > .polish-hero-video-layer');
     const editableHeroEnabled = getEditableMediaValue('heroEnabled', config.heroVideo);
     if (!editableHeroEnabled) {
-      if (layer) layer.remove();
+      if (layer) {
+        if (typeof layer.__polishHeroVideoCleanup === 'function') layer.__polishHeroVideoCleanup();
+        layer.remove();
+      }
       document.documentElement.classList.remove('polish-hero-video-active');
       return;
     }
@@ -6766,9 +6806,23 @@
     const lazyDelay = clamp(Number(config.heroVideoLazyDelay) || 0, 0, 4000);
     const preloadMode = String(config.heroVideoPreload || (lazyVideo ? 'none' : 'metadata')).trim() || 'none';
     const videoKey = [src, poster, allowMobile ? 'mobile' : 'desktop', lazyVideo ? 'lazy' : 'eager', lazyDelay, preloadMode].join('|');
+    const canUseVideo = src && (allowMobile || !matchMedia('(hover: none), (pointer: coarse)').matches);
     if (layer && layer.dataset.polishHeroVideoKey === videoKey) {
       document.documentElement.classList.toggle('polish-hero-video-active', Boolean(src || poster));
-      return;
+      const existingVideo = layer.querySelector('video');
+      if (!canUseVideo || existingVideo) {
+        if (existingVideo && typeof existingVideo.__polishHeroSetVisible === 'function') {
+          existingVideo.__polishHeroSetVisible(!hero.classList.contains('is-polish-hero-video-hidden'));
+        } else if (existingVideo && !document.hidden && existingVideo.paused) {
+          const playAttempt = existingVideo.play();
+          if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
+        }
+        return;
+      }
+      // A matching layer can survive a framework refresh after its media node
+      // was discarded. Rebuild it instead of treating the matching key as a
+      // healthy video instance.
+      delete layer.dataset.polishHeroVideoScheduled;
     }
 
     if (!layer) {
@@ -6777,7 +6831,11 @@
       layer.setAttribute('aria-hidden', 'true');
       hero.insertBefore(layer, hero.firstChild);
     }
+    if (typeof layer.__polishHeroVideoCleanup === 'function') layer.__polishHeroVideoCleanup();
+    layer.__polishHeroVideoCleanup = null;
     layer.dataset.polishHeroVideoKey = videoKey;
+    delete layer.dataset.polishHeroVideoScheduled;
+    layer.classList.remove('is-polish-video-ready');
     layer.textContent = '';
 
     const fallback = document.createElement('div');
@@ -6788,18 +6846,20 @@
     }
     layer.appendChild(fallback);
 
-    const canUseVideo = src && (allowMobile || !matchMedia('(hover: none), (pointer: coarse)').matches);
     const mountVideo = () => {
       if (!canUseVideo || !document.body.contains(layer) || layer.querySelector('video')) return;
       const video = document.createElement('video');
       video.className = 'polish-hero-video';
-      video.autoplay = true;
+      const heroHidden = hero.classList.contains('is-polish-hero-video-hidden');
+      video.autoplay = !heroHidden;
       video.muted = true;
       video.loop = true;
       video.playsInline = true;
       video.preload = preloadMode;
+      video.defaultPlaybackRate = HERO_VIDEO_PLAYBACK_RATE;
+      video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
       video.setAttribute('muted', '');
-      video.setAttribute('autoplay', '');
+      if (!heroHidden) video.setAttribute('autoplay', '');
       video.setAttribute('loop', '');
       video.setAttribute('playsinline', '');
       if (poster) video.poster = poster;
@@ -6808,17 +6868,158 @@
       source.src = src;
       source.type = /\.webm(?:$|\?)/i.test(src) ? 'video/webm' : 'video/mp4';
       video.appendChild(source);
-      video.addEventListener('canplay', () => {
+
+      let destroyed = false;
+      let recoveryTimer = 0;
+      let watchdogTimer = 0;
+      let reloadAttempts = 0;
+      let lastMediaTime = 0;
+      let lastProgressAt = performance.now();
+      let lastPresentedFrameAt = performance.now();
+      let frameWatchGeneration = 0;
+
+      const heroVideoVisible = () => !destroyed && !document.hidden &&
+        document.body.contains(video) && !hero.classList.contains('is-polish-hero-video-hidden');
+      const showFallback = () => layer.classList.remove('is-polish-video-ready');
+      const showVideo = () => {
+        if (!heroVideoVisible() || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
         layer.classList.add('is-polish-video-ready');
         document.documentElement.classList.add('polish-hero-video-active');
-      }, { once: true });
-      video.addEventListener('error', () => {
-        layer.classList.remove('is-polish-video-ready');
-        document.documentElement.classList.remove('polish-hero-video-active');
-      }, { once: true });
+      };
+      const startPresentedFrameWatch = () => {
+        if (!video.requestVideoFrameCallback) return;
+        const generation = ++frameWatchGeneration;
+        const watchFrame = () => {
+          video.requestVideoFrameCallback(() => {
+            if (destroyed || generation !== frameWatchGeneration) return;
+            lastPresentedFrameAt = performance.now();
+            showVideo();
+            watchFrame();
+          });
+        };
+        watchFrame();
+      };
+      const playVideo = () => {
+        if (!heroVideoVisible()) return;
+        video.defaultPlaybackRate = HERO_VIDEO_PLAYBACK_RATE;
+        video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
+        const playAttempt = video.play();
+        if (playAttempt && typeof playAttempt.then === 'function') {
+          playAttempt.then(showVideo).catch(showFallback);
+        }
+      };
+      const recoverVideo = (forceReload) => {
+        if (!heroVideoVisible()) return;
+        showFallback();
+        clearTimeout(recoveryTimer);
+        recoveryTimer = window.setTimeout(() => {
+          recoveryTimer = 0;
+          if (!heroVideoVisible()) return;
+          if (!forceReload && !video.paused && !video.ended &&
+              video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            showVideo();
+            return;
+          }
+          if (forceReload && reloadAttempts < 3) {
+            reloadAttempts += 1;
+            const resumeAt = Number.isFinite(video.duration) && video.duration > 0
+              ? video.currentTime % video.duration
+              : 0;
+            frameWatchGeneration += 1;
+            video.addEventListener('loadedmetadata', () => {
+              if (destroyed) return;
+              if (resumeAt > 0 && Number.isFinite(video.duration)) {
+                try { video.currentTime = Math.min(resumeAt, Math.max(0, video.duration - 0.08)); } catch {}
+              }
+              lastMediaTime = video.currentTime || 0;
+              lastProgressAt = performance.now();
+              lastPresentedFrameAt = performance.now();
+              startPresentedFrameWatch();
+              playVideo();
+            }, { once: true });
+            video.load();
+            return;
+          }
+          if (video.ended && Number.isFinite(video.duration)) {
+            try { video.currentTime = 0; } catch {}
+          }
+          playVideo();
+        }, forceReload ? 80 : 260);
+      };
+      const handleVisibilityChange = () => {
+        if (!document.hidden && heroVideoVisible()) recoverVideo(false);
+      };
+      const handlePageShow = () => {
+        if (heroVideoVisible()) recoverVideo(false);
+      };
+
+      video.__polishHeroSetVisible = (visible) => {
+        if (!visible) {
+          clearTimeout(recoveryTimer);
+          frameWatchGeneration += 1;
+          video.dataset.polishHeroOffscreenPaused = 'true';
+          video.pause();
+          return;
+        }
+        delete video.dataset.polishHeroOffscreenPaused;
+        lastMediaTime = video.currentTime || 0;
+        lastProgressAt = performance.now();
+        lastPresentedFrameAt = performance.now();
+        playVideo();
+      };
+      video.addEventListener('loadeddata', showVideo);
+      video.addEventListener('canplay', showVideo);
+      video.addEventListener('playing', () => {
+        reloadAttempts = 0;
+        lastProgressAt = performance.now();
+        lastPresentedFrameAt = performance.now();
+        startPresentedFrameWatch();
+        showVideo();
+      });
+      video.addEventListener('timeupdate', () => {
+        lastMediaTime = video.currentTime || 0;
+        lastProgressAt = performance.now();
+      });
+      video.addEventListener('waiting', () => recoverVideo(false));
+      video.addEventListener('stalled', () => recoverVideo(false));
+      video.addEventListener('ended', () => recoverVideo(false));
+      video.addEventListener('emptied', showFallback);
+      video.addEventListener('error', () => recoverVideo(true));
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('pageshow', handlePageShow);
+
+      watchdogTimer = window.setInterval(() => {
+        if (!heroVideoVisible()) return;
+        const now = performance.now();
+        const currentTime = video.currentTime || 0;
+        if (Math.abs(currentTime - lastMediaTime) > 0.01 || currentTime < lastMediaTime) {
+          lastMediaTime = currentTime;
+          lastProgressAt = now;
+        }
+        const frameStale = Boolean(video.requestVideoFrameCallback) && now - lastPresentedFrameAt > 2800;
+        const timeStale = now - lastProgressAt > 2800;
+        if (video.paused || video.ended) recoverVideo(false);
+        else if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || frameStale || timeStale) recoverVideo(true);
+      }, 1200);
+
+      layer.__polishHeroVideoCleanup = () => {
+        if (destroyed) return;
+        destroyed = true;
+        clearTimeout(recoveryTimer);
+        window.clearInterval(watchdogTimer);
+        frameWatchGeneration += 1;
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pageshow', handlePageShow);
+        delete video.__polishHeroSetVisible;
+      };
       layer.insertBefore(video, fallback);
-      const playAttempt = video.play();
-      if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
+      if (heroHidden) {
+        video.dataset.polishHeroOffscreenPaused = 'true';
+        video.pause();
+      } else {
+        startPresentedFrameWatch();
+        playVideo();
+      }
     };
 
     if (canUseVideo) {
@@ -6950,7 +7151,7 @@
 
     let raf = 0;
     let watchTimer = 0;
-    const state = { hero, main, content, sections, requestUpdate, destroy };
+    const state = { hero, main, content, sections, requestUpdate, destroy, lastHideVideo: null };
 
     function update() {
       raf = 0;
@@ -6975,7 +7176,14 @@
       hero.style.setProperty('--polish-hero-video-scale', '1');
       if (firstCover) firstCover.style.removeProperty('--polish-hero-cover-y');
       const hideVideo = coverTop <= 2;
-      hero.classList.toggle('is-polish-hero-video-hidden', hideVideo);
+      if (state.lastHideVideo !== hideVideo) {
+        state.lastHideVideo = hideVideo;
+        hero.classList.toggle('is-polish-hero-video-hidden', hideVideo);
+        const video = hero.querySelector('.polish-hero-video');
+        if (video && typeof video.__polishHeroSetVisible === 'function') {
+          video.__polishHeroSetVisible(!hideVideo);
+        }
+      }
     }
 
     function requestUpdate() {
@@ -7011,6 +7219,10 @@
       if (watchTimer) window.clearInterval(watchTimer);
       hero.classList.remove('polish-hero-scroll-motion');
       hero.classList.remove('is-polish-hero-video-hidden');
+      const video = hero.querySelector('.polish-hero-video');
+      if (video && typeof video.__polishHeroSetVisible === 'function') {
+        video.__polishHeroSetVisible(true);
+      }
       hero.style.removeProperty('--polish-hero-video-y');
       hero.style.removeProperty('--polish-hero-video-scale');
       hero.style.removeProperty('--polish-hero-content-y');
@@ -7212,7 +7424,10 @@
         ring.classList.remove('is-visible', 'is-active');
         return;
       }
-      cursor.style.transform = 'translate3d(' + (pointer.x - sizes.dot / 2) + 'px,' + (pointer.y - sizes.dot / 2) + 'px,0) scale(' + (pointer.active ? '1.08' : '1') + ')';
+      const sideCloseHot = document.documentElement.classList.contains('polish-detail-side-close-hot');
+      const interactiveHot = pointer.active || sideCloseHot;
+      document.documentElement.classList.toggle('polish-cursor-interactive-hot', interactiveHot);
+      cursor.style.transform = 'translate3d(' + (pointer.x - sizes.dot / 2) + 'px,' + (pointer.y - sizes.dot / 2) + 'px,0) scale(' + (pointer.active ? sizes.activeScale : '1') + ')';
       cursor.classList.toggle('is-visible', pointer.inside);
       cursor.classList.toggle('is-active', pointer.active);
       ring.classList.toggle('is-visible', pointer.inside);
@@ -8565,6 +8780,8 @@
     let detailNavGutter = 0;
     let detailCloseTimer = 0;
     let detailOpenTimer = 0;
+    let detailProjectSwitchTimer = 0;
+    const detailProjectSwitchCooldownMs = 720;
     let detailSideCloseCursorHot = false;
     const getDetailCloseExitMs = () => window.innerWidth >= 901 ? 500 : 360;
     let detailRailRaf = 0;
@@ -9404,18 +9621,24 @@
       if (window.innerWidth < 901) return false;
       if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return false;
       if (lightbox.classList.contains('is-open')) return false;
-      if (!event || !event.target || !event.target.closest) return false;
-      const scrollbarEdge = Math.max(18, window.innerWidth - document.documentElement.clientWidth + 18);
-      if (event.clientX >= window.innerWidth - scrollbarEdge) return false;
-      const blocked = event.target.closest(
+      if (!event || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return false;
+      const blocked = event.target && typeof event.target.closest === 'function' && event.target.closest(
         '[data-polish-detail-close], [data-polish-lightbox-src], a, button, input, textarea, select, summary, ' +
-        '[data-polish-detail-content], ' +
         '.polish-project-detail__top, .polish-project-detail__hero, .polish-project-detail__body-wrap, ' +
         '.polish-project-detail__actions, .polish-project-detail__gallery, .polish-project-detail__image-frame'
       );
       if (blocked) return false;
-      const sideSize = Math.max(120, Math.min(360, window.innerWidth * 0.24));
-      return event.clientX <= sideSize || event.clientX >= window.innerWidth - sideSize;
+      // Keep the affordance in the outer gutters. At common desktop widths
+      // the detail shell starts about 64px from the viewport edge; using that
+      // boundary prevents the close zone from eating into the reading column.
+      const sideBand = Math.max(56, Math.min(144, window.innerWidth * .085));
+      const shell = detail.querySelector('.polish-project-detail__shell');
+      const shellRect = shell && shell.getBoundingClientRect();
+      const shellLeft = shellRect && shellRect.width ? shellRect.left : 0;
+      const shellRight = shellRect && shellRect.width ? window.innerWidth - shellRect.right : 0;
+      const leftBand = shellLeft > 0 ? Math.min(sideBand, shellLeft) : sideBand;
+      const rightBand = shellRight > 0 ? Math.min(sideBand, shellRight) : sideBand;
+      return event.clientX <= leftBand || event.clientX >= window.innerWidth - rightBand;
     }
 
     function setDetailSideCloseCursorHot(hot) {
@@ -9470,8 +9693,41 @@
       if (active instanceof HTMLElement && active !== document.body) active.blur();
     }
 
+    function setDetailProjectSwitchControlsLocked(locked) {
+      detail.querySelectorAll('[data-polish-next-project]').forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        button.disabled = locked;
+        button.setAttribute('aria-disabled', String(locked));
+      });
+    }
+
     function clearDetailProjectSwitchState() {
+      if (detailProjectSwitchTimer) {
+        clearTimeout(detailProjectSwitchTimer);
+        detailProjectSwitchTimer = 0;
+      }
       detail.classList.remove('is-project-switching');
+      setDetailProjectSwitchControlsLocked(false);
+    }
+
+    function markDetailProjectSwitching() {
+      clearDetailProjectSwitchState();
+      detail.classList.add('is-project-switching');
+      setDetailProjectSwitchControlsLocked(true);
+      detailProjectSwitchTimer = setTimeout(() => {
+        clearDetailProjectSwitchState();
+      }, detailProjectSwitchCooldownMs);
+    }
+
+    function updateDetailHistory(slug, replace) {
+      const hash = slug ? '#work-' + slug : '';
+      const nextUrl = location.pathname + location.search + hash;
+      try {
+        const method = replace ? History.prototype.replaceState : History.prototype.pushState;
+        method.call(history, history.state, '', nextUrl);
+      } catch {
+        if (slug) location.hash = hash;
+      }
     }
 
     function finishCloseDetail(pushState) {
@@ -9501,7 +9757,7 @@
       setDetailNavState('closed');
       clearDetailNavMaterialReflection();
       if (pushState && location.hash.indexOf('#work-') === 0) {
-        history.pushState(null, '', location.pathname + location.search);
+        updateDetailHistory('', false);
       }
       restoreDetailReturnPosition();
       hasDetailReturnScrollY = false;
@@ -9538,6 +9794,7 @@
     function openDetail(slug, pushState, sourceTile) {
       const item = itemsBySlug.get(slug);
       if (!item) return false;
+      const isProjectSwitch = detail.classList.contains('is-open') && !detail.classList.contains('is-closing') && !sourceTile;
       setDetailSideCloseCursorHot(false);
       if (detailCloseTimer) {
         clearTimeout(detailCloseTimer);
@@ -9547,7 +9804,7 @@
         clearTimeout(detailOpenTimer);
         detailOpenTimer = 0;
       }
-      setDetailNavState('entering');
+      setDetailNavState(isProjectSwitch ? 'open' : 'entering');
       if (!detail.classList.contains('is-open') && !detail.classList.contains('is-closing')) {
         captureDetailReturnPosition();
       }
@@ -9589,10 +9846,10 @@
         .trim() || 'View next project';
       const nextProjectView = escapeHtml(nextProjectViewValue);
       const desktopNextMarkup = nextItem
-        ? '<a class="polish-project-detail__desktop-next" href="#work-' + escapeHtml(nextItem.slug) + '" data-polish-next-project="' + escapeHtml(nextItem.slug) + '" data-cursor="pointer" aria-label="' + nextProjectView + '"><span class="polish-project-detail__desktop-next-label">' + nextProjectView + '</span></a>'
+        ? '<button type="button" class="polish-project-detail__desktop-next" data-polish-next-project="' + escapeHtml(nextItem.slug) + '" data-cursor="pointer" aria-label="' + nextProjectView + '"><span class="polish-project-detail__desktop-next-label">' + nextProjectView + '</span></button>'
         : '';
       const nextProjectMarkup = nextItem
-        ? '<a class="polish-project-detail__next" href="#work-' + escapeHtml(nextItem.slug) + '" data-polish-next-project="' + escapeHtml(nextItem.slug) + '" data-cursor="pointer" aria-label="' + nextProjectView + '"><span class="polish-project-detail__next-label">' + nextProjectView + '</span></a>'
+        ? '<button type="button" class="polish-project-detail__next" data-polish-next-project="' + escapeHtml(nextItem.slug) + '" data-cursor="pointer" aria-label="' + nextProjectView + '"><span class="polish-project-detail__next-label">' + nextProjectView + '</span></button>'
         : '';
       const renderDetailMedia = (image, imgIndex, featured, interactiveFeatured) => {
         const ratio = escapeHtml(image.ratio || 'square');
@@ -9634,11 +9891,13 @@
         '<div class="polish-project-detail__desktop-media-group" data-polish-detail-rail-group>' + desktopRailItems + '</div>' +
         '<div class="polish-project-detail__desktop-media-group" aria-hidden="true" inert>' + desktopRailItems + '</div>' +
         '</div></div>';
-      document.documentElement.classList.add('polish-detail-opening');
+      if (isProjectSwitch) document.documentElement.classList.remove('polish-detail-opening');
+      else document.documentElement.classList.add('polish-detail-opening');
       stopDetailRailMotion(true);
-      detail.classList.remove('is-closing', 'is-scroll-ready', 'is-close-icon-ready', 'is-stage-entering');
-      detail.classList.add('is-stage-entering');
-      setDetailCloseIconState(false);
+      detail.classList.remove('is-closing', 'is-scroll-ready', 'is-stage-entering');
+      if (!isProjectSwitch) detail.classList.remove('is-close-icon-ready');
+      if (!isProjectSwitch) detail.classList.add('is-stage-entering');
+      if (!isProjectSwitch) setDetailCloseIconState(false);
       detailContent.innerHTML = '<section class="polish-project-detail__chapter polish-project-detail__chapter--featured is-active" data-polish-detail-chapter>' +
         '<div class="polish-project-detail__featured-shell' + copyLayoutClass + optionalLayoutClass + '" data-polish-featured-shell>' +
         '<div class="polish-project-detail__featured-media">' + renderDetailMedia(firstImage, 0, true, true) + alternateMedia + '</div>' +
@@ -9668,14 +9927,20 @@
         detail.classList.add('is-close-icon-ready');
         setDetailCloseIconState(true);
       });
-      const detailOpenSettleMs = window.innerWidth >= 901 ? 720 : 320;
-      detailOpenTimer = setTimeout(() => {
-        detailOpenTimer = 0;
-        if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return;
+      if (isProjectSwitch) {
         detail.classList.remove('is-stage-entering');
         document.documentElement.classList.remove('polish-detail-opening');
         setDetailNavState('open');
-      }, detailOpenSettleMs);
+      } else {
+        const detailOpenSettleMs = window.innerWidth >= 901 ? 720 : 320;
+        detailOpenTimer = setTimeout(() => {
+          detailOpenTimer = 0;
+          if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return;
+          detail.classList.remove('is-stage-entering');
+          document.documentElement.classList.remove('polish-detail-opening');
+          setDetailNavState('open');
+        }, detailOpenSettleMs);
+      }
       try {
         detailScroll.focus({ preventScroll: true });
       } catch {
@@ -9689,15 +9954,23 @@
       setTimeout(updateDetailChapterMotion, 250);
       setTimeout(updateDetailNavMaterialReflection, 260);
       setTimeout(updateTextScrollCue, 260);
-      if (pushState && location.hash !== '#work-' + slug) history.pushState(null, '', '#work-' + slug);
+      if (pushState && location.hash !== '#work-' + slug) updateDetailHistory(slug, isProjectSwitch);
       return true;
     }
 
     function switchDetailProject(slug) {
-      if (!slug || !itemsBySlug.has(slug) || detail.classList.contains('is-closing')) return false;
-      if (window.innerWidth >= 901) return openDetail(slug, true);
+      if (!slug || !itemsBySlug.has(slug) || detail.classList.contains('is-closing') ||
+          detail.classList.contains('is-project-switching')) return false;
+      markDetailProjectSwitching();
       const opened = openDetail(slug, true);
-      if (opened && detailContent.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (!opened) {
+        clearDetailProjectSwitchState();
+        return false;
+      }
+      // openDetail replaces the button nodes, so lock the newly rendered pair
+      // for the remainder of the same project-switch cooldown.
+      setDetailProjectSwitchControlsLocked(true);
+      if (window.innerWidth < 901 && detailContent.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
         detailContent.animate([
           { opacity: .2, transform: 'translate3d(0, 12px, 0)', filter: 'blur(3px)' },
           { opacity: 1, transform: 'translate3d(0, 0, 0)', filter: 'blur(0)' }
@@ -9706,7 +9979,7 @@
           easing: 'cubic-bezier(.16, 1, .3, 1)'
         });
       }
-      return opened;
+      return true;
     }
 
     function syncDetailFromHash() {
@@ -10225,6 +10498,18 @@
     });
     detail.addEventListener('polish:request-close', () => closeDetail(true));
     detail.addEventListener('wheel', handleDetailRailWheel, { passive: false });
+    detail.addEventListener('click', (event) => {
+      const target = event.target;
+      const nextProject = target && target.closest ? target.closest('[data-polish-next-project]') : null;
+      if (!nextProject || !detail.contains(nextProject)) return;
+      if (!detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return;
+      const slug = nextProject.getAttribute('data-polish-next-project');
+      if (!slug) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      switchDetailProject(slug);
+    }, true);
     detail.addEventListener('click', (event) => {
       const copyToggle = event.target.closest('[data-polish-copy-toggle]');
       if (copyToggle) {
