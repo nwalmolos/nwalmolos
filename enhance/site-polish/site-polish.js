@@ -6562,16 +6562,33 @@
   function setupGalleryNavJump() {
     if (document.documentElement.dataset.polishGalleryNavJump === 'true') return;
     document.documentElement.dataset.polishGalleryNavJump = 'true';
-    document.addEventListener('click', (event) => {
-      const link = event.target && event.target.closest && event.target.closest('a[data-polish-nav-target], a[href="#gallery"], a[data-polish-nav-gallery="true"]');
-      if (!link) return;
-      if (link.closest('.polish-project-detail')) return;
-      const targetId = link.dataset.polishNavTarget || link.getAttribute('href') || '#gallery';
-      const target = document.querySelector(targetId);
-      if (!target) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+    const linkSelector = 'a[data-polish-nav-target], a[href="#gallery"], a[data-polish-nav-gallery="true"], [data-polish-nav-role="brand"]';
+    let pointerPress = null;
+    let lastClickLink = null;
+    let lastClickAt = -Infinity;
+
+    function getJumpLink(node) {
+      const link = node && node.closest && node.closest(linkSelector);
+      if (!link || link.closest('.polish-project-detail')) return null;
+      return link;
+    }
+
+    function jumpToLink(link, event) {
+      if (!link || !document.body.contains(link)) return false;
+      const isBrand = link.dataset.polishNavRole === 'brand';
+      const targetId = isBrand ? '' : (link.dataset.polishNavTarget || link.getAttribute('href') || '#gallery');
+      let target = null;
+      if (isBrand) {
+        target = document.querySelector('main > section:first-of-type') || document.body;
+      } else {
+        try { target = document.querySelector(targetId); } catch {}
+      }
+      if (!target) return false;
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      }
       const polishMobilePanel = link.closest('.polish-mobile-menu-panel');
       if (polishMobilePanel) {
         polishMobilePanel.classList.remove('is-open');
@@ -6591,7 +6608,9 @@
         }
       }
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (history.pushState) history.pushState(null, '', targetId);
+      if (history.pushState) {
+        history.pushState(null, '', isBrand ? location.pathname + location.search : targetId);
+      }
       const mobilePanel = link.closest('div.fixed.inset-0');
       if (mobilePanel && !mobilePanel.closest('.polish-project-detail, .polish-lightbox')) {
         mobilePanel.style.opacity = '0';
@@ -6601,6 +6620,50 @@
           if (mobilePanel.parentNode) mobilePanel.parentNode.removeChild(mobilePanel);
         }, 260);
       }
+      return true;
+    }
+
+    document.addEventListener('click', (event) => {
+      const link = getJumpLink(event.target);
+      if (!link) return;
+      if (jumpToLink(link, event)) {
+        lastClickLink = link;
+        lastClickAt = performance.now();
+      }
+    }, true);
+
+    // The animated nav can retarget Chromium's compatibility `mousedown` to
+    // the motion wrapper even though pointerdown/up both land on the anchor.
+    // In that case Chromium emits no click. Wait one task after pointerup so a
+    // normal click wins, then perform the same jump only when it never arrived.
+    document.addEventListener('pointerdown', (event) => {
+      if (event.button > 0) {
+        pointerPress = null;
+        return;
+      }
+      const link = getJumpLink(event.target);
+      pointerPress = link ? {
+        link,
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY
+      } : null;
+    }, true);
+    document.addEventListener('pointerup', (event) => {
+      const press = pointerPress;
+      pointerPress = null;
+      if (!press || press.pointerId !== event.pointerId) return;
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 12) return;
+      const releasedLink = getJumpLink(event.target) || getJumpLink(document.elementFromPoint(event.clientX, event.clientY));
+      if (releasedLink && releasedLink !== press.link) return;
+      const releasedAt = performance.now();
+      setTimeout(() => {
+        if (lastClickLink === press.link && lastClickAt >= releasedAt) return;
+        jumpToLink(press.link, null);
+      }, 0);
+    }, true);
+    document.addEventListener('pointercancel', () => {
+      pointerPress = null;
     }, true);
   }
 
