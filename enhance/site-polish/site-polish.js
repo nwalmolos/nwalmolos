@@ -2,6 +2,8 @@
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
   const HERO_VIDEO_PLAYBACK_RATE = 24 / 25;
+  const GRAIN_FRAME_INTERVAL = 1000 / 6;
+  const GRAIN_SCROLL_CACHE_SIZE = 6;
   const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260821-film-grain-reflection-1';
   const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260821-hero-pin-1';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
@@ -272,34 +274,68 @@
         let lastRender = 0;
         let animationFrame = 0;
         let resizeFrame = 0;
+        let scrollResumeTimer = 0;
+        let scrolling = false;
+        let scrollTileWriteIndex = 0;
+        const scrollTiles = [];
         let running = false;
+
+        const cacheTileForScroll = () => {
+          let cachedTile = scrollTiles[scrollTileWriteIndex];
+          if (!cachedTile) {
+            cachedTile = document.createElement('canvas');
+            cachedTile.width = tileSize;
+            cachedTile.height = tileSize;
+            scrollTiles[scrollTileWriteIndex] = cachedTile;
+          }
+          const cachedContext = cachedTile.getContext('2d', { alpha: true });
+          if (cachedContext) {
+            cachedContext.globalCompositeOperation = 'copy';
+            cachedContext.drawImage(tileCanvas, 0, 0);
+          }
+          scrollTileWriteIndex = (scrollTileWriteIndex + 1) % GRAIN_SCROLL_CACHE_SIZE;
+        };
+
+        const paintTile = (source, offsetX, offsetY) => {
+          const pattern = context.createPattern(source, 'repeat');
+          if (!pattern) return;
+          context.save();
+          context.globalCompositeOperation = 'copy';
+          context.translate(offsetX, offsetY);
+          context.fillStyle = pattern;
+          context.fillRect(-offsetX, -offsetY, canvas.width, canvas.height);
+          context.restore();
+        };
+
         const renderCanvasGrain = (time) => {
           if (!running) return;
           animationFrame = requestAnimationFrame(renderCanvasGrain);
-          if (time - lastRender < 55) return;
+          if (time - lastRender < GRAIN_FRAME_INTERVAL) return;
+          if (document.querySelector('[data-sdf-active="true"]')) return;
           lastRender = time;
           resizeCanvas();
-          seed = (seed + 0x6d2b79f5 + frame * 97) >>> 0;
-          for (let index = 0; index < pixels.length; index += 4) {
-            const random = nextRandom();
-            const low = random & 255;
-            const high = (random >>> 16) & 255;
-            const shade = (low + high) >> 1;
-            const alpha = 16 + ((random >>> 24) & 3);
-            pixels[index] = shade;
-            pixels[index + 1] = shade;
-            pixels[index + 2] = shade;
-            pixels[index + 3] = alpha;
+          if (!scrolling || !scrollTiles.length) {
+            seed = (seed + 0x6d2b79f5 + frame * 97) >>> 0;
+            for (let index = 0; index < pixels.length; index += 4) {
+              const random = nextRandom();
+              const low = random & 255;
+              const high = (random >>> 16) & 255;
+              const shade = (low + high) >> 1;
+              const alpha = 16 + ((random >>> 24) & 3);
+              pixels[index] = shade;
+              pixels[index + 1] = shade;
+              pixels[index + 2] = shade;
+              pixels[index + 3] = alpha;
+            }
+            tileContext.putImageData(imageData, 0, 0);
+            cacheTileForScroll();
           }
-          tileContext.putImageData(imageData, 0, 0);
-          const pattern = context.createPattern(tileCanvas, 'repeat');
-          if (pattern) {
-            context.save();
-            context.globalCompositeOperation = 'copy';
-            context.fillStyle = pattern;
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            context.restore();
-          }
+          const source = scrolling && scrollTiles.length
+            ? scrollTiles[frame % scrollTiles.length]
+            : tileCanvas;
+          const offsetX = scrolling ? (frame * 47) % tileSize : 0;
+          const offsetY = scrolling ? (frame * 29) % tileSize : 0;
+          paintTile(source, offsetX, offsetY);
           frame += 1;
           canvas.dataset.frame = String(frame);
         };
@@ -319,6 +355,25 @@
           if (document.hidden) stopRendering();
           else startRendering();
         };
+        const markScrolling = () => {
+          if (!scrolling) {
+            scrolling = true;
+            lastRender = performance.now();
+            canvas.dataset.scrolling = 'true';
+          }
+          clearTimeout(scrollResumeTimer);
+          scrollResumeTimer = window.setTimeout(() => {
+            scrollResumeTimer = 0;
+            scrolling = false;
+            lastRender = performance.now();
+            delete canvas.dataset.scrolling;
+          }, 420);
+        };
+        const handlePageHide = () => {
+          clearTimeout(scrollResumeTimer);
+          scrolling = false;
+          stopRendering();
+        };
         const scheduleResize = () => {
           if (resizeFrame) return;
           resizeFrame = requestAnimationFrame(() => {
@@ -330,9 +385,14 @@
         document.documentElement.classList.add('polish-live-grain-ready');
         canvas.dataset.renderer = 'tiled-2d';
         canvas.dataset.tilePixels = String(tileSize * tileSize);
+        canvas.dataset.idleFps = '6';
+        canvas.dataset.scrollFps = '6';
+        canvas.dataset.scrollRenderer = 'cached-tiles';
         window.addEventListener('resize', scheduleResize, { passive: true });
+        window.addEventListener('wheel', markScrolling, { passive: true });
+        window.addEventListener('scroll', markScrolling, { passive: true });
         document.addEventListener('visibilitychange', handleVisibility);
-        window.addEventListener('pagehide', stopRendering);
+        window.addEventListener('pagehide', handlePageHide);
         window.addEventListener('pageshow', startRendering);
         resizeCanvas();
         startRendering();
@@ -6910,7 +6970,8 @@
     layer.appendChild(fallback);
 
     const mountVideo = () => {
-      if (!canUseVideo || !document.body.contains(layer) || layer.querySelector('video')) return;
+      if (!canUseVideo || !document.body.contains(layer) || layer.querySelector('video') ||
+          fallback.parentNode !== layer || layer.dataset.polishHeroVideoKey !== videoKey) return;
       const video = document.createElement('video');
       video.className = 'polish-hero-video';
       const heroHidden = hero.classList.contains('is-polish-hero-video-hidden');
