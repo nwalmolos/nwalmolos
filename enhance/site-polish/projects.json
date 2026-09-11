@@ -1,7 +1,7 @@
 {
     "projects":  [
                      {
-                         "title":  "Five Venoms Talisman",
+                         "title":  "五毒符",
                          "short":  "",
                          "meta":  "AI short film",
                          "summary":  "",
@@ -65,7 +65,7 @@
                          "translations":  {
                                               "zh":  {
                                                          "visible":  true,
-                                                         "title":  "Five Venoms Talisman",
+                                                         "title":  "五毒符",
                                                          "short":  "",
                                                          "meta":  "AI short film",
                                                          "summary":  "",
@@ -85,29 +85,95 @@
                                           }
                      },
                      {
-                         "title":  "Layered Interfaces",
-                         "short":  "LYO",
-                         "meta":  "Interactive",
-                         "summary":  "Hover states, depth shifts, and link moments for a dark portfolio index.",
+                         "title":  "潜空间变身",
+                         "short":  "2025",
+                         "meta":  "AI short film",
+                         "summary":  "",
                          "detail":  [
-                                        "A focused interaction set built around layered image response. Each state keeps the base layout readable while letting media react to pointer position, page changes, and link intent.",
-                                        "The transition behavior is inspired by repeating image motion: old thumbnails echo outward while the next page enters in staggered layers."
+                                        "荣获 【ComfyUI 第三届 官方挑战赛】 第一名。本短片通过动漫形象与文字指代，探索了潜空间与变身之间的有趣联系。"
                                     ],
                          "facts":  [
-                                       "Prototype",
-                                       "Grid Transition",
-                                       "Pointer Response"
+                                       "AI short film"
                                    ],
-                         "externalHref":  "https://tympanus.net/Development/RepeatingImageTransition/",
+                         "externalHref":  "https://blog.comfy.org/p/latent-reforge-comfy-challenge-3",
                          "slug":  "layered-interfaces",
                          "translations":  {
                                               "zh":  {
-                                                         "visible":  true
+                                                         "visible":  true,
+                                                         "title":  "潜空间变身",
+                                                         "short":  "2025",
+                                                         "meta":  "AI short film",
+                                                         "summary":  "",
+                                                         "detail":  [
+                                                                        "荣获 【ComfyUI 第三届 官方挑战赛】 第一名。本短片通过动漫形象与文字指代，探索了潜空间与变身之间的有趣联系。"
+                                                                    ],
+                                                         "facts":  [
+                                                                       "AI short film"
+                                                                   ],
+                                                         "externalHref":  "https://blog.comfy.org/p/latent-reforge-comfy-challenge-3"
                                                      },
                                               "en":  {
                                                          "visible":  true
                                                      }
-                                          }
+                                          },
+                         "images":  [
+                                        {
+                                            "src":  "assets/projects/layered-interfaces/media-01-Generated-Imageww-September-06--2025---10_54PM.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/layered-interfaces/media-02-Generated-Image-September-06--2025---10w_54PM.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/layered-interfaces/media-03-ComfyUI_temp_ypmpz_00008_.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/layered-interfaces/media-04-Snipaste_2026-09-11_11-04-20.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/layered-interfaces/media-05-Snipaste_2026-09-11_11-03-57.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        }
+                                    ],
+                         "image":  "assets/projects/layered-interfaces/cover-ComfyUI_temp_ypmpz_00008_.png"
                      },
                      {
                          "title":  "Local Preview",
