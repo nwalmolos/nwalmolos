@@ -19,10 +19,10 @@
              },
     "nav":  {
                 "brand":  "NM.",
-                "contact":  "Works",
-                "projects":  "Trajectory",
-                "about":  "Statement",
-                "cta":  "Contact"
+                "contact":  "作品",
+                "projects":  "经历",
+                "about":  "总结",
+                "cta":  "联系"
             },
     "hero":  {
                  "status":  "",
@@ -33,67 +33,67 @@
              },
     "works":  {
                   "label":  "02 - Works",
-                  "titleLine1":  "Visual",
-                  "titleLine2":  "paths",
+                  "titleLine1":  "作品",
+                  "titleLine2":  "展示",
                   "hintHover":  "Hover — expand",
                   "hintNavigate":  "Drag or arrows — shift works",
                   "viewProject":  "View project",
                   "detailView":  "View this project",
-                  "detailNextView":  "View next project",
                   "detailClose":  "Close",
-                  "detailReadMore":  "Read more"
+                  "detailReadMore":  "Read more",
+                  "detailNextView":  "View next project"
               },
     "trajectory":  {
                        "label":  "03 - Trajectory",
-                       "titleLine1":  "Creative",
-                       "titleLine2":  "trajectory",
-                       "itemType":  "Milestone",
+                       "titleLine1":  "创意",
+                       "titleLine2":  "经历",
+                       "itemType":  "里程碑",
                        "items":  [
                                      {
-                                         "id":  "trajectory-01",
-                                         "year":  "2026",
-                                         "title":  "Portfolio system",
-                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
-                                         "tags":  [
-                                                      "React",
-                                                      "WebSocket",
-                                                      "Canvas API"
-                                                  ],
-                                         "href":  ""
-                                     },
-                                     {
                                          "id":  "trajectory-02",
-                                         "year":  "2025",
-                                         "title":  "Motion studies",
-                                         "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
+                                         "year":  "2026",
+                                         "title":  "AI视频岗",
+                                         "description":  "主要负责AI短剧视频制作（国内《末法时代最强外卖员》等，海外《龙陨记》，《神陨之锋》，《宇宙追杀》等）",
                                          "tags":  [
-                                                      "Next.js",
-                                                      "Three.js",
-                                                      "D3.js"
+                                                      "国内AI短剧",
+                                                      "海外AI短剧",
+                                                      ""
                                                   ],
                                          "href":  ""
                                      },
                                      {
                                          "id":  "trajectory-03",
-                                         "year":  "2024",
-                                         "title":  "Visual archive",
-                                         "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
+                                         "year":  "2025",
+                                         "title":  "AI设计岗",
+                                         "description":  "主要负责过的业务有：AI短剧制作、AI创意产品视频（品牌 iceland 的商品展示等）、AI旅游宣传片制作（北京首旅集团AI北京旅游宣传片等）、ROBLOX玩法宣传图制作",
                                          "tags":  [
-                                                      "WebGL",
-                                                      "Web Audio",
-                                                      "GLSL"
+                                                      "AI产品视频",
+                                                      "AI宣传片",
+                                                      "AI宣传图"
                                                   ],
                                          "href":  ""
                                      },
                                      {
                                          "id":  "trajectory-04",
-                                         "year":  "2026",
-                                         "title":  "Portfolio system",
-                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                         "year":  "2024",
+                                         "title":  "数字媒体艺术专业",
+                                         "description":  "毕业于 山东工艺美术学院 数字媒体艺术专业，毕设作品为《盲点》系列AI互动影像作品",
                                          "tags":  [
-                                                      "TypeScript",
-                                                      "Animation",
-                                                      "Open Source"
+                                                      "",
+                                                      "",
+                                                      ""
+                                                  ],
+                                         "href":  ""
+                                     },
+                                     {
+                                         "id":  "trajectory-04-2",
+                                         "year":  "2020",
+                                         "title":  "山东工艺美术学院",
+                                         "description":  "主修 数字媒体艺术专业",
+                                         "tags":  [
+                                                      "",
+                                                      "",
+                                                      ""
                                                   ],
                                          "href":  ""
                                      }
@@ -107,42 +107,42 @@
                   "paragraph2":  "My approach combines technical precision with creative exploration, always pushing the boundaries of what\u0027s possible on the web. Every project is an opportunity to create something meaningful.",
                   "stats":  [
                                 {
-                                    "number":  "3+",
-                                    "label":  "Years Experience"
-                                },
-                                {
-                                    "number":  "20+",
-                                    "label":  "Projects Completed"
+                                    "number":  "2年",
+                                    "label":  "工作经验"
                                 },
                                 {
                                     "number":  "10+",
-                                    "label":  "Happy Clients"
+                                    "label":  "工作项目"
+                                },
+                                {
+                                    "number":  "",
+                                    "label":  ""
                                 }
                             ],
                   "services":  [
                                    {
-                                       "title":  "Frontend Development",
-                                       "description":  "React, Next.js, TypeScript, Tailwind CSS"
+                                       "title":  "",
+                                       "description":  ""
                                    },
                                    {
-                                       "title":  "UI/UX Design",
-                                       "description":  "Figma, Design Systems, Prototyping"
+                                       "title":  "爱好",
+                                       "description":  "AI 读书 电影 游戏"
                                    },
                                    {
-                                       "title":  "Full Stack",
-                                       "description":  "Node.js, Python, Databases, APIs"
+                                       "title":  "",
+                                       "description":  ""
                                    },
                                    {
-                                       "title":  "Creative Coding",
-                                       "description":  "WebGL, Shaders, Generative Art"
+                                       "title":  "",
+                                       "description":  ""
                                    }
                                ]
               },
     "contact":  {
                     "label":  "05 - Contact",
-                    "titleLine1":  "Let\u0027s work",
-                    "titleLine2":  "together",
-                    "paragraph":  "Have a project in mind or just want to chat? I\u0027m always open to discussing new ideas and opportunities.",
+                    "titleLine1":  "欢迎",
+                    "titleLine2":  "合作",
+                    "paragraph":  "有项目想法，还是只是聊聊？我随时欢迎新的合作机会。\n微信号：lzq909794888",
                     "email":  "lzq909794888@163.com",
                     "discord":  "https://discord.com/users/youruserid",
                     "github":  "https://github.com/yourusername",
@@ -175,10 +175,10 @@
                                                              },
                                                     "nav":  {
                                                                 "brand":  "NM.",
-                                                                "contact":  "Works",
-                                                                "projects":  "Trajectory",
-                                                                "about":  "Statement",
-                                                                "cta":  "Contact"
+                                                                "contact":  "作品",
+                                                                "projects":  "经历",
+                                                                "about":  "总结",
+                                                                "cta":  "联系"
                                                             },
                                                     "hero":  {
                                                                  "status":  "",
@@ -189,67 +189,67 @@
                                                              },
                                                     "works":  {
                                                                   "label":  "02 - Works",
-                                                                  "titleLine1":  "Visual",
-                                                                  "titleLine2":  "paths",
+                                                                  "titleLine1":  "作品",
+                                                                  "titleLine2":  "展示",
                                                                   "hintHover":  "Hover — expand",
                                                                   "hintNavigate":  "Drag or arrows — shift works",
                                                                   "viewProject":  "View project",
-                                                                   "detailView":  "View this project",
-                                                                   "detailNextView":  "View next project",
+                                                                  "detailView":  "View this project",
                                                                   "detailClose":  "Close",
-                                                                  "detailReadMore":  "Read more"
+                                                                  "detailReadMore":  "Read more",
+                                                                  "detailNextView":  "View next project"
                                                               },
                                                     "trajectory":  {
                                                                        "label":  "03 - Trajectory",
-                                                                       "titleLine1":  "Creative",
-                                                                       "titleLine2":  "trajectory",
-                                                                       "itemType":  "Milestone",
+                                                                       "titleLine1":  "创意",
+                                                                       "titleLine2":  "经历",
+                                                                       "itemType":  "里程碑",
                                                                        "items":  [
                                                                                      {
-                                                                                         "id":  "trajectory-01",
-                                                                                         "year":  "2026",
-                                                                                         "title":  "Portfolio system",
-                                                                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
-                                                                                         "tags":  [
-                                                                                                      "React",
-                                                                                                      "WebSocket",
-                                                                                                      "Canvas API"
-                                                                                                  ],
-                                                                                         "href":  ""
-                                                                                     },
-                                                                                     {
                                                                                          "id":  "trajectory-02",
-                                                                                         "year":  "2025",
-                                                                                         "title":  "Motion studies",
-                                                                                         "description":  "Scroll, hover, image layering, and dark interface experiments shaped into a reusable visual language.",
+                                                                                         "year":  "2026",
+                                                                                         "title":  "AI视频岗",
+                                                                                         "description":  "主要负责AI短剧视频制作（国内《末法时代最强外卖员》等，海外《龙陨记》，《神陨之锋》，《宇宙追杀》等）",
                                                                                          "tags":  [
-                                                                                                      "Next.js",
-                                                                                                      "Three.js",
-                                                                                                      "D3.js"
+                                                                                                      "国内AI短剧",
+                                                                                                      "海外AI短剧",
+                                                                                                      ""
                                                                                                   ],
                                                                                          "href":  ""
                                                                                      },
                                                                                      {
                                                                                          "id":  "trajectory-03",
-                                                                                         "year":  "2024",
-                                                                                         "title":  "Visual archive",
-                                                                                         "description":  "Collected image-led studies, small media tests, and selected references for future project pages.",
+                                                                                         "year":  "2025",
+                                                                                         "title":  "AI设计岗",
+                                                                                         "description":  "主要负责过的业务有：AI短剧制作、AI创意产品视频（品牌 iceland 的商品展示等）、AI旅游宣传片制作（北京首旅集团AI北京旅游宣传片等）、ROBLOX玩法宣传图制作",
                                                                                          "tags":  [
-                                                                                                      "WebGL",
-                                                                                                      "Web Audio",
-                                                                                                      "GLSL"
+                                                                                                      "AI产品视频",
+                                                                                                      "AI宣传片",
+                                                                                                      "AI宣传图"
                                                                                                   ],
                                                                                          "href":  ""
                                                                                      },
                                                                                      {
                                                                                          "id":  "trajectory-04",
-                                                                                         "year":  "2026",
-                                                                                         "title":  "Portfolio system",
-                                                                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
+                                                                                         "year":  "2024",
+                                                                                         "title":  "数字媒体艺术专业",
+                                                                                         "description":  "毕业于 山东工艺美术学院 数字媒体艺术专业，毕设作品为《盲点》系列AI互动影像作品",
                                                                                          "tags":  [
-                                                                                                      "TypeScript",
-                                                                                                      "Animation",
-                                                                                                      "Open Source"
+                                                                                                      "",
+                                                                                                      "",
+                                                                                                      ""
+                                                                                                  ],
+                                                                                         "href":  ""
+                                                                                     },
+                                                                                     {
+                                                                                         "id":  "trajectory-04-2",
+                                                                                         "year":  "2020",
+                                                                                         "title":  "山东工艺美术学院",
+                                                                                         "description":  "主修 数字媒体艺术专业",
+                                                                                         "tags":  [
+                                                                                                      "",
+                                                                                                      "",
+                                                                                                      ""
                                                                                                   ],
                                                                                          "href":  ""
                                                                                      }
@@ -263,42 +263,42 @@
                                                                   "paragraph2":  "My approach combines technical precision with creative exploration, always pushing the boundaries of what\u0027s possible on the web. Every project is an opportunity to create something meaningful.",
                                                                   "stats":  [
                                                                                 {
-                                                                                    "number":  "3+",
-                                                                                    "label":  "Years Experience"
-                                                                                },
-                                                                                {
-                                                                                    "number":  "20+",
-                                                                                    "label":  "Projects Completed"
+                                                                                    "number":  "2年",
+                                                                                    "label":  "工作经验"
                                                                                 },
                                                                                 {
                                                                                     "number":  "10+",
-                                                                                    "label":  "Happy Clients"
+                                                                                    "label":  "工作项目"
+                                                                                },
+                                                                                {
+                                                                                    "number":  "",
+                                                                                    "label":  ""
                                                                                 }
                                                                             ],
                                                                   "services":  [
                                                                                    {
-                                                                                       "title":  "Frontend Development",
-                                                                                       "description":  "React, Next.js, TypeScript, Tailwind CSS"
+                                                                                       "title":  "",
+                                                                                       "description":  ""
                                                                                    },
                                                                                    {
-                                                                                       "title":  "UI/UX Design",
-                                                                                       "description":  "Figma, Design Systems, Prototyping"
+                                                                                       "title":  "爱好",
+                                                                                       "description":  "AI 读书 电影 游戏"
                                                                                    },
                                                                                    {
-                                                                                       "title":  "Full Stack",
-                                                                                       "description":  "Node.js, Python, Databases, APIs"
+                                                                                       "title":  "",
+                                                                                       "description":  ""
                                                                                    },
                                                                                    {
-                                                                                       "title":  "Creative Coding",
-                                                                                       "description":  "WebGL, Shaders, Generative Art"
+                                                                                       "title":  "",
+                                                                                       "description":  ""
                                                                                    }
                                                                                ]
                                                               },
                                                     "contact":  {
                                                                     "label":  "05 - Contact",
-                                                                    "titleLine1":  "Let\u0027s work",
-                                                                    "titleLine2":  "together",
-                                                                    "paragraph":  "Have a project in mind or just want to chat? I\u0027m always open to discussing new ideas and opportunities.",
+                                                                    "titleLine1":  "欢迎",
+                                                                    "titleLine2":  "合作",
+                                                                    "paragraph":  "有项目想法，还是只是聊聊？我随时欢迎新的合作机会。\n微信号：lzq909794888",
                                                                     "email":  "lzq909794888@163.com",
                                                                     "discord":  "https://discord.com/users/youruserid",
                                                                     "github":  "https://github.com/yourusername",
@@ -323,7 +323,8 @@
                                                 },
                                     "visibility":  {
                                                        "modules":  {
-                                                                       "statement":  false
+                                                                       "statement":  false,
+                                                                       "trajectory":  true
                                                                    },
                                                        "fields":  {
                                                                       "contact.discord":  false,
@@ -361,8 +362,8 @@
                                                                   "hintHover":  "Hover — expand",
                                                                   "hintNavigate":  "Drag or arrows — shift works",
                                                                   "viewProject":  "View project",
-                                                                   "detailView":  "View this project",
-                                                                   "detailNextView":  "View next project",
+                                                                  "detailView":  "View this project",
+                                                                  "detailNextView":  "View next project",
                                                                   "detailClose":  "Close",
                                                                   "detailReadMore":  "Read more"
                                                               },
@@ -372,18 +373,6 @@
                                                                        "titleLine2":  "trajectory",
                                                                        "itemType":  "Milestone",
                                                                        "items":  [
-                                                                                     {
-                                                                                         "id":  "trajectory-01",
-                                                                                         "year":  "2026",
-                                                                                         "title":  "Portfolio system",
-                                                                                         "description":  "Static GitHub Pages ready site with local preview, project detail pages, and refined motion direction.",
-                                                                                         "tags":  [
-                                                                                                      "React",
-                                                                                                      "WebSocket",
-                                                                                                      "Canvas API"
-                                                                                                  ],
-                                                                                         "href":  ""
-                                                                                     },
                                                                                      {
                                                                                          "id":  "trajectory-02",
                                                                                          "year":  "2025",
@@ -417,6 +406,18 @@
                                                                                                       "TypeScript",
                                                                                                       "Animation",
                                                                                                       "Open Source"
+                                                                                                  ],
+                                                                                         "href":  ""
+                                                                                     },
+                                                                                     {
+                                                                                         "id":  "trajectory-04-2",
+                                                                                         "year":  "",
+                                                                                         "title":  "",
+                                                                                         "description":  "",
+                                                                                         "tags":  [
+                                                                                                      "",
+                                                                                                      "",
+                                                                                                      ""
                                                                                                   ],
                                                                                          "href":  ""
                                                                                      }
