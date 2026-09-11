@@ -233,7 +233,7 @@
                                         "投稿笔名：伊希尔杜的克星"
                                     ],
                          "facts":  [
-                                       "2026"
+                                       "2025"
                                    ],
                          "externalHref":  "https://blog.comfy.org/p/latent-reforge-comfy-challenge-3",
                          "slug":  "layered-interfaces",
@@ -251,7 +251,7 @@
                                                                         "投稿笔名：伊希尔杜的克星"
                                                                     ],
                                                          "facts":  [
-                                                                       "2026"
+                                                                       "2025"
                                                                    ],
                                                          "externalHref":  "https://blog.comfy.org/p/latent-reforge-comfy-challenge-3"
                                                      },
@@ -588,7 +588,7 @@
                                               "zh":  {
                                                          "visible":  true,
                                                          "title":  "《盲点》系列互动影像作品",
-                                                         "short":  "2026",
+                                                         "short":  "2024",
                                                          "meta":  "Experimental  AI Video art",
                                                          "summary":  "",
                                                          "detail":  [
@@ -617,7 +617,7 @@
                                                      }
                                           },
                          "title":  "《盲点》系列互动影像作品",
-                         "short":  "2026",
+                         "short":  "2024",
                          "meta":  "Experimental  AI Video art",
                          "summary":  "",
                          "detail":  [
@@ -728,34 +728,78 @@
                      },
                      {
                          "slug":  "new-project-08",
-                         "image":  "assets/projects/new-project-08/cover-assets_task_01jqdt89f6fybafhbmp6f7mgqk_img_0.webp",
+                         "image":  "assets/projects/new-project-08/cover-Snipaste_2024-04-16_21-02-45.png",
                          "images":  [
                                         {
-                                            "src":  "assets/projects/new-project-08/cover-assets_task_01jqdt89f6fybafhbmp6f7mgqk_img_0.webp",
+                                            "src":  "assets/projects/new-project-08/media-01-Snipaste_2024-04-16_21-33-01.png",
                                             "type":  "image",
-                                            "ratio":  "wide",
+                                            "ratio":  "square",
                                             "fit":  "cover",
-                                            "caption":  "新案例",
+                                            "caption":  "",
                                             "captions":  {
-                                                             "zh":  "新案例"
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/new-project-08/media-02-Snipaste_2024-04-16_21-35-24.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/new-project-08/media-03-共生.mp4_20260911_225109.028.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/new-project-08/media-04-Snipaste_2024-04-10_18-01-34.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/new-project-08/media-05-Snipaste_2024-04-10_18-06-08.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
                                                          },
                                             "poster":  ""
                                         }
                                     ],
                          "translations":  {
                                               "zh":  {
-                                                         "visible":  false,
-                                                         "title":  "新案例",
-                                                         "short":  "NEW",
-                                                         "meta":  "案例",
+                                                         "visible":  true,
+                                                         "title":  "共生",
+                                                         "short":  "2024",
+                                                         "meta":  "New Media Video Installation",
                                                          "summary":  "",
                                                          "detail":  [
-
+                                                                        "影像装置作品，本人负责全流程视觉呈现和视频剪辑。AI参与了作品特定元素的素材制作。"
                                                                     ],
                                                          "facts":  [
-
+                                                                       "2024"
                                                                    ],
-                                                         "externalHref":  ""
+                                                         "externalHref":  "https://da9pv3o102l.feishu.cn/wiki/IKSAw2SUHiBSAPkmiuKcTMw1nfb?fromScene=spaceOverview#share-Cbald8HG6ogSBHxoqdgccJOcnee"
                                                      },
                                               "en":  {
                                                          "visible":  true,
@@ -772,17 +816,17 @@
                                                          "externalHref":  ""
                                                      }
                                           },
-                         "title":  "新案例",
-                         "short":  "NEW",
-                         "meta":  "案例",
+                         "title":  "共生",
+                         "short":  "2024",
+                         "meta":  "New Media Video Installation",
                          "summary":  "",
                          "detail":  [
-
+                                        "影像装置作品，本人负责全流程视觉呈现和视频剪辑。AI参与了作品特定元素的素材制作。"
                                     ],
                          "facts":  [
-
+                                       "2024"
                                    ],
-                         "externalHref":  "",
+                         "externalHref":  "https://da9pv3o102l.feishu.cn/wiki/IKSAw2SUHiBSAPkmiuKcTMw1nfb?fromScene=spaceOverview#share-Cbald8HG6ogSBHxoqdgccJOcnee",
                          "visible":  true
                      }
                  ]
