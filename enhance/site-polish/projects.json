@@ -176,28 +176,84 @@
                          "image":  "assets/projects/layered-interfaces/cover-ComfyUI_temp_ypmpz_00008_.png"
                      },
                      {
-                         "title":  "Local Preview",
-                         "short":  "GP",
-                         "meta":  "Publish",
-                         "summary":  "A practical local preview and GitHub Pages publishing flow.",
+                         "title":  "网页全景图查看器",
+                         "short":  "2026",
+                         "meta":  "AI tools",
+                         "summary":  "",
                          "detail":  [
-                                        "This project documents a lightweight workflow for reviewing a static portfolio locally before release.",
-                                        "The goal is to keep deployment simple: preview the same static files, verify links and assets, then publish without server-only features."
+                                        "一套完整的工作流，已上架ComfyUI官方案例库，可以解决全景图生成、全景图查看需求，用于保持场景一致性。\n配合我用Codex辅助开发的网页查看器，可以方便的截图、调整透视。"
                                     ],
                          "facts":  [
-                                       "GitHub Pages",
-                                       "Static Site",
-                                       "Local QA"
+                                       "2026"
                                    ],
-                         "externalHref":  "https://pages.github.com/",
+                         "externalHref":  "https://comfy.org/workflows/33c621f7803f-33c621f7803f/",
                          "translations":  {
                                               "zh":  {
-                                                         "visible":  true
+                                                         "visible":  true,
+                                                         "title":  "网页全景图查看器",
+                                                         "short":  "2026",
+                                                         "meta":  "AI tools",
+                                                         "summary":  "",
+                                                         "detail":  [
+                                                                        "一套完整的工作流，已上架ComfyUI官方案例库，可以解决全景图生成、全景图查看需求，用于保持场景一致性。\n配合我用Codex辅助开发的网页查看器，可以方便的截图、调整透视。"
+                                                                    ],
+                                                         "facts":  [
+                                                                       "2026"
+                                                                   ],
+                                                         "externalHref":  "https://comfy.org/workflows/33c621f7803f-33c621f7803f/"
                                                      },
                                               "en":  {
                                                          "visible":  true
                                                      }
-                                          }
+                                          },
+                         "slug":  "网页全景图查看器",
+                         "images":  [
+                                        {
+                                            "src":  "assets/projects/网页全景图查看器/media-01-Snipaste_2026-09-11_11-15-59.png",
+                                            "type":  "image",
+                                            "ratio":  "wide",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/网页全景图查看器/media-02-Snipaste_2026-09-11_11-14-54.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/网页全景图查看器/media-03-Snipaste_2026-09-11_11-15-32.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        },
+                                        {
+                                            "src":  "assets/projects/网页全景图查看器/media-04-a2.png",
+                                            "type":  "image",
+                                            "ratio":  "square",
+                                            "fit":  "cover",
+                                            "caption":  "",
+                                            "captions":  {
+                                                             "zh":  ""
+                                                         },
+                                            "poster":  ""
+                                        }
+                                    ],
+                         "image":  "assets/projects/网页全景图查看器/cover-a1.jpg"
                      },
                      {
                          "title":  "Visual Studies",
