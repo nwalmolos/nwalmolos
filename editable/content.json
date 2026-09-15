@@ -32,7 +32,7 @@
                  "scrollLabel":  "Scroll"
              },
     "works":  {
-                  "label":  "02 - Works",
+                  "label":  "01 - Works",
                   "titleLine1":  "作品",
                   "titleLine2":  "展示",
                   "hintHover":  "Hover — expand",
@@ -44,7 +44,7 @@
                   "detailNextView":  "View next project"
               },
     "trajectory":  {
-                       "label":  "03 - Trajectory",
+                       "label":  "02 - Trajectory",
                        "titleLine1":  "创意",
                        "titleLine2":  "经历",
                        "itemType":  "里程碑",
@@ -139,7 +139,7 @@
                                ]
               },
     "contact":  {
-                    "label":  "04 - Contact",
+                    "label":  "03 - Contact",
                     "titleLine1":  "欢迎",
                     "titleLine2":  "合作",
                     "paragraph":  "有项目想法，还是只是聊聊？随时欢迎。\n微信：lzq909794888",
@@ -188,7 +188,7 @@
                                                                  "scrollLabel":  "Scroll"
                                                              },
                                                     "works":  {
-                                                                  "label":  "02 - Works",
+                                                                  "label":  "01 - Works",
                                                                   "titleLine1":  "作品",
                                                                   "titleLine2":  "展示",
                                                                   "hintHover":  "Hover — expand",
@@ -200,7 +200,7 @@
                                                                   "detailNextView":  "View next project"
                                                               },
                                                     "trajectory":  {
-                                                                       "label":  "03 - Trajectory",
+                                                                       "label":  "02 - Trajectory",
                                                                        "titleLine1":  "创意",
                                                                        "titleLine2":  "经历",
                                                                        "itemType":  "里程碑",
@@ -295,7 +295,7 @@
                                                                                ]
                                                               },
                                                     "contact":  {
-                                                                    "label":  "04 - Contact",
+                                                                    "label":  "03 - Contact",
                                                                     "titleLine1":  "欢迎",
                                                                     "titleLine2":  "合作",
                                                                     "paragraph":  "有项目想法，还是只是聊聊？随时欢迎。\n微信：lzq909794888",
