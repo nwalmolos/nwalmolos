@@ -2,7 +2,7 @@
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
   const HERO_VIDEO_PLAYBACK_RATE = 24 / 25;
-  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260821-film-grain-reflection-1';
+  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260919-mobile-density-1';
   const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260821-hero-pin-1';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
   const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
@@ -2713,27 +2713,6 @@
         overflow: visible;
         contain: layout style;
       }
-      .polish-gallery-transition-layer.is-detail-transition {
-        z-index: 2147480650;
-      }
-      .polish-detail-shared-clone {
-        position: fixed;
-        overflow: hidden;
-        pointer-events: none;
-        border: 1px solid rgba(255,255,255,.12);
-        background: #050506;
-        box-shadow: 0 28px 90px rgba(0,0,0,.42);
-        will-change: left, top, width, height, opacity, filter, border-radius;
-      }
-      .polish-detail-shared-clone img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        max-width: none;
-        object-fit: cover;
-        filter: saturate(.94) contrast(1.06) brightness(.84);
-        transform: scale(1.035);
-      }
       .polish-gallery-pixel-wipe {
         position: fixed;
         display: grid;
@@ -3395,9 +3374,6 @@
       .polish-project-detail__featured-media .polish-project-detail__image-frame--static-cover::before,
       .polish-project-detail__featured-media .polish-project-detail__image-frame--static-cover::after {
         display: none;
-      }
-      .polish-project-detail.is-shared-entering .polish-project-detail__featured-media .polish-project-detail__image-frame {
-        opacity: 0;
       }
       .polish-project-detail__featured-media .polish-project-detail__image-frame img {
         --polish-detail-image-base-scale: var(--polish-feature-image-scale);
@@ -4208,16 +4184,20 @@
           outline-offset: 4px;
         }
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__featured-story {
-          flex: 0 0 auto;
+          /* Short copy can still exceed the space on a short/narrow screen. */
+          flex: 0 1 auto;
           height: auto;
           max-height: none;
-          overflow: visible;
+          overflow: hidden;
         }
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__body-wrap,
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__body {
-          flex: 0 0 auto;
+          flex: 1 1 auto;
           max-height: none;
-          overflow: visible;
+          overflow: hidden;
+        }
+        .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__body {
+          overflow: auto;
         }
         .polish-project-detail__featured-shell.is-compact-copy .polish-project-detail__body-wrap {
           padding-right: 0;
@@ -4417,7 +4397,8 @@
         .polish-project-detail__featured-content {
           height: 100%;
           min-height: 0;
-          padding-block: clamp(24px, 4vh, 34px);
+          /* Match the media column edges in short desktop viewports. */
+          padding-block: 0;
         }
         .polish-project-detail__chapter--media {
           min-height: 0;
@@ -8838,7 +8819,6 @@
     let lastLightboxSource = null;
     let navMaterialRaf = 0;
     let detailChapterRaf = 0;
-    let detailTransitionTimer = 0;
     let navMaterialItems = [];
     let detailNavGutter = 0;
     let detailCloseTimer = 0;
@@ -9359,93 +9339,6 @@
       navMaterialRaf = requestAnimationFrame(updateDetailNavMaterialReflection);
     }
 
-    function clearDetailSharedTransition() {
-      if (detailTransitionTimer) {
-        clearTimeout(detailTransitionTimer);
-        detailTransitionTimer = 0;
-      }
-      transitionLayer.querySelectorAll('.polish-detail-shared-clone').forEach((node) => node.remove());
-      transitionLayer.classList.remove('is-detail-transition');
-      detail.classList.remove('is-shared-entering');
-    }
-
-    function startDetailSharedTransition(sourceTile, featuredImage) {
-      clearDetailSharedTransition();
-      if (!sourceTile || !sourceTile.isConnected || !detail.classList.contains('is-open')) return;
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      if (window.innerWidth >= 901) return;
-
-      const sourceMedia = sourceTile.querySelector('.polish-random-grid-media, .polish-works-surface') || sourceTile;
-      const sourceRect = cloneRect(sourceMedia.getBoundingClientRect());
-      if (!sourceRect || !sourceRect.width || !sourceRect.height) return;
-      const tileImage = sourceTile.querySelector('.polish-random-grid-media image, .polish-works-image');
-      const tileSrc = tileImage && (tileImage.getAttribute('href') || tileImage.getAttribute('xlink:href') || tileImage.getAttribute('src'));
-      const featuredSrc = featuredImage && (featuredImage.type === 'video' ? featuredImage.poster : featuredImage.src);
-      const src = tileSrc || featuredSrc;
-      if (!src) return;
-
-      const clone = document.createElement('span');
-      clone.className = 'polish-detail-shared-clone';
-      clone.style.left = sourceRect.left + 'px';
-      clone.style.top = sourceRect.top + 'px';
-      clone.style.width = sourceRect.width + 'px';
-      clone.style.height = sourceRect.height + 'px';
-      clone.style.borderRadius = getComputedStyle(sourceTile).borderRadius || '8px';
-      clone.innerHTML = '<img src="' + escapeHtml(src) + '" alt=""/>';
-      transitionLayer.classList.add('is-detail-transition');
-      transitionLayer.appendChild(clone);
-      detail.classList.add('is-shared-entering');
-
-      requestAnimationFrame(() => {
-        if (!clone.isConnected || !detail.classList.contains('is-open')) {
-          clearDetailSharedTransition();
-          return;
-        }
-        const target = detail.querySelector('.polish-project-detail__featured-media .polish-project-detail__image-frame');
-        const targetRect = target && cloneRect(target.getBoundingClientRect());
-        if (!targetRect || !targetRect.width || !targetRect.height || !clone.animate) {
-          clearDetailSharedTransition();
-          return;
-        }
-
-        const translateX = targetRect.left - sourceRect.left;
-        const translateY = targetRect.top - sourceRect.top;
-        const scaleX = targetRect.width / sourceRect.width;
-        const scaleY = targetRect.height / sourceRect.height;
-        const duration = window.innerWidth <= 900 ? 680 : 820;
-        const targetRadius = getComputedStyle(target).borderRadius || '10px';
-        const animation = clone.animate([
-          {
-            transform: 'translate3d(0,0,0) scale(1,1)',
-            borderRadius: clone.style.borderRadius,
-            filter: 'blur(0px) brightness(1)',
-            opacity: 1
-          },
-          {
-            transform: 'translate3d(' + (translateX * .72) + 'px,' + (translateY * .72) + 'px,0) scale(' + (1 + (scaleX - 1) * .72) + ',' + (1 + (scaleY - 1) * .72) + ')',
-            borderRadius: targetRadius,
-            filter: 'blur(.35px) brightness(1.035)',
-            opacity: 1,
-            offset: .64
-          },
-          {
-            transform: 'translate3d(' + translateX + 'px,' + translateY + 'px,0) scale(' + scaleX + ',' + scaleY + ')',
-            borderRadius: targetRadius,
-            filter: 'blur(0px) brightness(1)',
-            opacity: 1
-          }
-        ], {
-          duration,
-          easing: 'cubic-bezier(.16, 1, .3, 1)',
-          fill: 'forwards'
-        });
-        animation.finished.catch(() => {}).then(() => {
-          if (clone.isConnected) clearDetailSharedTransition();
-        });
-        detailTransitionTimer = setTimeout(clearDetailSharedTransition, duration + 90);
-      });
-    }
-
     function updateDetailChapterMotion() {
       detailChapterRaf = 0;
       if (!detail.classList.contains('is-open')) return;
@@ -9809,7 +9702,6 @@
         detailChapterRaf = 0;
       }
       stopDetailRailMotion(true);
-      clearDetailSharedTransition();
       detail.classList.remove('is-open', 'is-closing', 'is-scroll-ready', 'is-close-icon-ready', 'is-stage-entering');
       detail.setAttribute('aria-hidden', 'true');
       detailContent.replaceChildren();
@@ -9836,7 +9728,6 @@
       setDetailSideCloseCursorHot(false);
       clearDetailProjectSwitchState();
       clearDetailInteractionState();
-      clearDetailSharedTransition();
       if (detailOpenTimer) {
         clearTimeout(detailOpenTimer);
         detailOpenTimer = 0;
@@ -9984,7 +9875,6 @@
       updateTextScrollCue();
       requestAnimationFrame(updateDetailNavGutter);
       requestAnimationFrame(startDetailRailMotion);
-      requestAnimationFrame(() => startDetailSharedTransition(sourceTile, firstImage));
       requestAnimationFrame(() => {
         if (!detail.classList.contains('is-open')) return;
         detail.classList.add('is-close-icon-ready');

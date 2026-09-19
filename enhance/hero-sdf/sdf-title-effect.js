@@ -1437,8 +1437,14 @@
       if (canvasRect.width < 2 || canvasRect.height < 2) return;
 
       const requestedScale = clamp(Number(this.options.texturePixelRatio) || 3, 0.75, 3.0);
+      // Keep touch-screen glyphs sharp at the device pixel density. Preserve
+      // the configured desktop quality and the existing texture-width cap.
+      const touchDisplay = matchMedia('(hover: none), (pointer: coarse)').matches;
+      const displayScale = touchDisplay
+        ? Math.max(requestedScale, Math.min(window.devicePixelRatio || 1, 3))
+        : requestedScale;
       const widthLimitScale = (Number(this.options.maxTextureWidth) || 1120) / canvasRect.width;
-      const scale = Math.max(0.55, Math.min(requestedScale, widthLimitScale));
+      const scale = Math.max(0.55, Math.min(displayScale, widthLimitScale));
       const width = Math.max(2, Math.round(canvasRect.width * scale));
       const height = Math.max(2, Math.round(canvasRect.height * scale));
 
