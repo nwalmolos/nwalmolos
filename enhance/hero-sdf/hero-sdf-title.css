@@ -104,3 +104,8 @@ main > section:first-of-type > .sdf-title-canvas[data-sdf-canvas-state="static"]
     transition: none;
   }
 }
+
+@media (hover: none), (pointer: coarse) {
+  main > section:first-of-type { touch-action: pan-y pinch-zoom; }
+  .sdf-tilt-toggle { position:absolute;right:24px;bottom:88px;z-index:30;padding:9px 13px;border:1px solid #ffffff35;border-radius:24px;background:#10101080;color:#ddd;font:12px/1.4 system-ui;cursor:pointer;touch-action:manipulation; }
+}

@@ -2,8 +2,8 @@
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
   const HERO_VIDEO_PLAYBACK_RATE = 24 / 25;
-  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260919-mobile-density-1';
-  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260821-hero-pin-1';
+  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260919-tap-tilt';
+  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260919-tap-tilt';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
   const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
   const FRAUNCES_FONT_URL = 'assets/fonts/fraunces/Fraunces-Opsz-500-Latin.woff2?v=20260811-fraunces-1';
@@ -5449,11 +5449,11 @@
         filter: none !important;
         animation: none !important;
       }
-      html.polish-title-entrance-active [data-polish-elastic] {
+      [data-polish-elastic][data-polish-title-animating="true"] {
         translate: 0 0 !important;
         scale: 1 1 !important;
       }
-      html.polish-title-entrance-active .polish-gallery-title {
+      .polish-gallery-title[data-polish-title-animating="true"] {
         transform: translate3d(0, 0, 0) scaleY(1) !important;
       }
       [data-polish-elastic] {
@@ -7373,7 +7373,7 @@
       const itemType = getEditableContentValue('trajectory.itemType', 'Milestone');
       rows.forEach((row, index) => {
         const editable = Array.isArray(editableMilestones) ? editableMilestones[index] : null;
-        const data = editable ? [editable.year || '', editable.title || '', editable.description || ''] : fallbackMilestones[index % fallbackMilestones.length];
+        const data = editable ? [editable.year || '', editable.title || '', editable.description || ''] : (Array.isArray(editableMilestones) ? ['', '', ''] : fallbackMilestones[index % fallbackMilestones.length]);
         const title = row.querySelector('h3');
         const category = row.querySelector('.text-xs.font-mono.text-foreground\\/30');
         const desc = row.querySelector('p');
@@ -8283,8 +8283,7 @@
 
   function collectElasticTextItems(strength) {
     const selector = [
-      'main section h2',
-      'main section h2 span[aria-label]'
+      'main section h2'
     ].join(',');
     const seen = new Set();
     const groups = Array.from(document.querySelectorAll('nav, main > section, footer'));
@@ -8319,11 +8318,96 @@
     });
   }
 
+  // Desktop headings use an underdamped spring: stretch while scrolling,
+  // compress once on release, then settle. Track scroll per frame, not per event.
+  function bindDesktopHeadingSpring(titles, scrollRoot = window) {
+    const items = titles.map(el => ({el,y:0,vy:0,s:0,vs:0,targetY:0,targetS:0}));
+    const scrollPosition = () => scrollRoot === window ? window.scrollY : scrollRoot.scrollTop;
+    let raf = 0, lastTime = 0, lastY = scrollPosition(), pendingDelta = 0, lastInput = 0;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    function paint(item) {
+      if (!item.y && !item.s) { item.el.style.translate = '0 0px'; item.el.style.scale = '1 1'; return; }
+      // Read the neutral layout box before applying this frame's one-axis motion.
+      item.el.style.translate = 'none'; item.el.style.scale = 'none';
+      const box = item.el.getBoundingClientRect();
+      const scope = item.el.closest('section') || item.el.parentElement;
+      const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+      let above = -Infinity, below = Infinity, node;
+      while ((node = walker.nextNode())) {
+        if (!node.textContent.trim() || item.el.contains(node) || node.parentElement.closest('[aria-hidden="true"],script,style')) continue;
+        const range = document.createRange(); range.selectNodeContents(node);
+        for (const rect of range.getClientRects()) {
+          if (!rect.width || !rect.height || rect.right <= box.left || rect.left >= box.right) continue;
+          if (rect.bottom <= box.top + 1) above = Math.max(above, rect.bottom + 8);
+          if (rect.top >= box.bottom - 1) below = Math.min(below, rect.top - 8);
+        }
+      }
+      const topGap = Math.max(0, box.top - above), bottomGap = Math.max(0, below - box.bottom);
+      let stretch = Math.min(item.s, (topGap + bottomGap) / Math.max(1, box.height));
+      const origin = parseFloat(getComputedStyle(item.el).transformOrigin.split(' ')[1]) / Math.max(1, box.height) || 0.5;
+      const extraTop = box.height * stretch * origin, extraBottom = box.height * stretch * (1 - origin);
+      const dy = clamp(item.y, -topGap + extraTop, bottomGap - extraBottom);
+      item.el.style.translate = '0 ' + dy.toFixed(2) + 'px';
+      item.el.style.scale = '1 ' + (1 + stretch).toFixed(4);
+    }
+    function frame(now) {
+      raf = 0;
+      const dt = Math.min((now - (lastTime || now - 16.67)) / 1000, 0.034);
+      lastTime = now;
+      const delta = pendingDelta; pendingDelta = 0;
+      let moving = false;
+      items.forEach(item => {
+        const rect = item.el.getBoundingClientRect();
+        const active = rect.bottom > 0 && rect.top < innerHeight && item.el.dataset.polishTitleAnimating !== 'true' && !reduced.matches;
+        if (!active) {
+          item.y = item.vy = item.s = item.vs = item.targetY = item.targetS = 0;
+          paint(item); return;
+        }
+        if (delta) {
+          item.targetY = clamp(-delta * 1.65, -58, 58);
+          item.targetS = clamp(Math.abs(delta) * 0.010, 0, 0.19);
+        } else if (now - lastInput > 85) {
+          item.targetY = item.targetS = 0;
+        }
+        // Small integration steps keep the same response on slow and fast displays.
+        const steps = Math.max(1, Math.ceil(dt / (1 / 120))), step = dt / steps;
+        for (let i = 0; i < steps; i++) {
+          item.vy += ((item.targetY - item.y) * 210 - item.vy * 13) * step;
+          item.y += item.vy * step;
+          item.vs += ((item.targetS - item.s) * 230 - item.vs * 13) * step;
+          item.s += item.vs * step;
+        }
+        if (Math.abs(item.y) + Math.abs(item.vy) > 0.06 || Math.abs(item.s) + Math.abs(item.vs) > 0.0006 || item.targetY || item.targetS) moving = true;
+        else item.y = item.vy = item.s = item.vs = 0;
+        paint(item);
+      });
+      if (moving || pendingDelta) raf = requestAnimationFrame(frame);
+      else lastTime = 0;
+    }
+    function onScroll() {
+      const y = scrollPosition(), delta = y - lastY; lastY = y;
+      // Anchor jumps are navigation, not a scroll impulse.
+      if (Math.abs(delta) > innerHeight * 0.6) return;
+      pendingDelta += delta; lastInput = performance.now();
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+    scrollRoot.addEventListener('scroll', onScroll, {passive:true});
+    return () => {
+      scrollRoot.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+      items.forEach(item => { item.el.style.removeProperty('translate'); item.el.style.removeProperty('scale'); });
+    };
+  }
+
   function setupElasticText(config) {
     if (!config.elasticText) return;
     const strength = clamp(Number(config.elasticStrength) || 1, 0.25, 2);
     const items = collectElasticTextItems(strength);
     if (!items.length) return;
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      bindDesktopHeadingSpring(items.map(item => item.el));
+      return;
+    }
 
     let lastY = window.scrollY || 0;
     let velocity = 0;
@@ -8344,11 +8428,6 @@
 
     function updateTargets() {
       const scrollY = window.scrollY || 0;
-      if (isTitleEntranceActive()) {
-        lastY = scrollY;
-        resetItems();
-        return;
-      }
       velocity = clamp(scrollY - lastY, -120, 120);
       lastY = scrollY;
       const mid = window.innerHeight * 0.5;
@@ -8357,9 +8436,10 @@
         const center = rect.top + rect.height * 0.5;
         const distance = clamp((center - mid) / Math.max(1, window.innerHeight), -1.2, 1.2);
         const visible = rect.bottom > -120 && rect.top < window.innerHeight + 120;
-        const force = visible ? velocity * item.depth : 0;
-        item.targetY = clamp(-force * (0.22 + Math.abs(distance) * 0.065), -40, 40);
-        item.targetScale = 1 + clamp(Math.abs(force) * 0.00055, 0, 0.026);
+        const desktop = matchMedia('(hover: hover) and (pointer: fine)').matches;
+        const force = visible && item.el.dataset.polishTitleAnimating !== 'true' ? velocity * item.depth * (desktop ? 2.4 * strength : 1) : 0;
+        item.targetY = clamp(-force * (0.22 + Math.abs(distance) * 0.065), desktop ? -58 : -40, desktop ? 58 : 40);
+        item.targetScale = 1 + clamp(Math.abs(force) * 0.00055, 0, desktop ? 0.055 : 0.026);
       });
       settling = 46;
       if (!raf) raf = requestAnimationFrame(render);
@@ -8367,10 +8447,6 @@
 
     function render() {
       raf = 0;
-      if (isTitleEntranceActive()) {
-        resetItems();
-        return;
-      }
       let keepGoing = false;
       items.forEach((item) => {
         item.currentY += (item.targetY - item.currentY) * item.lag;
@@ -8498,7 +8574,7 @@
   }
 
   function slugify(value, fallback) {
-    const slug = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const slug = String(value || '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-').replace(/^-+|-+$/g, '');
     return slug || fallback;
   }
 
@@ -8676,6 +8752,11 @@
     if (!title || title.dataset.polishGalleryMotion === 'true') return;
     if (galleryTitleMotionCleanup) galleryTitleMotionCleanup();
     title.dataset.polishGalleryMotion = 'true';
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      const cleanup = bindDesktopHeadingSpring([title]);
+      galleryTitleMotionCleanup = () => { cleanup(); title.removeAttribute('data-polish-gallery-motion'); galleryTitleMotionCleanup = null; };
+      return;
+    }
 
     let currentY = 0;
     let currentScale = 1;
@@ -8700,7 +8781,7 @@
 
     function updateTargets() {
       const scrollY = window.scrollY || 0;
-      if (isTitleEntranceActive()) {
+      if (title.dataset.polishTitleAnimating === 'true') {
         lastY = scrollY;
         resetMotion();
         return;
@@ -8709,15 +8790,16 @@
       lastY = scrollY;
       const rect = title.getBoundingClientRect();
       const visible = rect.bottom > -120 && rect.top < window.innerHeight + 120;
-      targetY = visible ? clamp(-velocity * 0.22, -28, 28) : 0;
-      targetScale = visible ? 1 + clamp(Math.abs(velocity) * 0.00048, 0, 0.024) : 1;
+      const gain = matchMedia('(hover: hover) and (pointer: fine)').matches ? 2.4 : 1;
+      targetY = visible ? clamp(-velocity * 0.22 * gain, -28 * gain, 28 * gain) : 0;
+      targetScale = visible ? 1 + clamp(Math.abs(velocity) * 0.00048 * gain, 0, 0.024 * gain) : 1;
       settling = 42;
       requestRender();
     }
 
     function render() {
       raf = 0;
-      if (isTitleEntranceActive()) {
+      if (title.dataset.polishTitleAnimating === 'true') {
         resetMotion();
         return;
       }
@@ -8813,6 +8895,7 @@
     const lightboxCaption = lightbox.querySelector('.polish-lightbox__caption');
     let transitioning = false;
     let lightboxClosing = false;
+    let mobileTitleSpringCleanup = null;
     let lightboxAnimating = false;
     let lightboxTimer = 0;
     let lastLightboxSourceRect = null;
@@ -9060,10 +9143,10 @@
       lightboxClosing = true;
       animateLightboxMotion();
       lightbox.classList.add('is-closing', 'is-animating');
-      lightboxCaption.textContent = '';
       setTimeout(() => {
         lightbox.classList.remove('is-open', 'is-closing', 'is-animating');
         lightbox.setAttribute('aria-hidden', 'true');
+        lightboxCaption.textContent = '';
       }, 180);
       setTimeout(() => {
         lightboxClosing = false;
@@ -9687,6 +9770,7 @@
     }
 
     function finishCloseDetail(pushState) {
+      if (mobileTitleSpringCleanup) { mobileTitleSpringCleanup(); mobileTitleSpringCleanup = null; }
       setDetailSideCloseCursorHot(false);
       clearDetailProjectSwitchState();
       if (detailCloseTimer) {
@@ -9852,6 +9936,7 @@
       if (!isProjectSwitch) detail.classList.remove('is-close-icon-ready');
       if (!isProjectSwitch) detail.classList.add('is-stage-entering');
       if (!isProjectSwitch) setDetailCloseIconState(false);
+      if (mobileTitleSpringCleanup) { mobileTitleSpringCleanup(); mobileTitleSpringCleanup = null; }
       detailContent.innerHTML = '<section class="polish-project-detail__chapter polish-project-detail__chapter--featured is-active" data-polish-detail-chapter>' +
         '<div class="polish-project-detail__featured-shell' + copyLayoutClass + optionalLayoutClass + '" data-polish-featured-shell>' +
         '<div class="polish-project-detail__featured-media">' + renderDetailMedia(firstImage, 0, true, true) + alternateMedia + '</div>' +
@@ -9900,6 +9985,7 @@
         detailScroll.focus();
       }
       setupTitleEntrance(detailContent, true);
+      if (window.innerWidth < 901) mobileTitleSpringCleanup = bindDesktopHeadingSpring(Array.from(detailContent.querySelectorAll('.polish-project-detail__title')), detailScroll);
       buildDetailNavMaterialReflection();
       requestAnimationFrame(updateDetailChapterMotion);
       requestAnimationFrame(updateDetailNavMaterialReflection);
@@ -9940,7 +10026,9 @@
         closeDetail(false);
         return;
       }
-      openDetail(location.hash.replace('#work-', ''), false);
+      let slug;
+      try { slug = decodeURIComponent(location.hash.slice(6)); } catch { return; }
+      openDetail(slug, false);
     }
 
     function animateRepeatingTransition(direction) {

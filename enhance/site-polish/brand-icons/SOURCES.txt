@@ -1,0 +1,2 @@
+Brand vectors: https://simpleicons.org/ (CC0), downloaded 2026-09-19.
+MANA logo: https://www.manamana.net/static/home/MANA_head_logo@2x.png (official website brand asset). Displayed using its original alpha mask and current text color.

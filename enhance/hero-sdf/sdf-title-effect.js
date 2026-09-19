@@ -1297,7 +1297,17 @@
       this.boundPointerMove = (event) => this.onPointerMove(event);
       this.boundPointerLeave = (event) => this.onPointerLeave(event);
       this.boundPointerDown = (event) => this.onPointerDown(event);
-      this.boundResize = () => this.scheduleRebuild();
+      this.resizeWidth = window.innerWidth;
+      this.boundResize = () => {
+        this.canvasRect = null;
+        // Mobile browser chrome changes viewport height while scrolling; the title width and glyph texture are unchanged.
+        if (this.isCoarsePointer && this.resizeWidth === window.innerWidth) return;
+        this.resizeWidth = window.innerWidth;
+        this.tiltBaseline = null;
+        this.scheduleRebuild();
+      };
+      this.boundPointerUp = event => this.onTouchEnd(event);
+      this.boundPointerCancel = () => { this.touchTap = null; };
       this.boundScrollActivity = () => {
         this.lastScrollInputAt = performance.now();
       };
@@ -1311,6 +1321,9 @@
       this.pointerTarget.addEventListener('pointermove', this.boundPointerMove, { passive: true });
       this.pointerTarget.addEventListener('pointerleave', this.boundPointerLeave, { passive: true });
       this.pointerTarget.addEventListener('pointerdown', this.boundPointerDown, { passive: true });
+      this.pointerTarget.addEventListener('pointerup', this.boundPointerUp, { passive: true });
+      this.pointerTarget.addEventListener('pointercancel', this.boundPointerCancel, { passive: true });
+      if (this.isCoarsePointer) this.setupTiltControl();
       // Capture wheel/scroll before the browser re-hit-tests a stationary
       // pointer. That re-hit-test can emit pointerleave one event before the
       // site's bubble-phase scroll listener adds its debounce class.
@@ -1590,7 +1603,10 @@
     }
 
     onPointerMove(event) {
-      if (this.isTouchEvent(event)) return;
+      if (this.isTouchEvent(event)) {
+        if (this.touchTap && Math.hypot(event.clientX - this.touchTap.x, event.clientY - this.touchTap.y) > 9) this.touchTap = null;
+        return;
+      }
       clearTimeout(this.pointerLeaveTimer);
       this.pointerLeaveTimer = 0;
       clearTimeout(this.previewTimer);
@@ -1637,6 +1653,67 @@
     }
 
     onPointerDown(event) {
+      if (this.isTouchEvent(event)) {
+        if (event.target.closest('a,button,input,select,textarea') || !event.isPrimary) return;
+        this.touchTap = {id:event.pointerId,x:event.clientX,y:event.clientY,time:performance.now(),scrollY:window.scrollY};
+        return;
+      }
+      this.triggerPointerEffect(event);
+    }
+
+    onTouchEnd(event) {
+      const tap = this.touchTap; this.touchTap = null;
+      if (!tap || event.pointerId !== tap.id || performance.now() - tap.time > 400 || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 9 || Math.abs(window.scrollY - tap.scrollY) > 3) return;
+      this.canvasRect = null;
+      this.triggerPointerEffect(event);
+    }
+
+    setupTiltControl() {
+      if (!window.DeviceOrientationEvent || !window.isSecureContext) return;
+      const button = document.createElement('button');
+      this.tiltButton = button;
+      button.type = 'button'; button.className = 'sdf-tilt-toggle';
+      const zh = () => (window.__EDITABLE_SITE_LANGUAGE__ || document.documentElement.lang || '').startsWith('zh');
+      const label = () => { button.textContent = this.tiltEnabled ? (zh() ? '关闭倾斜互动' : 'Tilt: on') : (zh() ? '启用倾斜互动' : 'Enable tilt'); button.setAttribute('aria-pressed', String(!!this.tiltEnabled)); };
+      label();
+      this.boundTiltLabel = label;
+      window.addEventListener('editable:content-ready', label);
+      this.boundOrientationChange = () => { this.tiltBaseline = null; };
+      window.addEventListener('orientationchange', this.boundOrientationChange, { passive: true });
+      this.pointerTarget.appendChild(button);
+      this.boundOrientation = event => {
+        if (!this.tiltEnabled || this.suspended || document.hidden || this.destroyed || performance.now() - this.lastScrollInputAt < 220) return;
+        if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
+        const rect = this.pointerTarget.getBoundingClientRect();
+        if (rect.bottom <= 0 || rect.top >= innerHeight) return;
+        if (!this.tiltBaseline) this.tiltBaseline = [event.beta,event.gamma];
+        const wrap = value => ((value + 540) % 360) - 180;
+        const x = clamp(wrap(event.gamma - this.tiltBaseline[1]) / 24,-1,1), y = clamp(wrap(event.beta - this.tiltBaseline[0]) / 24,-1,1);
+        const angle = (screen.orientation?.angle || window.orientation || 0) * Math.PI / 180;
+        this.targetPointer = [clamp(0.5 + (x * Math.cos(angle) + y * Math.sin(angle)) * 0.32,0,1), clamp(0.5 + (y * Math.cos(angle) - x * Math.sin(angle)) * 0.25,0,1)];
+        this.targetRadius = clamp(numberOption(this.options.lensRadius,0.25),0,1);
+        this.initializePointerAtTarget(); this.trailPointerActive = true;
+        this.updateSourceMask(); this.start();
+      };
+      button.addEventListener('click', async () => {
+        if (this.tiltEnabled) {
+          this.tiltEnabled = false; window.removeEventListener('deviceorientation',this.boundOrientation);
+          this.targetRadius = 0; this.trailPointerActive = false; this.clearSourceMask(); this.start(); label(); return;
+        }
+        button.disabled = true;
+        try {
+          const api = window.DeviceOrientationEvent;
+          const permission = typeof api.requestPermission === 'function' ? await api.requestPermission() : 'granted';
+          if (this.destroyed) return;
+          if (permission !== 'granted') { button.textContent = zh() ? '未启用，可继续轻点互动' : 'Tap interaction available'; return; }
+          this.tiltEnabled = true; this.tiltBaseline = null;
+          window.addEventListener('deviceorientation',this.boundOrientation,{passive:true}); label();
+        } catch { button.textContent = zh() ? '当前设备支持轻点互动' : 'Tap interaction available'; }
+        finally { button.disabled = false; }
+      });
+    }
+
+    triggerPointerEffect(event) {
       clearTimeout(this.pointerLeaveTimer);
       this.pointerLeaveTimer = 0;
       clearTimeout(this.previewTimer);
@@ -1940,6 +2017,12 @@
         this.pointerTarget.removeEventListener('pointermove', this.boundPointerMove);
         this.pointerTarget.removeEventListener('pointerleave', this.boundPointerLeave);
         this.pointerTarget.removeEventListener('pointerdown', this.boundPointerDown);
+        this.pointerTarget.removeEventListener('pointerup', this.boundPointerUp);
+        this.pointerTarget.removeEventListener('pointercancel', this.boundPointerCancel);
+        window.removeEventListener('deviceorientation', this.boundOrientation);
+        window.removeEventListener('editable:content-ready', this.boundTiltLabel);
+        window.removeEventListener('orientationchange', this.boundOrientationChange);
+        this.tiltButton?.remove();
         window.removeEventListener('wheel', this.boundScrollActivity, true);
         window.removeEventListener('scroll', this.boundScrollActivity, true);
         this.canvas.removeEventListener('webglcontextlost', this.boundContextLost);

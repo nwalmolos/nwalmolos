@@ -52,7 +52,7 @@
         return;
       }
       const script = document.createElement('script');
-      script.src = 'enhance/site-polish/social-icons.js?v=20260821-editable-5';
+      script.src = 'enhance/site-polish/social-icons.js?v=20260919-brands-2';
       script.defer = true;
       script.dataset.localSocialIcons = 'true';
       script.addEventListener('load', () => resolve(window.NM_SOCIAL_ICONS || null), { once: true });
@@ -256,15 +256,62 @@
     document.querySelectorAll('.polish-mobile-nav-brand').forEach((node) => setBrandText(node, content.nav.brand));
   }
 
+  const trajectoryTemplates = new WeakMap();
+  function syncTrajectoryRows(section, items) {
+    const first = section.querySelector('[data-polish-trajectory-row], [data-cursor="pointer"]');
+    const holder = section.querySelector('[data-trajectory-holder]') || first?.parentElement?.parentElement;
+    if (!holder) return [];
+    if (!trajectoryTemplates.has(holder)) {
+      const template = first.parentElement.cloneNode(true);
+      template.style.opacity = '1'; template.style.transform = 'none';
+      trajectoryTemplates.set(holder, template);
+      holder.dataset.trajectoryHolder = 'true';
+      holder.replaceChildren();
+      holder.addEventListener('click', event => {
+        const row = event.target.closest('[data-polish-trajectory-row]');
+        if (!row?.dataset.trajectoryHref || event.target.closest('a,button')) return;
+        const a = document.createElement('a'); a.href = row.dataset.trajectoryHref;
+        if (/^https?:/i.test(a.href)) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+        a.click();
+      });
+      holder.addEventListener('keydown', event => {
+        const row = event.target.closest('[data-polish-trajectory-row]');
+        if (event.key === 'Enter' && row?.dataset.trajectoryHref) { event.preventDefault(); row.click(); }
+      });
+    }
+    const old = new Map(Array.from(holder.children).map(node => [node.dataset.trajectoryId, node]));
+    const rows = items.map((item, index) => {
+      const id = String(item.id || 'legacy-' + index);
+      const wrapper = old.get(id) || trajectoryTemplates.get(holder).cloneNode(true);
+      old.delete(id); wrapper.dataset.trajectoryId = id;
+      const row = wrapper.querySelector('[data-cursor="pointer"], [data-polish-trajectory-row]');
+      row.dataset.polishTrajectoryRow = 'true'; row.dataset.trajectoryId = id;
+      const yearNode = row.firstElementChild?.children?.[2]?.querySelector(':scope > span');
+      if (yearNode) yearNode.dataset.polishTrajectoryYear = 'true';
+      row.style.transform = 'none';
+      const href = window.NM_CONTACT_LIBRARY.safeHref(item.href);
+      row.dataset.trajectoryHref = href;
+      row.style.cursor = href ? 'pointer' : 'default';
+      if (href) { row.setAttribute('role','link'); row.tabIndex = 0; }
+      else { row.removeAttribute('role'); row.removeAttribute('tabindex'); }
+      const indexNode = row.querySelector('.shrink-0');
+      if (indexNode) setDirectText(indexNode, String(index + 1).padStart(2, '0'));
+      if (holder.children[index] !== wrapper) holder.insertBefore(wrapper, holder.children[index] || null);
+      return row;
+    });
+    old.forEach(node => node.remove());
+    return rows;
+  }
+
   function applyTrajectory(content) {
     const section = document.querySelector('#projects');
     if (!section || !content?.trajectory) return;
     setDirectText(section.querySelector('.text-xs.font-mono'), content.trajectory.label);
     setTwoLineHeading(section.querySelector('h2'), content.trajectory.titleLine1, content.trajectory.titleLine2, 'trajectory');
-    const rows = Array.from(section.querySelectorAll('[data-polish-trajectory-row], [data-cursor="pointer"]'));
     const items = Array.isArray(content.trajectory.items) ? content.trajectory.items : [];
+    const rows = syncTrajectoryRows(section, items);
     rows.forEach((row, index) => {
-      const item = items[index] || items[index % Math.max(1, items.length)] || {};
+      const item = items[index];
       setDirectText(row.querySelector('[data-polish-trajectory-title], h3'), text(item.title));
       setDirectText(row.querySelector('[data-polish-trajectory-type], .text-xs.font-mono.text-foreground\\/30'), text(content.trajectory.itemType));
       setDirectText(row.querySelector('[data-polish-trajectory-description], p'), text(item.description));
@@ -335,10 +382,12 @@
     const paragraph = section.querySelector('p');
     if (paragraph && paragraph.textContent !== content.contact.paragraph) paragraph.textContent = content.contact.paragraph;
     updateEmailLinks(content.contact.email);
-    const socialKey = JSON.stringify([content.contact.github, content.contact.twitter, content.contact.discord, content.contact.instagram, content.contact.bilibili, content.contact.douban, content.contact.socialLabels]);
+    const contact = Object.assign({}, content.contact);
+    if (Array.isArray(lastRawContent?.contactLinks)) contact.links = lastRawContent.contactLinks.map(link => Object.assign({}, link, {label: link.labels?.[window.__EDITABLE_SITE_LANGUAGE__] ?? link.labels?.[lastRawContent.language?.default] ?? link.label ?? ''}));
+    const socialKey = JSON.stringify([contact.links, content.contact.github, content.contact.twitter, content.contact.discord, content.contact.instagram, content.contact.bilibili, content.contact.douban, content.contact.socialLabels]);
     const row = section.querySelector('[data-local-social-icons]');
     if (window.NM_SOCIAL_ICONS && (!row || row.dataset.editableSocialKey !== socialKey)) {
-      window.NM_SOCIAL_ICONS.apply(content.contact);
+      window.NM_SOCIAL_ICONS.apply(contact);
       const nextRow = section.querySelector('[data-local-social-icons]');
       if (nextRow) nextRow.dataset.editableSocialKey = socialKey;
     }

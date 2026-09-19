@@ -142,7 +142,7 @@
                     "label":  "03 - Contact",
                     "titleLine1":  "欢迎",
                     "titleLine2":  "合作",
-                    "paragraph":  "有项目想法，还是只是聊聊？随时欢迎。\n微信：lzq909794888",
+                    "paragraph":  "有项目想法，还是只是聊聊？随时欢迎。",
                     "email":  "lzq909794888@163.com",
                     "discord":  "https://discord.com/users/youruserid",
                     "github":  "https://github.com/yourusername",
@@ -298,7 +298,7 @@
                                                                     "label":  "03 - Contact",
                                                                     "titleLine1":  "欢迎",
                                                                     "titleLine2":  "合作",
-                                                                    "paragraph":  "有项目想法，还是只是聊聊？随时欢迎。\n微信：lzq909794888",
+                                                                    "paragraph":  "有项目想法，还是只是聊聊？随时欢迎。",
                                                                     "email":  "lzq909794888@163.com",
                                                                     "discord":  "https://discord.com/users/youruserid",
                                                                     "github":  "https://github.com/yourusername",
@@ -544,5 +544,114 @@
                                "weight":  "400",
                                "style":  "normal"
                            }
-              }
+              },
+    "contactLinks":  [
+                         {
+                             "id":  "contact-github",
+                             "href":  "https://github.com/yourusername",
+                             "visible":  false,
+                             "labels":  {
+                                            "zh":  "GitHub",
+                                            "en":  "GitHub"
+                                        },
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "github"
+                                      }
+                         },
+                         {
+                             "id":  "contact-twitter",
+                             "href":  "https://twitter.com/yourusername",
+                             "visible":  false,
+                             "labels":  {
+                                            "zh":  "Twitter",
+                                            "en":  "Twitter"
+                                        },
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "twitter"
+                                      }
+                         },
+                         {
+                             "id":  "contact-discord",
+                             "href":  "https://discord.com/users/youruserid",
+                             "visible":  false,
+                             "labels":  {
+                                            "zh":  "Discord",
+                                            "en":  "Discord"
+                                        },
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "discord"
+                                      }
+                         },
+                         {
+                             "id":  "contact-instagram",
+                             "href":  "https://www.instagram.com/nwalmolos/",
+                             "visible":  true,
+                             "labels":  {
+                                            "zh":  "Instagram",
+                                            "en":  "Instagram"
+                                        },
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "instagram"
+                                      }
+                         },
+                         {
+                             "id":  "contact-bilibili",
+                             "href":  "https://space.bilibili.com/2138488341",
+                             "visible":  true,
+                             "labels":  {
+                                            "zh":  "Bilibili",
+                                            "en":  "Bilibili"
+                                        },
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "bilibili"
+                                      }
+                         },
+                         {
+                             "id":  "contact-douban",
+                             "href":  "https://www.douban.com/people/253205987/",
+                             "visible":  true,
+                             "labels":  {
+                                            "zh":  "Douban",
+                                            "en":  "Douban"
+                                        },
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "douban",
+                                          "label":  "豆瓣"
+                                      }
+                         },
+                         {
+                             "id":  "contact-8ad49389-1a54-42b8-a7a1-f3b5a0c98963",
+                             "labels":  {
+                                            "zh":  "MANA",
+                                            "en":  "New contact"
+                                        },
+                             "href":  "https://www.manamana.net/peopleCenter/2995402/home",
+                             "visible":  true,
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "mana",
+                                          "label":  "MANA 新媒体艺术"
+                                      }
+                         },
+                         {
+                             "id":  "contact-3ccc0237-ec13-4aa8-8622-fce84e282139",
+                             "labels":  {
+                                            "zh":  "Wechat",
+                                            "en":  "New contact"
+                                        },
+                             "href":  "lzq909794888",
+                             "visible":  true,
+                             "icon":  {
+                                          "type":  "brand",
+                                          "name":  "wechat",
+                                          "label":  "微信 WeChat"
+                                      }
+                         }
+                     ]
 }
