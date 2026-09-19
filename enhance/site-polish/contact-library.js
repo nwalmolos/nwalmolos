@@ -14,10 +14,11 @@
     let node;
     const brandAsset = icon.type === 'brand' && window.NM_SOCIAL_ICONS?.icons[icon.name]?.src;
     if (brandAsset) {
-      node = document.createElement('span');
+      node = document.createElement('img');
       const url = new URL(brandAsset, base || new URL('../../', document.querySelector('script[src*="site-polish/contact-library.js"]').src)).href;
-      node.style.cssText = 'display:inline-block;background:currentColor;mask:center / contain no-repeat;-webkit-mask:center / contain no-repeat';
-      node.style.maskImage = node.style.webkitMaskImage = 'url("' + url + '")';
+      node.alt = '';
+      node.style.cssText = 'display:block;object-fit:contain;filter:grayscale(1);border-radius:2px';
+      node.src = url;
     } else if (icon.type === 'image' && (safeHref(icon.src) || /^blob:/.test(icon.src || ''))) {
       node = document.createElement('img');
       node.src = new URL(icon.src, base || location.href).href;
@@ -47,7 +48,7 @@
       node.style.cssText = 'display:inline-grid;place-items:center;font:600 12px/1 sans-serif;letter-spacing:0';
     }
     node.classList.add('contact-custom-icon');
-    node.style.setProperty('width', brandAsset ? '44px' : '18px', brandAsset ? 'important' : ''); node.style.height = '18px'; node.style.flexShrink = '0';
+    node.style.width = '18px'; node.style.height = '18px'; node.style.flexShrink = '0';
     node.setAttribute('aria-hidden', 'true');
     return node;
   }

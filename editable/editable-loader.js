@@ -52,7 +52,7 @@
         return;
       }
       const script = document.createElement('script');
-      script.src = 'enhance/site-polish/social-icons.js?v=20260919-brands-2';
+      script.src = 'enhance/site-polish/social-icons.js?v=20260919-square-brand';
       script.defer = true;
       script.dataset.localSocialIcons = 'true';
       script.addEventListener('load', () => resolve(window.NM_SOCIAL_ICONS || null), { once: true });

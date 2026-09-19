@@ -2,8 +2,8 @@
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
   const HERO_VIDEO_PLAYBACK_RATE = 24 / 25;
-  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260919-tap-tilt';
-  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260919-tap-tilt';
+  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260919-no-controls';
+  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260919-no-controls';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
   const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
   const FRAUNCES_FONT_URL = 'assets/fonts/fraunces/Fraunces-Opsz-500-Latin.woff2?v=20260811-fraunces-1';
@@ -4480,6 +4480,10 @@
       .polish-project-detail.is-project-switching [data-polish-next-project] {
         opacity: .5;
       }
+      @media (max-width: 900px) {
+        .polish-project-detail__body { overscroll-behavior: auto !important; touch-action: pan-y pinch-zoom; }
+        .polish-project-detail__featured-shell:not(.is-copy-expanded) .polish-project-detail__body { overflow: clip !important; }
+      }
       .polish-lightbox {
         position: fixed;
         inset: 0;
@@ -4495,6 +4499,8 @@
         pointer-events: none;
         transition: opacity .30s ease;
       }
+      .polish-lightbox { touch-action: none; overflow: hidden; contain: layout paint; }
+      .polish-lightbox img { -webkit-user-drag: none; user-select: none; }
       .polish-lightbox.is-animating {
         pointer-events: none;
       }
@@ -8895,6 +8901,41 @@
     const lightboxCaption = lightbox.querySelector('.polish-lightbox__caption');
     let transitioning = false;
     let lightboxClosing = false;
+    const viewerPointers = new Map();
+    let viewerScale = 1, viewerX = 0, viewerY = 0, viewerGesture = null, viewerClickBlockedUntil = 0;
+    function resetViewerZoom() {
+      viewerPointers.clear(); viewerGesture = null; viewerScale = 1; viewerX = viewerY = 0;
+      lightboxImage.style.transform = ''; viewerClickBlockedUntil = 0;
+    }
+    function beginViewerGesture() {
+      const points = Array.from(viewerPointers.values());
+      if (!points.length) { viewerGesture = null; return; }
+      const mid = points.length > 1 ? {x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2} : points[0];
+      viewerGesture = {mid, distance:points.length > 1 ? Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y) : 0, scale:viewerScale,x:viewerX,y:viewerY};
+    }
+    lightbox.addEventListener('pointerdown', event => {
+      if (event.pointerType !== 'touch' || !lightbox.classList.contains('is-open')) return;
+      viewerPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+      lightbox.setPointerCapture(event.pointerId); beginViewerGesture();
+    });
+    lightbox.addEventListener('pointermove', event => {
+      if (!viewerPointers.has(event.pointerId) || !viewerGesture) return;
+      viewerPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+      const points=Array.from(viewerPointers.values()), g=viewerGesture;
+      const mid=points.length>1 ? {x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2} : points[0];
+      if (points.length>1 && g.distance) viewerScale=clamp(g.scale*Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y)/g.distance,1,4);
+      if (points.length>1 || viewerScale>1) {
+        viewerX=clamp(g.x+mid.x-g.mid.x,-lightboxImage.clientWidth*(viewerScale-1)/2,lightboxImage.clientWidth*(viewerScale-1)/2);
+        viewerY=clamp(g.y+mid.y-g.mid.y,-lightboxImage.clientHeight*(viewerScale-1)/2,lightboxImage.clientHeight*(viewerScale-1)/2);
+        lightboxImage.style.transform='translate('+viewerX+'px,'+viewerY+'px) scale('+viewerScale+')';
+        viewerClickBlockedUntil=performance.now()+450;
+      } else if (Math.hypot(mid.x-g.mid.x,mid.y-g.mid.y)>9) viewerClickBlockedUntil=performance.now()+450;
+    });
+    const endViewerPointer = event => {
+      viewerPointers.delete(event.pointerId); beginViewerGesture();
+    };
+    lightbox.addEventListener('pointerup',endViewerPointer);
+    lightbox.addEventListener('pointercancel',endViewerPointer);
     let mobileTitleSpringCleanup = null;
     let lightboxAnimating = false;
     let lightboxTimer = 0;
@@ -9121,6 +9162,7 @@
       lastLightboxSourceRect = sourceRect;
       lastLightboxSource = source || null;
       lightboxClosing = false;
+      resetViewerZoom();
       lightboxImage.style.visibility = '';
       lightboxImage.src = src;
       if (lightboxImage.decode) lightboxImage.decode().catch(() => {});
@@ -9147,6 +9189,7 @@
         lightbox.classList.remove('is-open', 'is-closing', 'is-animating');
         lightbox.setAttribute('aria-hidden', 'true');
         lightboxCaption.textContent = '';
+        resetViewerZoom();
       }, 180);
       setTimeout(() => {
         lightboxClosing = false;
@@ -10593,7 +10636,7 @@
     });
     detailScroll.addEventListener('scroll', scheduleDetailNavMaterialReflection, { passive: true });
     detailScroll.addEventListener('scroll', scheduleDetailChapterMotion, { passive: true });
-    lightbox.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', () => { if (performance.now() >= viewerClickBlockedUntil) closeLightbox(); });
     window.addEventListener('pointermove', updateDetailSideCloseCursor, { passive: true });
     window.addEventListener('pointerleave', () => setDetailSideCloseCursorHot(false), { passive: true });
     window.addEventListener('keydown', (event) => {

@@ -1665,22 +1665,14 @@
       const tap = this.touchTap; this.touchTap = null;
       if (!tap || event.pointerId !== tap.id || performance.now() - tap.time > 400 || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 9 || Math.abs(window.scrollY - tap.scrollY) > 3) return;
       this.canvasRect = null;
+      this.requestTiltPermission?.();
       this.triggerPointerEffect(event);
     }
 
     setupTiltControl() {
       if (!window.DeviceOrientationEvent || !window.isSecureContext) return;
-      const button = document.createElement('button');
-      this.tiltButton = button;
-      button.type = 'button'; button.className = 'sdf-tilt-toggle';
-      const zh = () => (window.__EDITABLE_SITE_LANGUAGE__ || document.documentElement.lang || '').startsWith('zh');
-      const label = () => { button.textContent = this.tiltEnabled ? (zh() ? '关闭倾斜互动' : 'Tilt: on') : (zh() ? '启用倾斜互动' : 'Enable tilt'); button.setAttribute('aria-pressed', String(!!this.tiltEnabled)); };
-      label();
-      this.boundTiltLabel = label;
-      window.addEventListener('editable:content-ready', label);
       this.boundOrientationChange = () => { this.tiltBaseline = null; };
       window.addEventListener('orientationchange', this.boundOrientationChange, { passive: true });
-      this.pointerTarget.appendChild(button);
       this.boundOrientation = event => {
         if (!this.tiltEnabled || this.suspended || document.hidden || this.destroyed || performance.now() - this.lastScrollInputAt < 220) return;
         if (!Number.isFinite(event.beta) || !Number.isFinite(event.gamma)) return;
@@ -1695,22 +1687,18 @@
         this.initializePointerAtTarget(); this.trailPointerActive = true;
         this.updateSourceMask(); this.start();
       };
-      button.addEventListener('click', async () => {
-        if (this.tiltEnabled) {
-          this.tiltEnabled = false; window.removeEventListener('deviceorientation',this.boundOrientation);
-          this.targetRadius = 0; this.trailPointerActive = false; this.clearSourceMask(); this.start(); label(); return;
-        }
-        button.disabled = true;
+      this.requestTiltPermission = async () => {
+        if (this.tiltPermissionAttempted) return;
+        this.tiltPermissionAttempted = true;
         try {
           const api = window.DeviceOrientationEvent;
           const permission = typeof api.requestPermission === 'function' ? await api.requestPermission() : 'granted';
-          if (this.destroyed) return;
-          if (permission !== 'granted') { button.textContent = zh() ? '未启用，可继续轻点互动' : 'Tap interaction available'; return; }
+          if (this.destroyed || permission !== 'granted') return;
           this.tiltEnabled = true; this.tiltBaseline = null;
-          window.addEventListener('deviceorientation',this.boundOrientation,{passive:true}); label();
-        } catch { button.textContent = zh() ? '当前设备支持轻点互动' : 'Tap interaction available'; }
-        finally { button.disabled = false; }
-      });
+          window.addEventListener('deviceorientation', this.boundOrientation, {passive:true});
+        } catch { /* Tap interaction remains available without device permission. */ }
+      };
+      if (typeof window.DeviceOrientationEvent.requestPermission !== 'function') this.requestTiltPermission();
     }
 
     triggerPointerEffect(event) {
@@ -2020,9 +2008,7 @@
         this.pointerTarget.removeEventListener('pointerup', this.boundPointerUp);
         this.pointerTarget.removeEventListener('pointercancel', this.boundPointerCancel);
         window.removeEventListener('deviceorientation', this.boundOrientation);
-        window.removeEventListener('editable:content-ready', this.boundTiltLabel);
         window.removeEventListener('orientationchange', this.boundOrientationChange);
-        this.tiltButton?.remove();
         window.removeEventListener('wheel', this.boundScrollActivity, true);
         window.removeEventListener('scroll', this.boundScrollActivity, true);
         this.canvas.removeEventListener('webglcontextlost', this.boundContextLost);
