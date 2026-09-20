@@ -3,7 +3,7 @@
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
   const HERO_VIDEO_PLAYBACK_RATE = 24 / 25;
   const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260919-no-controls';
-  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260919-no-controls';
+  const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260920-stable-hero';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
   const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
   const FRAUNCES_FONT_URL = 'assets/fonts/fraunces/Fraunces-Opsz-500-Latin.woff2?v=20260811-fraunces-1';
@@ -4509,12 +4509,12 @@
         filter: blur(0) saturate(.9) brightness(.82);
         transform: scale(1);
       }
-      .polish-lightbox.is-closing {
+      .polish-lightbox.is-open.is-closing {
+        opacity: 0;
         pointer-events: none;
       }
       .polish-lightbox.is-closing img {
-        opacity: 0;
-        transform: scale(1);
+        opacity: 1;
       }
       .polish-lightbox.is-open {
         opacity: 1;
@@ -6235,13 +6235,18 @@
   }
 
   function setupResponsiveViewportGuard() {
-    let raf = 0;
+    let raf = 0, stableWidth = 0;
     function apply() {
       raf = 0;
       document.documentElement.scrollLeft = 0;
       document.body.scrollLeft = 0;
       if (window.scrollX) window.scrollTo(0, window.scrollY);
-      document.documentElement.style.setProperty('--polish-viewport-w', (window.visualViewport?.width || window.innerWidth) + 'px');
+      const width = document.documentElement.clientWidth || window.innerWidth;
+      document.documentElement.style.setProperty('--polish-viewport-w', width + 'px');
+      if (matchMedia('(hover: none), (pointer: coarse)').matches && Math.abs(width - stableWidth) > 1) {
+        stableWidth = width;
+        document.documentElement.style.setProperty('--polish-mobile-hero-height', window.innerHeight + 'px');
+      }
     }
     function schedule() {
       if (!raf) raf = requestAnimationFrame(apply);
@@ -8610,6 +8615,7 @@
         ratio: 'square',
         fit: 'cover',
         caption: fallbackCaption || '',
+        lightboxCaption: '',
         poster: ''
       };
     }
@@ -8621,6 +8627,7 @@
       ratio: /^(wide|portrait|square)$/.test(image.ratio || '') ? image.ratio : 'square',
       fit: image.fit === 'contain' ? 'contain' : 'cover',
       caption: image.caption || fallbackCaption || '',
+      lightboxCaption: String(image.lightboxCaption ?? image.caption ?? '').trim(),
       poster: image.poster || '',
       palette: Array.isArray(image.palette) ? image.palette : null,
       accent: image.accent || image.color || '',
@@ -8915,6 +8922,7 @@
     }
     lightbox.addEventListener('pointerdown', event => {
       if (event.pointerType !== 'touch' || !lightbox.classList.contains('is-open')) return;
+      if (!viewerPointers.size) viewerClickBlockedUntil = 0;
       viewerPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
       lightbox.setPointerCapture(event.pointerId); beginViewerGesture();
     });
@@ -8923,6 +8931,7 @@
       viewerPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
       const points=Array.from(viewerPointers.values()), g=viewerGesture;
       const mid=points.length>1 ? {x:(points[0].x+points[1].x)/2,y:(points[0].y+points[1].y)/2} : points[0];
+      if (points.length === 1 && Math.hypot(mid.x-g.mid.x,mid.y-g.mid.y) < 9) return;
       if (points.length>1 && g.distance) viewerScale=clamp(g.scale*Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y)/g.distance,1,4);
       if (points.length>1 || viewerScale>1) {
         viewerX=clamp(g.x+mid.x-g.mid.x,-lightboxImage.clientWidth*(viewerScale-1)/2,lightboxImage.clientWidth*(viewerScale-1)/2);
@@ -9167,6 +9176,7 @@
       lightboxImage.src = src;
       if (lightboxImage.decode) lightboxImage.decode().catch(() => {});
       lightboxCaption.textContent = caption || '';
+      lightboxCaption.hidden = !String(caption || '').trim();
       lightbox.classList.add('is-animating');
       lightbox.classList.add('is-open');
       lightbox.classList.remove('is-closing');
@@ -9190,12 +9200,12 @@
         lightbox.setAttribute('aria-hidden', 'true');
         lightboxCaption.textContent = '';
         resetViewerZoom();
-      }, 180);
+      }, 340);
       setTimeout(() => {
         lightboxClosing = false;
         lightboxAnimating = false;
         lastLightboxSource = null;
-      }, 240);
+      }, 360);
     }
 
     function getTextScrollMetrics(body, rail) {
@@ -9946,7 +9956,7 @@
         const priority = featured ? ' fetchpriority="high"' : '';
         const frameClass = featured && !interactive ? 'polish-project-detail__image-frame polish-project-detail__image-frame--static-cover' : 'polish-project-detail__image-frame';
         const interactionAttrs = interactive
-          ? ' data-cursor="pointer" data-polish-lightbox-src="' + escapeHtml(image.src) + '" data-polish-lightbox-caption="' + escapeHtml(image.caption || item.title || 'Untitled') + '"'
+          ? ' data-cursor="pointer" data-polish-lightbox-src="' + escapeHtml(image.src) + '" data-polish-lightbox-caption="' + escapeHtml(image.lightboxCaption || '') + '"'
           : ' aria-hidden="true"';
         const alt = interactive ? title + ' related image ' + (imgIndex + 1) : '';
         return '<figure class="' + figureClass + '"><div class="' + frameClass + '"' + interactionAttrs + '><img src="' + escapeHtml(image.src) + '" alt="' + alt + '" loading="' + loading + '"' + priority + ' decoding="async"/></div>' + caption + '</figure>';

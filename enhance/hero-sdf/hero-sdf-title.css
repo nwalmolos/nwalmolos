@@ -108,3 +108,11 @@ main > section:first-of-type > .sdf-title-canvas[data-sdf-canvas-state="static"]
 @media (hover: none), (pointer: coarse) {
   main > section:first-of-type { touch-action: pan-y pinch-zoom; }
 }
+
+/* Browser toolbar changes must not resize an already-rasterized mobile hero. */
+@media (hover: none), (pointer: coarse) {
+  main > section:first-of-type { height:var(--polish-mobile-hero-height,100svh)!important; min-height:var(--polish-mobile-hero-height,100svh)!important; }
+  main > section:first-of-type > .sdf-title-canvas { top:0!important; bottom:auto!important; height:var(--polish-mobile-hero-height,100svh)!important; }
+  .polish-hero-scroll-motion > .polish-hero-video-layer { top:calc(var(--polish-mobile-hero-height,100svh) * -.08)!important; bottom:auto!important; height:calc(var(--polish-mobile-hero-height,100svh) * 1.16)!important; min-height:0!important; }
+  .polish-hero-scroll-content { top:calc(var(--polish-mobile-hero-height,100svh) * .48)!important; }
+}

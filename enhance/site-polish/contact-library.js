@@ -52,5 +52,5 @@
     node.setAttribute('aria-hidden', 'true');
     return node;
   }
-  window.NM_CONTACT_LIBRARY = Object.freeze({makeIcon, safeHref});
+  window.NM_CONTACT_LIBRARY = Object.freeze({makeIcon, safeHref, contactAction: link => link.action === 'copy' || link.action === 'link' ? link.action : link.icon?.name === 'wechat' ? 'copy' : 'link'});
 })();

@@ -4,6 +4,37 @@
   // Only the icons used by the contact row are vendored here. Existing brand
   // paths come from Simple Icons 16.24.1 (CC0-1.0); Douban uses a compact local
   // glyph so the contact row stays fully offline without a runtime CDN.
+  async function copyContact(value, anchor) {
+    let copied = false;
+    try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(value); copied = true; } } catch (_) {}
+    if (!copied) {
+      const active = document.activeElement, field = document.createElement('textarea');
+      field.value = value; field.style.cssText = 'position:fixed;left:-9999px;top:0;font-size:16px';
+      document.body.append(field); field.select();
+      try { copied = document.execCommand('copy'); } catch (_) {}
+      field.remove(); active?.focus({preventScroll:true});
+    }
+    if (copied) showCopied(anchor);
+  }
+  let copyFeedback;
+  function showCopied(anchor) {
+    const old = copyFeedback;
+    if (old) { clearTimeout(old.timer); old.node.remove(); }
+    if (!anchor.isConnected) return;
+    const node = document.createElement('span');
+    node.dataset.contactCopied = ''; node.setAttribute('role', 'status');
+    node.setAttribute('aria-live', 'polite'); node.textContent = '✓  COPIED';
+    node.style.cssText = 'position:fixed;bottom:calc(20px + env(safe-area-inset-bottom, 0px));left:50%;translate:-50% 0;display:flex;align-items:center;gap:12px;width:min(320px, calc(100vw - 48px));padding:13px 0 0;border-top:1px solid #ffffff40;background:linear-gradient(transparent,#0d0e10dd);font-family:inherit;font-size:10px;font-weight:400;line-height:1.4;letter-spacing:1.8px;color:#e6e5e3;white-space:nowrap;pointer-events:none;z-index:2147483647';
+    const line = document.createElement('span'); line.setAttribute('aria-hidden', 'true');
+    line.style.cssText = 'display:block;width:22px;height:1px;background:#aaa6ac;margin-left:auto;transform-origin:left';
+    node.append(line); document.body.append(node);
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      node.animate([{opacity:0,transform:'translateY(3px)'},{opacity:1,transform:'translateY(0)'},{opacity:1,offset:.78},{opacity:0}],{duration:1800,fill:'forwards'});
+      line.animate([{transform:'scaleX(1)'},{transform:'scaleX(0)'}],{duration:1800,fill:'forwards'});
+    }
+    const timer = setTimeout(() => { node.remove(); copyFeedback = null; }, 1800);
+    copyFeedback = {node, timer};
+  }
   const ICONS = Object.freeze({
 "wechat":{"title":"微信 WeChat","path":"M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"},
 "qq":{"title":"QQ","path":"M21.395 15.035a40 40 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 17.351 0 12 0S4.474 4.632 4.474 9.241c0 .274.013.804.014.836l-1.08 2.695a39 39 0 0 0-.802 2.264c-1.021 3.283-.69 4.643-.438 4.673.54.065 2.103-2.472 2.103-2.472 0 1.469.756 3.387 2.394 4.771-.612.188-1.363.479-1.845.835-.434.32-.379.646-.301.778.343.578 5.883.369 7.482.189 1.6.18 7.14.389 7.483-.189.078-.132.132-.458-.301-.778-.483-.356-1.233-.646-1.846-.836 1.637-1.384 2.393-3.302 2.393-4.771 0 0 1.563 2.537 2.103 2.472.251-.03.581-1.39-.438-4.673"},
@@ -16,7 +47,7 @@
 "dribbble":{"title":"Dribbble","path":"M12 24C5.385 24 0 18.615 0 12S5.385 0 12 0s12 5.385 12 12-5.385 12-12 12zm10.12-10.358c-.35-.11-3.17-.953-6.384-.438 1.34 3.684 1.887 6.684 1.992 7.308 2.3-1.555 3.936-4.02 4.395-6.87zm-6.115 7.808c-.153-.9-.75-4.032-2.19-7.77l-.066.02c-5.79 2.015-7.86 6.025-8.04 6.4 1.73 1.358 3.92 2.166 6.29 2.166 1.42 0 2.77-.29 4-.814zm-11.62-2.58c.232-.4 3.045-5.055 8.332-6.765.135-.045.27-.084.405-.12-.26-.585-.54-1.167-.832-1.74C7.17 11.775 2.206 11.71 1.756 11.7l-.004.312c0 2.633.998 5.037 2.634 6.855zm-2.42-8.955c.46.008 4.683.026 9.477-1.248-1.698-3.018-3.53-5.558-3.8-5.928-2.868 1.35-5.01 3.99-5.676 7.17zM9.6 2.052c.282.38 2.145 2.914 3.822 6 3.645-1.365 5.19-3.44 5.373-3.702-1.81-1.61-4.19-2.586-6.795-2.586-.825 0-1.63.1-2.4.285zm10.335 3.483c-.218.29-1.935 2.493-5.724 4.04.24.49.47.985.68 1.486.08.18.15.36.22.53 3.41-.43 6.8.26 7.14.33-.02-2.42-.88-4.64-2.31-6.38z"},
 "telegram":{"title":"Telegram","path":"M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"},
 "tiktok":{"title":"抖音 TikTok","path":"M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"},
-"mana":{"title":"MANA 新媒体艺术","src":"enhance/site-polish/brand-icons/mana-square.ico"},
+"mana":{"title":"MANA 新媒体艺术","path":"M5 1.5 22.3 10.2Q25 12 22.3 13.8L5 22.5v-2L21.2 12 5 3.5zM7 6.5Q5.5 5.7 5.5 7.5v9Q5.5 18.3 7 17.5L16.8 12.8Q18.2 12 16.8 11.2z"},
     github: {
       title: 'GitHub',
       path: 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'
@@ -120,7 +151,7 @@
     if (!baseWrappers.length) return false;
 
     if (Array.isArray(contactContent?.links) && window.NM_CONTACT_LIBRARY) {
-      const wrappers = contactContent.links.filter(link => link.visible !== false && window.NM_CONTACT_LIBRARY.safeHref(link.href)).map((link, index) => {
+      const wrappers = contactContent.links.filter(link => link.visible !== false && (window.NM_CONTACT_LIBRARY.contactAction(link) === 'copy' ? String(link.href || '').trim() : window.NM_CONTACT_LIBRARY.safeHref(link.href))).map((link, index) => {
         const wrapper = (baseWrappers[index % baseWrappers.length]).cloneNode(true);
         const anchor = wrapper.matches('a') ? wrapper : wrapper.querySelector('a');
         wrapper.dataset.socialItemKey = link.id;
@@ -130,6 +161,13 @@
           anchor.classList.remove('editable-field-hidden');
           anchor.href = link.href;
           anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
+          anchor.removeAttribute('role'); anchor.removeAttribute('tabindex');
+          if (window.NM_CONTACT_LIBRARY.contactAction(link) === 'copy') {
+            anchor.removeAttribute('href'); anchor.removeAttribute('target'); anchor.removeAttribute('rel');
+            anchor.setAttribute('role', 'button'); anchor.tabIndex = 0; anchor.style.cursor = 'pointer'; 
+            anchor.addEventListener('click', event => { event.preventDefault(); copyContact(String(link.href || ''), anchor); });
+            anchor.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); anchor.click(); } });
+          }
           anchor.dataset.socialKey = link.id;
           anchor.setAttribute('aria-label', link.label || link.href);
           anchor.replaceChildren(window.NM_CONTACT_LIBRARY.makeIcon(link.icon, document.baseURI), makeLabel(link.label || link.href));
