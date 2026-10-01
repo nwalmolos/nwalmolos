@@ -18,15 +18,21 @@
   }
   let copyFeedback;
   function showCopied(anchor) {
+    if (!document.getElementById('contact-copied-responsive-style')) {
+      const style = document.createElement('style');
+      style.id = 'contact-copied-responsive-style';
+      style.textContent = '@media (min-width:901px){[data-contact-copied]{--copied-width:400px;--copied-font-size:14px;--copied-bottom:32px;--copied-padding:18px;--copied-gap:16px;--copied-line-width:32px;}}';
+      document.head.appendChild(style);
+    }
     const old = copyFeedback;
     if (old) { clearTimeout(old.timer); old.node.remove(); }
     if (!anchor.isConnected) return;
     const node = document.createElement('span');
     node.dataset.contactCopied = ''; node.setAttribute('role', 'status');
     node.setAttribute('aria-live', 'polite'); node.textContent = '✓  COPIED';
-    node.style.cssText = 'position:fixed;bottom:calc(20px + env(safe-area-inset-bottom, 0px));left:50%;translate:-50% 0;display:flex;align-items:center;gap:12px;width:min(320px, calc(100vw - 48px));padding:13px 0 0;border-top:1px solid #ffffff40;background:linear-gradient(transparent,#0d0e10dd);font-family:inherit;font-size:10px;font-weight:400;line-height:1.4;letter-spacing:1.8px;color:#e6e5e3;white-space:nowrap;pointer-events:none;z-index:2147483647';
+    node.style.cssText = 'position:fixed;bottom:calc(var(--copied-bottom,20px) + env(safe-area-inset-bottom, 0px));left:50%;translate:-50% 0;display:flex;align-items:center;gap:var(--copied-gap,12px);width:min(var(--copied-width,320px), calc(100vw - 48px));padding:var(--copied-padding,13px) 0 0;border-top:1px solid #ffffff40;background:linear-gradient(transparent,#0d0e10dd);font-family:inherit;font-size:var(--copied-font-size,10px);font-weight:400;line-height:1.4;letter-spacing:1.8px;color:#e6e5e3;white-space:nowrap;pointer-events:none;z-index:2147483647';
     const line = document.createElement('span'); line.setAttribute('aria-hidden', 'true');
-    line.style.cssText = 'display:block;width:22px;height:1px;background:#aaa6ac;margin-left:auto;transform-origin:left';
+    line.style.cssText = 'display:block;width:var(--copied-line-width,22px);height:1px;background:#aaa6ac;margin-left:auto;transform-origin:left';
     node.append(line); document.body.append(node);
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       node.animate([{opacity:0,transform:'translateY(3px)'},{opacity:1,transform:'translateY(0)'},{opacity:1,offset:.78},{opacity:0}],{duration:1800,fill:'forwards'});

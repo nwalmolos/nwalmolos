@@ -1454,10 +1454,11 @@
       // the configured desktop quality and the existing texture-width cap.
       const touchDisplay = matchMedia('(hover: none), (pointer: coarse)').matches;
       const displayScale = touchDisplay
-        ? Math.max(requestedScale, Math.min(window.devicePixelRatio || 1, 3))
+        ? Math.min(2, Math.max(1, window.devicePixelRatio || 1))
         : requestedScale;
       const widthLimitScale = (Number(this.options.maxTextureWidth) || 1120) / canvasRect.width;
-      const scale = Math.max(0.55, Math.min(displayScale, widthLimitScale));
+      const pixelBudgetScale = touchDisplay ? Math.sqrt(1600000 / (canvasRect.width * canvasRect.height)) : Infinity;
+      const scale = Math.max(0.55, Math.min(displayScale, widthLimitScale, pixelBudgetScale));
       const width = Math.max(2, Math.round(canvasRect.width * scale));
       const height = Math.max(2, Math.round(canvasRect.height * scale));
 

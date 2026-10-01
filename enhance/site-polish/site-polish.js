@@ -2,7 +2,7 @@
   const CONFIG_URL = 'enhance/site-polish/config.json';
   const PROJECTS_URL = 'enhance/site-polish/projects.json';
   const HERO_VIDEO_PLAYBACK_RATE = 24 / 25;
-  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20260919-no-controls';
+  const HERO_SDF_SCRIPT_URL = 'enhance/hero-sdf/sdf-title-effect.js?v=20261001-mobile-review';
   const HERO_SDF_STYLE_URL = 'enhance/hero-sdf/hero-sdf-title.css?v=20260920-stable-hero';
   const PILOWLAVA_FONT_URL = 'assets/fonts/pilowlava/Pilowlava-Regular.woff2?v=20260728-pilowlava-sdf-6';
   const NOTO_SANS_SC_STYLE_URL = 'assets/fonts/noto-sans-sc/noto-sans-sc.css?v=20260811-noto-sc-1';
@@ -4484,6 +4484,14 @@
         .polish-project-detail__body { overscroll-behavior: auto !important; touch-action: pan-y pinch-zoom; }
         .polish-project-detail__featured-shell:not(.is-copy-expanded) .polish-project-detail__body { overflow: clip !important; }
       }
+      .polish-layer-tile, .polish-project-detail__image-frame, .polish-lightbox img { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+      .is-media-unavailable { position: relative; background: radial-gradient(ellipse at center, #1b222c, #090c12); }
+      .is-media-unavailable::after { content: '图片暂时无法显示'; position: absolute; inset: 0; display: grid; place-items: center; color: #a5adb8; font-size: 13px; pointer-events: none; transform: none !important; }
+      @media (hover: none), (pointer: coarse) {
+        .polish-works-image { filter: none; transition: transform .16s ease-out; will-change: auto; }
+        .polish-works-surface { backface-visibility: visible; transform: none; }
+        .polish-gallery-section.is-polish-works-rail .polish-layer-tile { will-change: auto; }
+      }
       .polish-lightbox {
         position: fixed;
         inset: 0;
@@ -6965,8 +6973,8 @@
       };
       const recoverVideo = (forceReload) => {
         if (!heroVideoVisible()) return;
-        showFallback();
-        clearTimeout(recoveryTimer);
+        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) showFallback();
+        if (recoveryTimer) return;
         recoveryTimer = window.setTimeout(() => {
           recoveryTimer = 0;
           if (!heroVideoVisible()) return;
@@ -6976,6 +6984,7 @@
             return;
           }
           if (forceReload && reloadAttempts < 3) {
+            showFallback();
             reloadAttempts += 1;
             const resumeAt = Number.isFinite(video.duration) && video.duration > 0
               ? video.currentTime % video.duration
@@ -7051,10 +7060,9 @@
           lastMediaTime = currentTime;
           lastProgressAt = now;
         }
-        const frameStale = Boolean(video.requestVideoFrameCallback) && now - lastPresentedFrameAt > 2800;
-        const timeStale = now - lastProgressAt > 2800;
+        const timeStale = now - lastProgressAt > 12000;
         if (video.paused || video.ended) recoverVideo(false);
-        else if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || frameStale || timeStale) recoverVideo(true);
+        else if (timeStale) recoverVideo(true);
       }, 1200);
 
       layer.__polishHeroVideoCleanup = () => {
@@ -8415,7 +8423,7 @@
     const strength = clamp(Number(config.elasticStrength) || 1, 0.25, 2);
     const items = collectElasticTextItems(strength);
     if (!items.length) return;
-    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    {
       bindDesktopHeadingSpring(items.map(item => item.el));
       return;
     }
@@ -8765,7 +8773,7 @@
     if (!title || title.dataset.polishGalleryMotion === 'true') return;
     if (galleryTitleMotionCleanup) galleryTitleMotionCleanup();
     title.dataset.polishGalleryMotion = 'true';
-    if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    {
       const cleanup = bindDesktopHeadingSpring([title]);
       galleryTitleMotionCleanup = () => { cleanup(); title.removeAttribute('data-polish-gallery-motion'); galleryTitleMotionCleanup = null; };
       return;
@@ -8906,6 +8914,28 @@
     if (detailTop && detailNavMode === 'shared') detailTop.setAttribute('aria-hidden', 'true');
     const lightboxImage = lightbox.querySelector('img');
     const lightboxCaption = lightbox.querySelector('.polish-lightbox__caption');
+    const protectMedia = event => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+      const frame = image.closest('.polish-project-detail__image-frame, .polish-works-surface, .polish-lightbox > div');
+      if (!frame) return;
+      frame.classList.add('is-media-unavailable');
+      frame.setAttribute('role', 'img');
+      frame.setAttribute('aria-label', '图片暂时无法显示');
+      image.alt = ''; image.style.visibility = 'hidden';
+    };
+    document.addEventListener('error', protectMedia, true);
+    document.addEventListener('load', event => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+      const frame = image.closest('.is-media-unavailable');
+      if (!frame) return;
+      frame.classList.remove('is-media-unavailable'); frame.removeAttribute('role'); frame.removeAttribute('aria-label');
+      if (!frame.closest('.polish-lightbox')) image.style.visibility = '';
+    }, true);
+    document.addEventListener('contextmenu', event => {
+      if (matchMedia('(hover: none), (pointer: coarse)').matches && event.target.closest('.polish-layer-tile, .polish-project-detail__image-frame, .polish-lightbox')) event.preventDefault();
+    });
     let transitioning = false;
     let lightboxClosing = false;
     const viewerPointers = new Map();
@@ -9172,9 +9202,17 @@
       lastLightboxSource = source || null;
       lightboxClosing = false;
       resetViewerZoom();
-      lightboxImage.style.visibility = '';
-      lightboxImage.src = src;
-      if (lightboxImage.decode) lightboxImage.decode().catch(() => {});
+      const displayed = source?.querySelector('img');
+      src = displayed?.currentSrc || displayed?.src || src;
+      const requested = new URL(src, document.baseURI).href;
+      lightboxImage.style.visibility = 'hidden';
+      lightboxImage.alt = '';
+      lightboxImage.src = requested;
+      const reveal = () => {
+        if (lightboxImage.src === requested && lightboxImage.naturalWidth && lightbox.classList.contains('is-open')) lightboxImage.style.visibility = '';
+      };
+      if (lightboxImage.decode) lightboxImage.decode().then(reveal).catch(() => {});
+      else lightboxImage.onload = reveal;
       lightboxCaption.textContent = caption || '';
       lightboxCaption.hidden = !String(caption || '').trim();
       lightbox.classList.add('is-animating');
@@ -9972,7 +10010,7 @@
           '<div class="polish-project-detail__chapter-visual">' + renderDetailMedia(image, imageIndex + 1, false) + '</div></section>';
       }).join('');
       const desktopRailItems = images.map((image, imageIndex) => {
-        return renderDetailMedia(image, imageIndex, true).replace(
+        return renderDetailMedia(image, imageIndex, true, true).replace(
           '<figure class="',
           '<figure data-polish-detail-rail-card data-polish-rail-index="' + imageIndex + '" class="polish-project-detail__desktop-media-card '
         );
@@ -10456,6 +10494,35 @@
       wakeWorksRail();
     }
 
+    let tiltRequested = false, tiltBaseline = null, tiltX = 0, tiltY = 0, tiltFrame = 0;
+    const reducedCardMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    function applyCardTilt(event) {
+      if (document.hidden || reducedCardMotion.matches || !Number.isFinite(event.gamma) || !Number.isFinite(event.beta)) return;
+      if (!tiltBaseline) tiltBaseline = {gamma:event.gamma,beta:event.beta};
+      tiltX = clamp((event.gamma - tiltBaseline.gamma) / 22, -1, 1);
+      tiltY = clamp((event.beta - tiltBaseline.beta) / 22, -1, 1);
+      if (!tiltFrame) tiltFrame = requestAnimationFrame(() => {
+        tiltFrame = 0;
+        worksCards.forEach(card => {
+          const rect = card.getBoundingClientRect();
+          if (rect.right < 0 || rect.left > innerWidth || rect.bottom < 0 || rect.top > innerHeight) return;
+          card.style.setProperty('--polish-card-mx', tiltX.toFixed(3));
+          card.style.setProperty('--polish-card-my', tiltY.toFixed(3));
+        });
+      });
+    }
+    async function requestCardTilt() {
+      const api = window.DeviceOrientationEvent;
+      if (tiltRequested || !api || !matchMedia('(hover: none), (pointer: coarse)').matches) return;
+      tiltRequested = true;
+      try {
+        const result = typeof api.requestPermission === 'function' ? await api.requestPermission() : 'granted';
+        if (result === 'granted') window.addEventListener('deviceorientation', applyCardTilt, {passive:true});
+      } catch { /* Scrolling and opening projects remain available. */ }
+    }
+    document.addEventListener('pointerdown', requestCardTilt, {passive:true});
+    window.addEventListener('orientationchange', () => { tiltBaseline = null; }, {passive:true});
+    if (window.DeviceOrientationEvent && typeof window.DeviceOrientationEvent.requestPermission !== 'function') requestCardTilt();
     function bindWorksCards() {
       worksCards = Array.from(grid.querySelectorAll('[data-polish-layer-tile]'));
       worksCards.forEach((card) => {
@@ -10468,10 +10535,12 @@
         card.addEventListener('pointerenter', () => {
           if (!worksDragging && matchMedia('(hover:hover) and (pointer:fine)').matches) openWorksCard(card);
         });
-        card.addEventListener('pointerleave', () => {
+        card.addEventListener('pointerleave', (event) => {
+          if (event.pointerType === 'touch') return;
           if (worksHoveredCard === card && !worksDragging) closeWorksCards();
         });
         card.addEventListener('pointermove', (event) => {
+          if (event.pointerType === 'touch') return;
           if (!worksDragging && matchMedia('(hover:hover) and (pointer:fine)').matches) openWorksCard(card);
           const rect = card.getBoundingClientRect();
           card.style.setProperty('--polish-card-mx', ((event.clientX - rect.left) / rect.width - .5).toFixed(3));
@@ -10515,9 +10584,11 @@
       event.preventDefault();
       shiftWorks(1);
     });
+    let worksDragStartY = 0;
     worksViewport.addEventListener('pointerdown', (event) => {
       if (event.button !== 0) return;
       worksDragging = true;
+      worksDragStartY = event.clientY;
       worksDragMoved = false;
       worksSuppressClick = false;
       worksDragStartX = worksDragLastX = event.clientX;
@@ -10530,7 +10601,9 @@
       const now = performance.now();
       const dx = event.clientX - worksDragStartX;
       if (!worksDragMoved) {
-        if (Math.abs(dx) <= 5) return;
+        const dy = event.clientY - worksDragStartY;
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) * 1.15) { worksDragging = false; return; }
+        if (Math.abs(dx) <= 8 || Math.abs(dx) <= Math.abs(dy) * 1.15) return;
         worksDragMoved = true;
         if (worksRailFrame) cancelAnimationFrame(worksRailFrame);
         worksRailFrame = 0;
@@ -10555,6 +10628,7 @@
     function finishWorksDrag(event) {
       if (!worksDragging) return;
       const dx = event.clientX - worksDragStartX;
+      const cancelled = event.type === 'pointercancel';
       worksDragging = false;
       worksSuppressClick = worksDragMoved;
       worksViewport.classList.remove('is-dragging');
@@ -10563,7 +10637,7 @@
       const width = worksPageStep();
       const threshold = width * .28;
       worksTargetPage = Math.round(-worksDragStartRailX / width);
-      if (Math.abs(dx) >= threshold) worksTargetPage += dx < 0 ? 1 : -1;
+      if (!cancelled && Math.abs(dx) >= threshold) worksTargetPage += dx < 0 ? 1 : -1;
       worksGroupIndex = worksModulo(worksTargetPage, worksGroups.length);
       worksRailTargetX = -worksTargetPage * width;
       worksRailVelocity = Math.max(-280, Math.min(280, worksDragVelocity * .2));
@@ -10572,7 +10646,8 @@
     worksViewport.addEventListener('pointerup', finishWorksDrag);
     worksViewport.addEventListener('pointercancel', finishWorksDrag);
     worksViewport.addEventListener('dragstart', (event) => event.preventDefault());
-    worksViewport.addEventListener('pointerleave', () => {
+    worksViewport.addEventListener('pointerleave', (event) => {
+      if (event.pointerType === 'touch') return;
       if (!worksDragging) closeWorksCards();
     });
     worksViewport.addEventListener('click', (event) => {
@@ -10589,6 +10664,16 @@
       if (!slug) return;
       event.preventDefault();
       openDetail(slug, true, tile);
+    });
+    detail.addEventListener('polish:preview-rail-image', event => {
+      if (window.innerWidth < 901 || !detail.classList.contains('is-open') || detail.classList.contains('is-closing')) return;
+      const index = event.detail?.index;
+      if (!Number.isInteger(index) || index < 0) return;
+      const group = detail.querySelector('[data-polish-detail-rail-group]');
+      const card = group?.querySelector('[data-polish-rail-index="' + index + '"]');
+      const frame = card?.querySelector('[data-polish-lightbox-src]:not(.is-media-unavailable)');
+      if (!frame) return;
+      openLightbox(frame.getAttribute('data-polish-lightbox-src'),frame.getAttribute('data-polish-lightbox-caption'),frame);
     });
     detail.addEventListener('polish:request-close', () => closeDetail(true));
     detail.addEventListener('wheel', handleDetailRailWheel, { passive: false });
@@ -10634,7 +10719,8 @@
         closeDetail(true);
         return;
       }
-      const lightboxTarget = event.target.closest('[data-polish-lightbox-src]');
+
+      const lightboxTarget = event.target.closest('[data-polish-lightbox-src]:not(.is-media-unavailable)');
       if (lightboxTarget) {
         openLightbox(lightboxTarget.getAttribute('data-polish-lightbox-src'), lightboxTarget.getAttribute('data-polish-lightbox-caption'), lightboxTarget);
         return;

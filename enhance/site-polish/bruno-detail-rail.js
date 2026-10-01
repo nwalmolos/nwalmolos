@@ -89,6 +89,7 @@
   const direction = { current: 1, target: 1 };
   const metrics = { width: 1, height: 1, cardWidth: 1, cardHeight: 1, gap: 22, spacing: 1, period: 4, fallbackPeriod: 1 };
   let pointerY = 0;
+  let press = null, blockRailClick = false, hitRegions = [];
   let dragging = false;
   let webgl = null;
   let effectTimer = 0;
@@ -385,6 +386,7 @@
       });
     }
     cards.sort((a, b) => Math.abs(b.documentY - metrics.height * 0.5) - Math.abs(a.documentY - metrics.height * 0.5));
+    hitRegions = [];
     cards.forEach(({ index, centerY }) => {
       const entry = textures[index];
       const imageAspect = entry.width / entry.height;
@@ -399,7 +401,18 @@
       gl.uniform1f(locations.centerY, centerY);
       const positionFlip = Math.max(-1, Math.min(1, centerY / (metrics.height * 0.58)));
       const velocityFlip = Math.max(-1, Math.min(1, scroll.velocity));
-      gl.uniform1f(locations.flip, effect.current * (positionFlip * 0.76 + velocityFlip * 0.18));
+      const flip = effect.current * (positionFlip * 0.76 + velocityFlip * 0.18);
+      gl.uniform1f(locations.flip, flip);
+      // Match the four corners to the vertex shader's bend and perspective.
+      const polygon = [[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]].map(([x,y]) => {
+        const localY = y * metrics.cardHeight, pivotY = -metrics.cardHeight * .5;
+        const rotatedY = (localY - pivotY) * Math.cos(flip) + pivotY;
+        const distortion = effect.current * .30;
+        const z = (localY - pivotY) * Math.sin(flip) + (1 - Math.cos(y * Math.PI)) * distortion * 24 - distortion * 17;
+        const perspective = 1180 / (1180 - z);
+        return {x:metrics.width * .5 + x * metrics.cardWidth * perspective,y:metrics.height * .5 - (rotatedY + centerY) * perspective};
+      });
+      hitRegions.push({index,polygon});
       gl.drawElements(gl.TRIANGLES, plane.count, gl.UNSIGNED_SHORT, 0);
     });
   }
@@ -462,6 +475,9 @@
     move(Math.max(-180, Math.min(180, delta)) * 0.88);
   }, { passive: false });
   viewport.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || viewport.closest('.polish-project-detail')?.classList.contains('is-closing')) return;
+    press = {id:event.pointerId,x:event.clientX,y:event.clientY,moved:0};
+    blockRailClick = false;
     dragging = true;
     pointerY = event.clientY;
     effect.target = 1;
@@ -470,14 +486,50 @@
   });
   viewport.addEventListener("pointermove", event => {
     if (!dragging) return;
+    if (press) press.moved = Math.max(press.moved, Math.hypot(event.clientX - press.x, event.clientY - press.y));
     const delta = pointerY - event.clientY;
     pointerY = event.clientY;
     scroll.target += delta * 1.15;
   });
-  const release = () => {
+  function insidePolygon(x, y, polygon) {
+    let inside = false;
+    for (let i=0,j=polygon.length-1;i<polygon.length;j=i++) {
+      const a=polygon[i],b=polygon[j];
+      if ((a.y>y)!==(b.y>y) && x < (b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x) inside=!inside;
+    }
+    return inside;
+  }
+  function previewAt(event) {
+    let index = -1;
+    if (webgl && viewport.classList.contains('is-webgl')) {
+      const rect = viewport.getBoundingClientRect();
+      const x = event.clientX - rect.left, y = event.clientY - rect.top;
+      for (let i=hitRegions.length-1;i>=0;i--) {
+        if (insidePolygon(x,y,hitRegions[i].polygon)) { index=hitRegions[i].index; break; }
+      }
+    } else {
+      const card = Array.from(viewport.querySelectorAll('[data-polish-detail-rail-card]')).find(card => {
+        const rect=card.getBoundingClientRect();
+        return event.clientX>=rect.left && event.clientX<=rect.right && event.clientY>=rect.top && event.clientY<=rect.bottom;
+      });
+      if (card) index=Number(card.dataset.polishRailIndex);
+    }
+    if (index<0) return;
+    viewport.dispatchEvent(new CustomEvent('polish:preview-rail-image',{bubbles:true,detail:{index}}));
+  }
+  viewport.addEventListener('click', event => {
+    if (blockRailClick) { event.preventDefault(); event.stopPropagation(); }
+  },true);
+  const release = event => {
+    const tap = press; press = null;
+    const isTap = tap && event.type === 'pointerup' && event.pointerId === tap.id &&
+      Math.max(tap.moved,Math.hypot(event.clientX-tap.x,event.clientY-tap.y))<=8;
+    blockRailClick = Boolean(tap && !isTap);
     dragging = false;
     effect.target = 0;
     viewport.classList.remove("is-dragging");
+    if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
+    if (isTap) previewAt(event);
   };
   viewport.addEventListener("pointerup", release);
   viewport.addEventListener("pointercancel", release);
