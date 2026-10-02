@@ -38,7 +38,12 @@
     window.addEventListener('storage', (event) => { if (event.key === 'site-content-sync' && event.newValue) reload(); });
   }
 
-  function fetchJson(path) { return fetch(path, { cache: 'no-store' }).then((res) => res.ok ? res.json() : null).catch(() => null); }
+  function fetchJson(path) {
+    return fetch(path,{cache:'no-store'}).then(res=>res.ok?res.json():null).catch(()=>null).then(value=>{
+      if(value)return value;
+      try{const fallback=JSON.parse(document.getElementById('site-current-content-fallback')?.textContent||'{}');return path.endsWith('/content.json')?fallback.content:path.endsWith('/media.json')?fallback.media:null;}catch{return null;}
+    });
+  }
 
   let localSocialIconsReady;
   function loadLocalSocialIcons() {
@@ -741,8 +746,8 @@
         window.dispatchEvent(new CustomEvent('editable:content-ready', { detail: { content: resolved, raw: lastRawContent, media: lastMedia, language } }));
       };
       const scheduleFinish = () => requestAnimationFrame(() => requestAnimationFrame(finish));
-      if (document.readyState === 'complete') scheduleFinish();
-      else window.addEventListener('load', scheduleFinish, { once: true });
+      if (document.readyState !== 'loading') scheduleFinish();
+      else document.addEventListener('DOMContentLoaded', scheduleFinish, { once: true });
     });
   }
 

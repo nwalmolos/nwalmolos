@@ -499,7 +499,7 @@
     }
     return inside;
   }
-  function previewAt(event) {
+  function previewIndexAt(event) {
     let index = -1;
     if (webgl && viewport.classList.contains('is-webgl')) {
       const rect = viewport.getBoundingClientRect();
@@ -514,7 +514,18 @@
       });
       if (card) index=Number(card.dataset.polishRailIndex);
     }
-    if (index<0) return;
+    return index;
+  }
+  viewport.addEventListener('pointermove',event=>{
+    const index=previewIndexAt(event);
+    const card=firstGroup.querySelector('[data-polish-rail-index="'+index+'"]');
+    if(card?.querySelector('[data-polish-lightbox-src]:not(.is-media-unavailable)'))viewport.dataset.cursor='pointer';
+    else delete viewport.dataset.cursor;
+  },{passive:true});
+  viewport.addEventListener('pointerleave',()=>{delete viewport.dataset.cursor;},{passive:true});
+  function previewAt(event) {
+    const index=previewIndexAt(event);
+    if(index<0)return;
     viewport.dispatchEvent(new CustomEvent('polish:preview-rail-image',{bubbles:true,detail:{index}}));
   }
   viewport.addEventListener('click', event => {

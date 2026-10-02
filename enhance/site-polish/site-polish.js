@@ -1407,8 +1407,11 @@
         mix-blend-mode: difference;
         will-change: transform, opacity;
       }
+      html.polish-native-dot-cursor, html.polish-native-dot-cursor * { cursor: none !important; }
       html.polish-native-dot-cursor .polish-click-cursor {
-        display: none !important;
+        display: block !important;
+        transform-origin: 50% 50%;
+        transition: scale .16s ease, opacity .16s ease, background-color .16s ease, box-shadow .16s ease;
       }
       /* The native dot is the normal pointer treatment. While the detail
          curtain exposes its side-close affordance, replace that dot with the
@@ -1427,6 +1430,9 @@
       html.polish-native-dot-cursor.polish-cursor-interactive-hot .polish-click-cursor {
         display: block !important;
       }
+      .polish-click-cursor, .polish-click-cursor.is-active { background: transparent !important; box-shadow: none !important; }
+      .polish-click-cursor__dot { display:block;width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,.94);box-shadow:0 0 0 1px rgba(0,0,0,.52),0 0 10px rgba(255,255,255,.26);transform-origin:50% 50%;transition:transform .16s ease; }
+      html.polish-detail-side-close-hot .polish-click-cursor__dot { opacity:0; }
       .polish-click-cursor::before,
       .polish-click-cursor::after {
         content: "";
@@ -7455,6 +7461,9 @@
 
     const cursor = document.createElement('span');
     cursor.className = 'polish-click-cursor';
+    const cursorDot=document.createElement('span');
+    cursorDot.className='polish-click-cursor__dot';
+    cursor.appendChild(cursorDot);
     document.body.appendChild(cursor);
     const ring = document.createElement('span');
     ring.className = 'polish-click-ring';
@@ -7490,7 +7499,8 @@
       const sideCloseHot = document.documentElement.classList.contains('polish-detail-side-close-hot');
       const interactiveHot = pointer.active || sideCloseHot;
       document.documentElement.classList.toggle('polish-cursor-interactive-hot', interactiveHot);
-      cursor.style.transform = 'translate3d(' + (pointer.x - sizes.dot / 2) + 'px,' + (pointer.y - sizes.dot / 2) + 'px,0) scale(' + (pointer.active ? sizes.activeScale : '1') + ')';
+      cursor.style.transform = 'translate3d(' + pointer.x + 'px,' + pointer.y + 'px,0) translate(-50%, -50%)';
+      cursorDot.style.transform = 'scale('+(pointer.active ? sizes.activeScale : 1)+')';
       cursor.classList.toggle('is-visible', pointer.inside);
       cursor.classList.toggle('is-active', pointer.active);
       ring.classList.toggle('is-visible', pointer.inside);
@@ -8940,9 +8950,48 @@
     let lightboxClosing = false;
     const viewerPointers = new Map();
     let viewerScale = 1, viewerX = 0, viewerY = 0, viewerGesture = null, viewerClickBlockedUntil = 0;
+    const viewerControls = document.createElement('section');
+    viewerControls.className = 'polish-viewer-controls';
+    viewerControls.setAttribute('aria-label','Image zoom controls');
+    viewerControls.innerHTML = '<button type="button" data-zoom="out" aria-label="Zoom out">−</button><button type="button" data-zoom="reset" aria-label="Reset zoom">100%</button><button type="button" data-zoom="in" aria-label="Zoom in">+</button>';
+    lightbox.appendChild(viewerControls);
+    const viewerStyle = document.createElement('style');
+    viewerStyle.textContent = '.polish-viewer-controls{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:3;padding:8px;border:1px solid #ffffff30;border-radius:32px;background:#171717c9;backdrop-filter:blur(16px)}.polish-viewer-controls button{border:0;border-radius:24px;background:#ffffff12;color:#fff;min-width:44px;height:40px;font-size:18px;cursor:pointer}.polish-viewer-controls button[data-zoom="reset"]{font-size:13px;min-width:64px}.polish-viewer-controls button:disabled{opacity:.35;cursor:default}.polish-lightbox[data-zoomed="true"] img{cursor:grab}.polish-lightbox[data-dragging="true"] img{cursor:grabbing}@media(max-width:900px){.polish-viewer-controls{display:none}}';
+    document.head.appendChild(viewerStyle);
+    function paintViewerZoom() {
+      viewerX=clamp(viewerX,-lightboxImage.clientWidth*(viewerScale-1)/2,lightboxImage.clientWidth*(viewerScale-1)/2);
+      viewerY=clamp(viewerY,-lightboxImage.clientHeight*(viewerScale-1)/2,lightboxImage.clientHeight*(viewerScale-1)/2);
+      lightboxImage.style.transform='translate('+viewerX+'px,'+viewerY+'px) scale('+viewerScale+')';
+      lightbox.dataset.zoomed=String(viewerScale>1);
+      viewerControls.querySelector('[data-zoom="reset"]').textContent=Math.round(viewerScale*100)+'%';
+      viewerControls.querySelector('[data-zoom="out"]').disabled=viewerScale<=1;
+      viewerControls.querySelector('[data-zoom="in"]').disabled=viewerScale>=4;
+    }
+    function zoomViewer(next,x,y) {
+      const previous=viewerScale;
+      viewerScale=clamp(next,1,4);
+      const rect=lightboxImage.getBoundingClientRect();
+      if(Number.isFinite(x)&&Number.isFinite(y)) {
+        viewerX-=(x-(rect.left+rect.width/2))*(viewerScale/previous-1);
+        viewerY-=(y-(rect.top+rect.height/2))*(viewerScale/previous-1);
+      }
+      paintViewerZoom();
+    }
+    viewerControls.addEventListener('click',event=>{
+      event.stopPropagation();
+      const button=event.target.closest('[data-zoom]');
+      if(!button)return;
+      zoomViewer(button.dataset.zoom==='reset'?1:viewerScale*(button.dataset.zoom==='in'?1.25:.8));
+    });
+    lightbox.addEventListener('wheel',event=>{
+      if(innerWidth<901||!lightbox.classList.contains('is-open'))return;
+      event.preventDefault();event.stopPropagation();
+      zoomViewer(viewerScale*Math.exp(-clamp(event.deltaY*(event.deltaMode===1?16:1),-100,100)*.003),event.clientX,event.clientY);
+    },{passive:false});
     function resetViewerZoom() {
       viewerPointers.clear(); viewerGesture = null; viewerScale = 1; viewerX = viewerY = 0;
       lightboxImage.style.transform = ''; viewerClickBlockedUntil = 0;
+      lightbox.dataset.dragging='false'; paintViewerZoom();
     }
     function beginViewerGesture() {
       const points = Array.from(viewerPointers.values());
@@ -8951,7 +9000,9 @@
       viewerGesture = {mid, distance:points.length > 1 ? Math.hypot(points[0].x-points[1].x,points[0].y-points[1].y) : 0, scale:viewerScale,x:viewerX,y:viewerY};
     }
     lightbox.addEventListener('pointerdown', event => {
-      if (event.pointerType !== 'touch' || !lightbox.classList.contains('is-open')) return;
+      if (!lightbox.classList.contains('is-open') || event.target.closest('.polish-viewer-controls')) return;
+      if(event.pointerType!=='touch' && (event.button!==0 || viewerScale<=1 || event.target!==lightboxImage)) return;
+      lightbox.dataset.dragging='true';
       if (!viewerPointers.size) viewerClickBlockedUntil = 0;
       viewerPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
       lightbox.setPointerCapture(event.pointerId); beginViewerGesture();
@@ -8972,6 +9023,8 @@
     });
     const endViewerPointer = event => {
       viewerPointers.delete(event.pointerId); beginViewerGesture();
+      if(!viewerPointers.size)lightbox.dataset.dragging='false';
+      paintViewerZoom();
     };
     lightbox.addEventListener('pointerup',endViewerPointer);
     lightbox.addEventListener('pointercancel',endViewerPointer);
@@ -9194,7 +9247,7 @@
 
     function openLightbox(src, caption, source) {
       if (!src || lightboxAnimating || lightboxClosing) return;
-      setDetailSideCloseCursorHot(false);
+      setDetailSideCloseCursorHot(window.innerWidth>=901);
       lightboxAnimating = true;
       clearTimeout(lightboxTimer);
       const sourceRect = source ? cloneRect(source.getBoundingClientRect()) : null;
@@ -9235,6 +9288,7 @@
       lightbox.classList.add('is-closing', 'is-animating');
       setTimeout(() => {
         lightbox.classList.remove('is-open', 'is-closing', 'is-animating');
+        setDetailSideCloseCursorHot(false);
         lightbox.setAttribute('aria-hidden', 'true');
         lightboxCaption.textContent = '';
         resetViewerZoom();
@@ -9782,6 +9836,10 @@
     }
 
     function updateDetailSideCloseCursor(event) {
+      if(window.innerWidth>=901 && lightbox.classList.contains('is-open')) {
+        setDetailSideCloseCursorHot(!event.target.closest('.polish-viewer-controls') && !viewerPointers.size);
+        return;
+      }
       if (window.innerWidth < 901 || !detail.classList.contains('is-open') || detail.classList.contains('is-closing')) {
         setDetailSideCloseCursorHot(false);
         return;
