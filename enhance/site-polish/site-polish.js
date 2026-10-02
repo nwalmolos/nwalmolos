@@ -10791,6 +10791,12 @@
     detailScroll.addEventListener('scroll', scheduleDetailNavMaterialReflection, { passive: true });
     detailScroll.addEventListener('scroll', scheduleDetailChapterMotion, { passive: true });
     lightbox.addEventListener('click', () => { if (performance.now() >= viewerClickBlockedUntil) closeLightbox(); });
+    // Shared navigation sits outside the detail subtree. Use the same gutter
+    // predicate as the close cursor for clicks on that separate surface.
+    document.addEventListener('click',event=>{
+      if(detail.contains(event.target)||!shouldCloseDetailFromSideBlank(event))return;
+      event.preventDefault();event.stopPropagation();closeDetail(true);
+    },true);
     window.addEventListener('pointermove', updateDetailSideCloseCursor, { passive: true });
     window.addEventListener('pointerleave', () => setDetailSideCloseCursorHot(false), { passive: true });
     window.addEventListener('keydown', (event) => {
